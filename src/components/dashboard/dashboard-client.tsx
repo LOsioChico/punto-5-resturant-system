@@ -278,8 +278,8 @@ export function DashboardClient() {
       label: "Nuevas",
       value: counts.nueva,
       icon: <Clock className="size-5" />,
-      color: "text-red-400",
-      bg: "bg-red-500/10",
+      color: "text-blue-400",
+      bg: "bg-blue-500/10",
       hint: "Esperando acción",
     },
     {

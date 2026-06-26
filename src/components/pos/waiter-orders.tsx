@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils } from "lucide-react";
 
 const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; label: string }> = {
-  nueva: { icon: <Clock className="size-4" />, ring: "bg-red-500", label: "Nueva" },
+  nueva: { icon: <Clock className="size-4" />, ring: "bg-blue-500", label: "Nueva" },
   en_cocina: { icon: <ChefHat className="size-4" />, ring: "bg-amber-500", label: "En cocina" },
   lista: { icon: <CheckCircle2 className="size-4" />, ring: "bg-green-500", label: "Lista" },
   servida: { icon: <Utensils className="size-4" />, ring: "bg-stone-600", label: "Servida" },

@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Clock } from "lucide-react";
 
 const statusDot: Record<OrderStatus, string> = {
-  nueva: "bg-red-500",
+  nueva: "bg-blue-500",
   en_cocina: "bg-amber-500",
   lista: "bg-green-500",
   servida: "bg-stone-600",
@@ -83,10 +83,10 @@ export function OrdersFeed({
               {isNew && (
                 <div className="mt-1.5 flex items-center gap-1.5">
                   <span className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-75" />
-                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-blue-500 opacity-75" />
+                    <span className="relative inline-flex size-2 rounded-full bg-blue-500" />
                   </span>
-                  <span className="text-xs font-medium text-red-400">Nuevo</span>
+                  <span className="text-xs font-medium text-blue-400">Nuevo</span>
                 </div>
               )}
             </button>

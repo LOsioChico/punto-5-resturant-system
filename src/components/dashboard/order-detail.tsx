@@ -40,7 +40,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_COLORS: Record<OrderStatus, { dot: string; text: string; bg: string }> = {
-  nueva: { dot: "bg-red-500", text: "text-red-400", bg: "bg-red-500/10" },
+  nueva: { dot: "bg-blue-500", text: "text-blue-400", bg: "bg-blue-500/10" },
   en_cocina: { dot: "bg-amber-500", text: "text-amber-400", bg: "bg-amber-500/10" },
   lista: { dot: "bg-green-500", text: "text-green-400", bg: "bg-green-500/10" },
   servida: { dot: "bg-stone-600", text: "text-stone-400", bg: "bg-stone-800" },
