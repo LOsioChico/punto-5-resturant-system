@@ -1,0 +1,101 @@
+"use client";
+
+import { cn, timeAgo } from "@/lib/utils";
+import type { Order, OrderStatus } from "@/lib/types";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Clock } from "lucide-react";
+
+const statusDot: Record<OrderStatus, string> = {
+  nueva: "bg-red-500",
+  en_cocina: "bg-amber-500",
+  lista: "bg-green-500",
+  servida: "bg-stone-600",
+};
+
+const statusLabel: Record<OrderStatus, string> = {
+  nueva: "Nueva",
+  en_cocina: "En cocina",
+  lista: "Lista",
+  servida: "Servida",
+};
+
+/** Left column — live feed of incoming orders. */
+export function OrdersFeed({
+  orders,
+  selectedId,
+  onSelect,
+}: {
+  orders: Order[];
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+}) {
+  if (orders.length === 0) {
+    return (
+      <EmptyState
+        icon={<Clock className="size-7" />}
+        title="No hay pedidos"
+        description="Los pedidos del POS aparecerán aquí"
+      />
+    );
+  }
+
+  return (
+    <ul className="space-y-1.5 p-3">
+      {orders.map((order) => {
+        const isSelected = selectedId === order.id;
+        const isNew = order.status === "nueva";
+
+        return (
+          <li key={order.id}>
+            <button
+              onClick={() => onSelect(order.id)}
+              className={cn(
+                "w-full rounded-lg px-3.5 py-3 text-left transition-all active:scale-[0.99]",
+                isSelected
+                  ? "bg-stone-800 ring-1 ring-inset ring-yellow-500/40"
+                  : "bg-stone-900 hover:bg-stone-800/60",
+              )}
+            >
+              {/* Row 1 — table + status */}
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <span className="text-sm font-bold text-stone-100">
+                    Mesa {order.table_number}
+                  </span>
+                  <span className="flex items-center gap-1.5 text-xs text-stone-500">
+                    <span className={cn("size-1.5 rounded-full", statusDot[order.status])} />
+                    {statusLabel[order.status]}
+                  </span>
+                </div>
+                <span className="text-xs text-stone-400">
+                  {timeAgo(order.created_at)}
+                </span>
+              </div>
+
+              {/* Row 2 — waiter + items */}
+              <div className="mt-1 flex items-center justify-between">
+                <span className="truncate text-xs text-stone-500">
+                  {order.waiter_name}
+                </span>
+                <span className="shrink-0 text-xs text-stone-400">
+                  {order.items.length} {order.items.length === 1 ? "plato" : "platos"}
+                </span>
+              </div>
+
+              {/* New order pulse */}
+              {isNew && (
+                <div className="mt-1.5 flex items-center gap-1.5">
+                  <span className="relative flex size-2">
+                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-75" />
+                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
+                  </span>
+                  <span className="text-xs font-medium text-red-400">Nuevo</span>
+                </div>
+              )}
+            </button>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
