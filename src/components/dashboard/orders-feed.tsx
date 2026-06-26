@@ -72,13 +72,10 @@ export function OrdersFeed({
                 </span>
               </div>
 
-              {/* Row 2 — waiter + items */}
+              {/* Row 2 — waiter */}
               <div className="mt-1 flex items-center justify-between">
                 <span className="truncate text-xs text-stone-500">
                   {order.waiter_name}
-                </span>
-                <span className="shrink-0 text-xs text-stone-400">
-                  {order.items.length} {order.items.length === 1 ? "plato" : "platos"}
                 </span>
               </div>
 

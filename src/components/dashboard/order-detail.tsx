@@ -147,6 +147,31 @@ export function OrderDetail({
 
       {/* Scrollable content */}
       <div className="flex-1 overflow-y-auto p-5">
+        {/* Command preview */}
+        <div className="mb-6">
+          <div className="mb-3 flex items-center justify-between">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+              Comanda
+            </h3>
+            <div className="flex items-center gap-2">
+              {printCount > 0 && (
+                <span className="text-xs text-stone-400">
+                  {printCount} {printCount === 1 ? "impresión" : "impresiones"}
+                </span>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onPrint(order.id)}
+              >
+                <Printer className="size-3.5" />
+                Imprimir
+              </Button>
+            </div>
+          </div>
+          <CommandPreview order={order} />
+        </div>
+
         {/* Items */}
         <div className="mb-6">
           <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-stone-500">
@@ -184,31 +209,6 @@ export function OrderDetail({
               {formatCOP(order.total)}
             </span>
           </div>
-        </div>
-
-        {/* Command preview */}
-        <div className="mb-6">
-          <div className="mb-3 flex items-center justify-between">
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-              Comanda
-            </h3>
-            <div className="flex items-center gap-2">
-              {printCount > 0 && (
-                <span className="text-xs text-stone-400">
-                  {printCount} {printCount === 1 ? "impresión" : "impresiones"}
-                </span>
-              )}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => onPrint(order.id)}
-              >
-                <Printer className="size-3.5" />
-                Imprimir
-              </Button>
-            </div>
-          </div>
-          <CommandPreview order={order} />
         </div>
 
         {/* Audit trail */}
