@@ -59,8 +59,8 @@ export function WaiterOrders({
                 key={order.id}
                 className={
                   isActive
-                    ? "overflow-hidden rounded-xl border border-stone-800 bg-stone-900"
-                    : "overflow-hidden rounded-xl border border-stone-800/50 bg-stone-900/50"
+                    ? "overflow-hidden rounded-xl border border-white/10 bg-stone-900"
+                    : "overflow-hidden rounded-xl border border-white/5 bg-stone-900/50"
                 }
               >
                 {/* Top row — table + status + time */}
@@ -89,7 +89,7 @@ export function WaiterOrders({
                 </div>
 
                 {/* Items — flat list, no category nesting */}
-                <div className="border-t border-stone-800/80 px-4 py-3">
+                <div className="border-t border-white/5 px-4 py-3">
                   <ul className="space-y-1.5">
                     {order.items.map((item) => (
                       <li key={item.id} className="flex items-center justify-between text-sm">
@@ -117,7 +117,7 @@ export function WaiterOrders({
                 </div>
 
                 {/* Bottom — total */}
-                <div className="flex items-center justify-between border-t border-stone-800/80 px-4 py-2.5">
+                <div className="flex items-center justify-between border-t border-white/5 px-4 py-2.5">
                   <span className="text-xs text-stone-500">Total</span>
                   <span className={isActive ? "text-sm font-bold text-yellow-500" : "text-sm font-bold text-stone-400"}>
                     {formatCOP(order.total)}

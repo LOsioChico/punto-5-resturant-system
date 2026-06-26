@@ -24,7 +24,7 @@ export function TableSelector({
   tableStatuses: Map<number, OrderStatus>;
 }) {
   return (
-    <div className="border-b border-stone-800/80 bg-stone-950 px-5 py-4">
+    <div className="border-b border-white/5 bg-stone-950 px-5 py-4">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
           Seleccionar mesa
@@ -56,7 +56,7 @@ export function TableSelector({
                   ? "border-yellow-500 bg-yellow-500 text-stone-950 shadow-lg shadow-yellow-500/20"
                   : status
                     ? "border-stone-700 bg-stone-900 text-stone-200 hover:border-stone-600"
-                    : "border-stone-800 bg-stone-900 text-stone-400 hover:border-stone-700 hover:text-stone-200",
+                    : "border-white/10 bg-stone-900 text-stone-400 hover:border-stone-700 hover:text-stone-200",
               )}
             >
               <span className="text-xl font-bold leading-none">{table}</span>

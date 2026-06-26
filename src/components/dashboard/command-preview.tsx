@@ -21,7 +21,7 @@ export function CommandPreview({ order }: { order: Order }) {
   return (
     <div className="mx-auto max-w-xs">
       {/* Paper receipt — white background, black text */}
-      <div className="rounded-sm bg-white p-4 font-mono text-sm text-stone-900 shadow-lg">
+      <div className="print-receipt rounded-sm bg-white p-4 font-mono text-sm text-stone-900 shadow-lg">
         {/* Serrated top edge effect */}
         <div className="-mx-4 -mt-4 mb-3 h-3 bg-[repeating-linear-gradient(90deg,transparent,transparent_4px,#000_4px,#000_5px)] opacity-10" />
 
@@ -72,7 +72,7 @@ export function CommandPreview({ order }: { order: Order }) {
         </div>
 
         <div className="my-2 border-t border-dashed border-stone-300" />
-        <p className="text-center text-xs text-stone-400">
+        <p className="text-center text-xs text-stone-500">
           --- Fin de comanda ---
         </p>
 

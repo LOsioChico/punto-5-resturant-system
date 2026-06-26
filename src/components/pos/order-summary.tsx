@@ -42,9 +42,9 @@ export function OrderSummary({
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-stone-800/80 bg-stone-900">
+    <aside className="flex w-80 shrink-0 flex-col border-l border-white/5 bg-stone-900">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-stone-800/80 px-4 py-3.5">
+      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3.5">
         <div>
           <h2 className="text-sm font-bold text-stone-100">
             {tableNumber !== null ? `Mesa ${tableNumber}` : "Sin mesa"}
@@ -72,7 +72,7 @@ export function OrderSummary({
             description="Toca un plato para agregarlo"
           />
         ) : (
-          <ul className="divide-y divide-stone-800/80">
+          <ul className="divide-y divide-white/5">
             {items.map((item) => (
               <li key={item.dish_id} className="px-4 py-3.5">
                 <div className="flex items-start justify-between gap-2">
@@ -151,7 +151,7 @@ export function OrderSummary({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-stone-800/80 px-4 py-4">
+      <div className="border-t border-white/5 px-4 py-4">
         <div className="mb-3 flex items-center justify-between">
           <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
             Total

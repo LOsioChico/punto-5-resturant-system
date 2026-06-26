@@ -344,7 +344,7 @@ export function PosClient() {
   return (
     <div className="flex h-screen flex-col bg-stone-950">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-stone-800/80 bg-stone-950 px-5 py-3">
+      <div className="flex items-center justify-between border-b border-white/5 bg-stone-950 px-5 py-3">
         <div className="flex items-center gap-2.5">
           <div className="flex size-8 items-center justify-center rounded-lg bg-yellow-500 text-sm font-bold text-stone-950">
             P5

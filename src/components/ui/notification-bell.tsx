@@ -60,9 +60,9 @@ export function NotificationBell() {
       </button>
 
       {open && (
-        <div className="absolute right-0 top-11 z-50 w-80 overflow-hidden rounded-lg border border-stone-800 bg-stone-950 shadow-xl">
+        <div className="absolute right-0 top-11 z-50 w-80 overflow-hidden rounded-lg border border-white/10 bg-stone-950 shadow-xl">
           {/* Header */}
-          <div className="flex items-center justify-between border-b border-stone-800 px-4 py-3">
+          <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
             <span className="text-sm font-semibold text-stone-100">
               Notificaciones
             </span>
@@ -84,7 +84,7 @@ export function NotificationBell() {
                 <p className="text-sm text-stone-600">Sin notificaciones</p>
               </div>
             ) : (
-              <ul className="divide-y divide-stone-800/80">
+              <ul className="divide-y divide-white/5">
                 {notifications.map((n: NotificationItem) => (
                   <li
                     key={n.id}

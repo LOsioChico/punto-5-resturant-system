@@ -48,3 +48,27 @@ body {
 .animate-in {
   animation: slide-in-from-right 0.25s ease-out;
 }
+
+/* Print — only show the command preview receipt */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  /* The receipt container — visible and positioned for print */
+  .print-receipt,
+  .print-receipt * {
+    visibility: visible;
+  }
+  .print-receipt {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 80mm;
+    background: #fff !important;
+    color: #1c1917 !important;
+  }
+  /* Ensure dark text prints on white paper */
+  .print-receipt * {
+    color: #1c1917 !important;
+  }
+}

@@ -16,7 +16,7 @@ export function CategoryList({
   onSelect: (id: string) => void;
 }) {
   return (
-    <nav className="flex w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r border-stone-800/80 bg-stone-950 p-2.5">
+    <nav className="flex w-56 shrink-0 flex-col gap-1 overflow-y-auto border-r border-white/5 bg-stone-950 p-2.5">
       {categories.map((cat) => {
         const count = dishes.filter((d) => d.category_id === cat.id).length;
         const isSelected = selected === cat.id;

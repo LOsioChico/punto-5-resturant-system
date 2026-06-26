@@ -156,7 +156,7 @@ export function OrderDetail({
             {order.items.map((item, idx) => (
               <li
                 key={item.id}
-                className={idx > 0 ? "flex items-center gap-3 p-3.5 border-t border-stone-800/60" : "flex items-center gap-3 p-3.5"}
+                className={idx > 0 ? "flex items-center gap-3 p-3.5 border-t border-white/5" : "flex items-center gap-3 p-3.5"}
               >
                 <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-800 text-sm font-bold text-stone-200 tabular-nums">
                   {item.quantity}

@@ -47,7 +47,7 @@ export function DishGrid({
                 className={
                   inCart
                     ? "flex flex-col overflow-hidden rounded-xl border border-yellow-500/50 bg-stone-900"
-                    : "flex flex-col overflow-hidden rounded-xl border border-stone-800 bg-stone-900"
+                    : "flex flex-col overflow-hidden rounded-xl border border-white/10 bg-stone-900"
                 }
               >
                 {/* Top — icon + name + description (tap to add) */}
@@ -84,7 +84,7 @@ export function DishGrid({
                 </button>
 
                 {/* Bottom bar — price + counter */}
-                <div className="flex items-center justify-between border-t border-stone-800 px-4 py-3">
+                <div className="flex items-center justify-between border-t border-white/5 px-4 py-3">
                   <span className="text-sm font-bold text-yellow-500">
                     {formatCOP(dish.price)}
                   </span>

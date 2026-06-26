@@ -15,7 +15,7 @@ export function PosTabs({
   historyCount: number;
 }) {
   return (
-    <div className="flex gap-1 border-b border-stone-800/80 bg-stone-950 px-4">
+    <div className="flex gap-1 border-b border-white/5 bg-stone-950 px-4">
       <button
         onClick={() => onChange("new")}
         className={cn(
