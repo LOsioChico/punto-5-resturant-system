@@ -1,1 +1,5 @@
-node_modules\n.next\ndist\n.env.local\n.DS_Store
+node_modules
+.next
+dist
+.env.local
+.DS_Store
