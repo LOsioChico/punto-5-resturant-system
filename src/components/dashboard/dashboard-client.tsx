@@ -390,9 +390,6 @@ export function DashboardClient() {
                 </p>
                 <p className="mt-1 text-xs text-stone-500">{kpi.label}</p>
               </div>
-              {isActive && (
-                <X className="size-4 shrink-0 text-stone-500" />
-              )}
             </button>
           );
         })}
