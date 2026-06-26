@@ -7,7 +7,7 @@ const TABLE_COUNT = 12;
 
 // Subtle status indicator — just a dot, not a full colored box
 const statusDot: Record<OrderStatus, string> = {
-  nueva: "bg-blue-500",
+  nueva: "bg-red-500",
   en_cocina: "bg-amber-500",
   lista: "bg-green-500",
   servida: "bg-stone-600",
@@ -31,7 +31,7 @@ export function TableSelector({
         </h2>
         <div className="flex items-center gap-4 text-[11px] text-stone-600">
           <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-blue-500" /> Nueva
+            <span className="size-2 rounded-full bg-red-500" /> Nueva
           </span>
           <span className="flex items-center gap-1.5">
             <span className="size-2 rounded-full bg-amber-500" /> Cocina

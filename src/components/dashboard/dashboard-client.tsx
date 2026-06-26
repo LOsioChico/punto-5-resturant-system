@@ -6,9 +6,16 @@ import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X } from "lucide-react";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
+
+const STATUS_LABELS: Record<OrderStatus, string> = {
+  nueva: "Nuevas",
+  en_cocina: "En cocina",
+  lista: "Listas",
+  servida: "Servidas",
+};
 
 export function DashboardClient() {
   const supabase = useMemo(() => createSupabaseClient(), []);
@@ -22,6 +29,8 @@ export function DashboardClient() {
   const [events, setEvents] = useState<OrderEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
+  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all">("today");
 
   useEffect(() => {
     if (!supabase) return;
@@ -243,6 +252,26 @@ export function DashboardClient() {
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
   const displayError = configError ?? error;
 
+  // Date filtering
+  const filteredByDate = useMemo(() => {
+    if (dateFilter === "all") return orders;
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const yesterday = new Date(today.getTime() - 86_400_000);
+    const target = dateFilter === "today" ? today : yesterday;
+    const nextDay = new Date(target.getTime() + 86_400_000);
+    return orders.filter((o) => {
+      const created = new Date(o.created_at);
+      return created >= target && created < nextDay;
+    });
+  }, [orders, dateFilter]);
+
+  // Status filtering (applied on top of date filter)
+  const filteredOrders = useMemo(() => {
+    if (!statusFilter) return filteredByDate;
+    return filteredByDate.filter((o) => o.status === statusFilter);
+  }, [filteredByDate, statusFilter]);
+
   if (displayError) {
     return (
       <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
@@ -264,25 +293,35 @@ export function DashboardClient() {
   }
 
   const counts = {
-    nueva: orders.filter((o) => o.status === "nueva").length,
-    en_cocina: orders.filter((o) => o.status === "en_cocina").length,
-    lista: orders.filter((o) => o.status === "lista").length,
-    servida: orders.filter((o) => o.status === "servida").length,
+    nueva: filteredByDate.filter((o) => o.status === "nueva").length,
+    en_cocina: filteredByDate.filter((o) => o.status === "en_cocina").length,
+    lista: filteredByDate.filter((o) => o.status === "lista").length,
+    servida: filteredByDate.filter((o) => o.status === "servida").length,
   };
-  const totalRevenue = orders
+  const totalRevenue = filteredByDate
     .filter((o) => o.status === "servida")
     .reduce((sum, o) => sum + o.total, 0);
 
-  const kpiCards = [
+  const kpiCards: {
+    status: OrderStatus;
+    label: string;
+    value: number;
+    icon: React.ReactNode;
+    color: string;
+    bg: string;
+    hint: string;
+  }[] = [
     {
+      status: "nueva",
       label: "Nuevas",
       value: counts.nueva,
       icon: <Clock className="size-5" />,
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
+      color: "text-red-400",
+      bg: "bg-red-500/10",
       hint: "Esperando acción",
     },
     {
+      status: "en_cocina",
       label: "En cocina",
       value: counts.en_cocina,
       icon: <ChefHat className="size-5" />,
@@ -291,6 +330,7 @@ export function DashboardClient() {
       hint: "Preparándose",
     },
     {
+      status: "lista",
       label: "Listas",
       value: counts.lista,
       icon: <CheckCircle2 className="size-5" />,
@@ -299,6 +339,7 @@ export function DashboardClient() {
       hint: "Para servir",
     },
     {
+      status: "servida",
       label: "Servidas",
       value: counts.servida,
       icon: <Utensils className="size-5" />,
@@ -319,33 +360,44 @@ export function DashboardClient() {
           <div>
             <h1 className="text-base font-bold text-stone-100">Panel principal</h1>
             <p className="text-xs text-stone-500">
-              {orders.length} pedidos · {waiters.length} meseros activos
+              {filteredByDate.length} pedidos · {waiters.length} meseros activos
             </p>
           </div>
         </div>
         <ActiveWaiters waiters={waiters} />
       </div>
 
-      {/* KPI row */}
+      {/* KPI row — click to filter by status */}
       <div className="flex gap-3 px-6 py-4">
-        {kpiCards.map((kpi) => (
-          <div
-            key={kpi.label}
-            className="flex flex-1 items-center gap-3.5 rounded-xl bg-stone-900 px-4 py-3"
-          >
-            <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${kpi.bg} ${kpi.color}`}>
-              {kpi.icon}
-            </div>
-            <div className="min-w-0">
-              <p className="text-2xl font-bold leading-none text-stone-100">
-                {kpi.value}
-              </p>
-              <p className="mt-1 text-xs text-stone-500">{kpi.label}</p>
-            </div>
-          </div>
-        ))}
+        {kpiCards.map((kpi) => {
+          const isActive = statusFilter === kpi.status;
+          return (
+            <button
+              key={kpi.label}
+              onClick={() => setStatusFilter(isActive ? null : kpi.status)}
+              className={`flex flex-1 items-center gap-3.5 rounded-xl px-4 py-3 transition-all active:scale-[0.98] ${
+                isActive
+                  ? `ring-2 ring-inset ${kpi.color.replace("text-", "ring-")} bg-stone-800`
+                  : "bg-stone-900 hover:bg-stone-800/60"
+              }`}
+            >
+              <div className={`flex size-10 shrink-0 items-center justify-center rounded-lg ${kpi.bg} ${kpi.color}`}>
+                {kpi.icon}
+              </div>
+              <div className="min-w-0 text-left">
+                <p className="text-2xl font-bold leading-none text-stone-100">
+                  {kpi.value}
+                </p>
+                <p className="mt-1 text-xs text-stone-500">{kpi.label}</p>
+              </div>
+              {isActive && (
+                <X className="size-4 shrink-0 text-stone-500" />
+              )}
+            </button>
+          );
+        })}
 
-        {/* Revenue — highlighted */}
+        {/* Revenue — not clickable, just display */}
         {totalRevenue > 0 && (
           <div className="flex flex-1 items-center gap-3.5 rounded-xl bg-yellow-500/10 px-4 py-3">
             <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-yellow-500/15 text-yellow-500">
@@ -370,15 +422,43 @@ export function DashboardClient() {
       <div className="flex flex-1 overflow-hidden">
         {/* Left — orders feed */}
         <div className="flex w-96 shrink-0 flex-col bg-stone-900/50">
-          <div className="flex items-center justify-between px-4 py-3">
-            <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-              Pedidos en vivo
-            </h2>
-            <span className="text-xs text-stone-400">{orders.length} total</span>
+          <div className="px-4 py-3">
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                {statusFilter ? `Filtrado: ${STATUS_LABELS[statusFilter]}` : "Pedidos"}
+              </h2>
+              <span className="text-xs text-stone-400">{filteredOrders.length}</span>
+            </div>
+            {/* Date filter pills */}
+            <div className="mt-2 flex items-center gap-1.5">
+              <Calendar className="size-3.5 shrink-0 text-stone-600" />
+              {(["today", "yesterday", "all"] as const).map((d) => (
+                <button
+                  key={d}
+                  onClick={() => setDateFilter(d)}
+                  className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                    dateFilter === d
+                      ? "bg-stone-800 font-medium text-stone-200"
+                      : "text-stone-500 hover:bg-stone-800/50 hover:text-stone-300"
+                  }`}
+                >
+                  {d === "today" ? "Hoy" : d === "yesterday" ? "Ayer" : "Todos"}
+                </button>
+              ))}
+              {statusFilter && (
+                <button
+                  onClick={() => setStatusFilter(null)}
+                  className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-xs text-stone-500 transition-colors hover:text-stone-300"
+                >
+                  <X className="size-3" />
+                  Limpiar
+                </button>
+              )}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">
             <OrdersFeed
-              orders={orders}
+              orders={filteredOrders}
               selectedId={selectedId}
               onSelect={setSelectedId}
             />

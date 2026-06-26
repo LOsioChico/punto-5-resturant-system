@@ -54,8 +54,8 @@ const variantConfig: Record<
     className: "border-stone-700",
   },
   "status-nueva": {
-    icon: <Clock className="size-5 text-blue-400" />,
-    className: "border-blue-500/30",
+    icon: <Clock className="size-5 text-red-400" />,
+    className: "border-red-500/30",
   },
   "status-en_cocina": {
     icon: <ChefHat className="size-5 text-amber-400" />,

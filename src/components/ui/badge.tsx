@@ -3,10 +3,10 @@ import type { HTMLAttributes } from "react";
 import type { OrderStatus } from "@/lib/types";
 
 const statusConfig: Record<OrderStatus, { label: string; className: string }> = {
-  // Blue = needs attention — new orders waiting to be sent to kitchen
+  // Red = needs attention — new orders waiting to be sent to kitchen
   nueva: {
     label: "Nueva",
-    className: "bg-blue-500/15 text-blue-400 ring-1 ring-inset ring-blue-500/30",
+    className: "bg-red-500/15 text-red-400 ring-1 ring-inset ring-red-500/30",
   },
   // Amber = in progress — being prepared
   en_cocina: {
