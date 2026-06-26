@@ -152,20 +152,38 @@ export function PosClient() {
   }, [supabase, waiterName, toast]);
 
   // Join presence channel so the dashboard sees this waiter as active.
+  // Heartbeat re-tracks every 10s so the dashboard can detect stale connections.
   useEffect(() => {
     if (!waiterName || !supabase) return;
     const channel = supabase.channel("waiters", {
       config: { presence: { key: waiterName } },
     });
+
+    const track = () =>
+      channel.track({
+        name: waiterName,
+        joinedAt: new Date().toISOString(),
+      });
+
     channel.subscribe(async (status) => {
       if (status === "SUBSCRIBED") {
-        await channel.track({
-          name: waiterName,
-          joinedAt: new Date().toISOString(),
-        });
+        await track();
       }
     });
+
+    // Heartbeat — re-track every 10s with a fresh timestamp
+    const heartbeat = setInterval(track, 10_000);
+
+    // Best-effort untrack on tab close / navigation
+    const handleUnload = () => {
+      channel.untrack();
+    };
+    window.addEventListener("beforeunload", handleUnload);
+
     return () => {
+      clearInterval(heartbeat);
+      window.removeEventListener("beforeunload", handleUnload);
+      channel.untrack();
       supabase.removeChannel(channel);
     };
   }, [supabase, waiterName]);

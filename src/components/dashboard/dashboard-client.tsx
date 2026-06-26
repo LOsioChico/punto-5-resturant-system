@@ -119,17 +119,27 @@ export function DashboardClient() {
     if (!supabase) return;
     const channel = supabase.channel("waiters");
 
+    const STALE_MS = 30_000; // waiter must heartbeat within 30s
+
+    const syncWaiters = () => {
+      const state = channel.presenceState<{ name: string; joinedAt: string }>();
+      const now = Date.now();
+      const list: ActiveWaiter[] = Object.values(state)
+        .flat()
+        .filter((p) => now - new Date(p.joinedAt).getTime() < STALE_MS)
+        .map((p) => ({ name: p.name, joinedAt: p.joinedAt }));
+      setWaiters(list);
+    };
+
     channel
-      .on("presence", { event: "sync" }, () => {
-        const state = channel.presenceState<{ name: string; joinedAt: string }>();
-        const list: ActiveWaiter[] = Object.values(state)
-          .flat()
-          .map((p) => ({ name: p.name, joinedAt: p.joinedAt }));
-        setWaiters(list);
-      })
+      .on("presence", { event: "sync" }, syncWaiters)
       .subscribe();
 
+    // Periodic sweep — removes stale waiters even if no presence event fires
+    const sweep = setInterval(syncWaiters, 10_000);
+
     return () => {
+      clearInterval(sweep);
       supabase.removeChannel(channel);
     };
   }, [supabase]);
