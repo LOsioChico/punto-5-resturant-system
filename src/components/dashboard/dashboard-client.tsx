@@ -133,11 +133,16 @@ export function DashboardClient() {
     const syncWaiters = () => {
       const state = channel.presenceState<{ name: string; joinedAt: string }>();
       const now = Date.now();
-      const list: ActiveWaiter[] = Object.values(state)
-        .flat()
-        .filter((p) => now - new Date(p.joinedAt).getTime() < STALE_MS)
-        .map((p) => ({ name: p.name, joinedAt: p.joinedAt }));
-      setWaiters(list);
+      // Dedupe by name — keep the most recent heartbeat per waiter
+      const byName = new Map<string, ActiveWaiter>();
+      for (const p of Object.values(state).flat()) {
+        if (now - new Date(p.joinedAt).getTime() >= STALE_MS) continue;
+        const existing = byName.get(p.name);
+        if (!existing || new Date(p.joinedAt) > new Date(existing.joinedAt)) {
+          byName.set(p.name, { name: p.name, joinedAt: p.joinedAt });
+        }
+      }
+      setWaiters(Array.from(byName.values()));
     };
 
     channel
