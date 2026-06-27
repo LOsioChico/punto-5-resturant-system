@@ -49,7 +49,7 @@ This sends the old and new row data to the Edge Function whenever an order is up
 
 ## 5. How it works
 
-1. Waiter opens POS → sees "Activar notificaciones" button → grants permission
+1. Waiter opens POS → sees bell "Off" button in top bar → clicks it → browser asks permission
 2. Browser creates a push subscription via the service worker
 3. Subscription is stored in `push_subscriptions` table linked to waiter name
 4. Admin changes order status (e.g. "lista")
