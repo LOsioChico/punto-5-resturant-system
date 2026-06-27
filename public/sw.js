@@ -1,13 +1,16 @@
 // Simple service worker for PWA — matches the Next.js team's recommended approach.
 // https://nextjs.org/docs/app/guides/progressive-web-apps
 
-const CACHE_NAME = "punto5-v1";
+const CACHE_NAME = "punto5-v2";
 const OFFLINE_URL = "/~offline";
+const DASHBOARD_URL = "/dashboard";
 
-// Precache the offline page on install.
+// Precache the offline page and dashboard on install.
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.add(OFFLINE_URL)),
+    caches.open(CACHE_NAME).then((cache) =>
+      cache.addAll([OFFLINE_URL, DASHBOARD_URL]).catch(() => cache.add(OFFLINE_URL)),
+    ),
   );
 });
 
@@ -67,14 +70,15 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// Serve cached assets when offline, fall back to offline page for navigations.
+// Serve cached assets when offline, fall back to cached pages for navigations.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 
   // Only handle GET requests.
   if (request.method !== "GET") return;
 
-  // For navigation requests, try network first, fall back to offline page.
+  // For navigation requests, try network first, fall back to cached page.
+  // This allows the dashboard to load from cache when offline.
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
@@ -84,7 +88,10 @@ self.addEventListener("fetch", (event) => {
           caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match(OFFLINE_URL)),
+        .catch(() =>
+          // Try the exact cached URL first, then fall back to offline page
+          caches.match(request).then((cached) => cached || caches.match(OFFLINE_URL)),
+        ),
     );
     return;
   }

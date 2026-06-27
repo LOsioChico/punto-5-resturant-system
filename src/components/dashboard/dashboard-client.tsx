@@ -6,7 +6,9 @@ import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X, Users } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X, Users, WifiOff, Wifi, RefreshCw } from "lucide-react";
+import { cacheOrders, loadCachedOrders, enqueueMutation, getQueuedMutations, clearQueue } from "@/lib/offline/db";
+import { syncQueue } from "@/lib/offline/sync";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
 
@@ -34,10 +36,23 @@ export function DashboardClient() {
   const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
   const [waiterFilter, setWaiterFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all">("today");
+  const [isOnline, setIsOnline] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
     (async () => {
+      // If offline, load from cache
+      if (!navigator.onLine) {
+        const cached = await loadCachedOrders<Order>();
+        if (cached && cached.length > 0) {
+          setOrders(cached);
+        }
+        setLoading(false);
+        return;
+      }
+
       const { data: orderRows, error: orderErr } = await supabase
         .from("orders")
         .select("*")
@@ -45,7 +60,13 @@ export function DashboardClient() {
         .limit(100);
 
       if (orderErr) {
-        setError(orderErr.message);
+        // Network error — try cache
+        if (orderErr.message.includes("Failed to fetch") || orderErr.message.includes("network")) {
+          const cached = await loadCachedOrders<Order>();
+          if (cached) setOrders(cached);
+        } else {
+          setError(orderErr.message);
+        }
         setLoading(false);
         return;
       }
@@ -77,9 +98,17 @@ export function DashboardClient() {
       }));
 
       setOrders(ordersWithItems);
+      cacheOrders(ordersWithItems); // persist for offline use
       setLoading(false);
     })();
   }, [supabase]);
+
+  // Keep IndexedDB cache in sync with orders state
+  useEffect(() => {
+    if (orders.length > 0) {
+      cacheOrders(orders);
+    }
+  }, [orders]);
 
   useEffect(() => {
     if (!supabase) return;
@@ -165,6 +194,67 @@ export function DashboardClient() {
     };
   }, [supabase]);
 
+  // Online/offline detection + sync on reconnect
+  useEffect(() => {
+    const updateOnlineStatus = async () => {
+      const online = navigator.onLine;
+      setIsOnline(online);
+
+      if (online && supabase) {
+        // Check for pending mutations
+        const pending = await getQueuedMutations();
+        if (pending.length > 0) {
+          setSyncing(true);
+          const { synced, failed } = await syncQueue(supabase);
+          setSyncing(false);
+          if (failed === 0) {
+            await clearQueue();
+          }
+          setPendingCount(0);
+
+          // Reload orders from Supabase to get the latest state
+          if (synced > 0) {
+            const { data: orderRows } = await supabase
+              .from("orders")
+              .select("*")
+              .order("created_at", { ascending: false })
+              .limit(100);
+            if (orderRows && orderRows.length > 0) {
+              const { data: itemRows } = await supabase
+                .from("order_items")
+                .select("*, dishes(categories(name))")
+                .in("order_id", orderRows.map((o) => o.id));
+              const ordersWithItems: Order[] = orderRows.map((o) => ({
+                ...o,
+                items: (itemRows ?? [])
+                  .filter((i) => i.order_id === o.id)
+                  .map((i) => ({
+                    ...i,
+                    category_name: i.dishes?.categories?.name ?? null,
+                  })),
+              }));
+              setOrders(ordersWithItems);
+              cacheOrders(ordersWithItems);
+            }
+          }
+        }
+      } else {
+        // Update pending count when going offline
+        const pending = await getQueuedMutations();
+        setPendingCount(pending.length);
+      }
+    };
+
+    updateOnlineStatus();
+    window.addEventListener("online", updateOnlineStatus);
+    window.addEventListener("offline", updateOnlineStatus);
+
+    return () => {
+      window.removeEventListener("online", updateOnlineStatus);
+      window.removeEventListener("offline", updateOnlineStatus);
+    };
+  }, [supabase]);
+
   useEffect(() => {
     if (!supabase) return;
     const channel = supabase.channel("waiters");
@@ -239,7 +329,9 @@ export function DashboardClient() {
       if (nextIndex >= STATUS_FLOW.length) return;
       const nextStatus = STATUS_FLOW[nextIndex];
       const fromStatus = order.status;
+      const now = new Date().toISOString();
 
+      // Optimistic update — UI reflects the change immediately
       setOrders((prev) =>
         prev.map((o) =>
           o.id === id
@@ -247,19 +339,49 @@ export function DashboardClient() {
                 ...o,
                 status: nextStatus,
                 updated_by: "admin",
-                updated_at: new Date().toISOString(),
+                updated_at: now,
                 updated_by_type: "admin",
               }
             : o,
         ),
       );
 
+      if (!navigator.onLine) {
+        // Queue for later sync
+        await enqueueMutation({
+          table: "orders",
+          operation: "update",
+          recordId: id,
+          payload: {
+            status: nextStatus,
+            updated_by: "admin",
+            updated_at: now,
+            updated_by_type: "admin",
+          },
+        });
+        await enqueueMutation({
+          table: "order_events",
+          operation: "insert",
+          payload: {
+            order_id: id,
+            event_type: "status_changed",
+            actor_type: "admin",
+            actor_name: "admin",
+            from_status: fromStatus,
+            to_status: nextStatus,
+          },
+        });
+        const pending = await getQueuedMutations();
+        setPendingCount(pending.length);
+        return;
+      }
+
       await supabase
         .from("orders")
         .update({
           status: nextStatus,
           updated_by: "admin",
-          updated_at: new Date().toISOString(),
+          updated_at: now,
           updated_by_type: "admin",
         })
         .eq("id", id);
@@ -279,6 +401,25 @@ export function DashboardClient() {
   const printOrder = useCallback(
     async (id: string) => {
       if (!supabase) return;
+
+      if (!navigator.onLine) {
+        await enqueueMutation({
+          table: "order_events",
+          operation: "insert",
+          payload: {
+            order_id: id,
+            event_type: "printed",
+            actor_type: "admin",
+            actor_name: "admin",
+            metadata: { printed_at: new Date().toISOString() },
+          },
+        });
+        const pending = await getQueuedMutations();
+        setPendingCount(pending.length);
+        window.print();
+        return;
+      }
+
       await supabase.from("order_events").insert({
         order_id: id,
         event_type: "printed",
@@ -401,6 +542,37 @@ export function DashboardClient() {
 
   return (
     <div className="flex h-dvh flex-col bg-stone-950">
+      {/* Offline / syncing banner */}
+      {(!isOnline || syncing || pendingCount > 0) && (
+        <div
+          className={
+            syncing
+              ? "flex items-center justify-center gap-2 bg-blue-500/15 px-6 py-2 text-sm text-blue-400"
+              : !isOnline
+                ? "flex items-center justify-center gap-2 bg-amber-500/15 px-6 py-2 text-sm text-amber-400"
+                : "flex items-center justify-center gap-2 bg-green-500/15 px-6 py-2 text-sm text-green-400"
+          }
+        >
+          {syncing ? (
+            <>
+              <RefreshCw className="size-4 animate-spin" />
+              Sincronizando cambios...
+            </>
+          ) : !isOnline ? (
+            <>
+              <WifiOff className="size-4" />
+              Sin conexión — los cambios se guardan localmente
+              {pendingCount > 0 && ` (${pendingCount} pendiente${pendingCount > 1 ? "s" : ""})`}
+            </>
+          ) : (
+            <>
+              <Wifi className="size-4" />
+              Conexión restablecida — cambios sincronizados
+            </>
+          )}
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex items-center justify-between bg-stone-900 px-6 py-3">
         <div className="flex items-center gap-3">
