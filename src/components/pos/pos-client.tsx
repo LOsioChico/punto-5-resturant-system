@@ -24,10 +24,15 @@ export function PosClient() {
     ? "Faltan las variables de entorno de Supabase. Copia .env.example a .env.local y complétalas."
     : null;
 
-  const [waiterName, setWaiterName] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(WAITER_KEY);
-  });
+  const [waiterName, setWaiterName] = useState<string | null>(null);
+  const [hydrated, setHydrated] = useState(false);
+
+  // Read localStorage after hydration to avoid SSR mismatch
+  useEffect(() => {
+    setHydrated(true);
+    const stored = localStorage.getItem(WAITER_KEY);
+    if (stored) setWaiterName(stored);
+  }, []);
   const { permission, subscribed, subscribe, unsubscribe } = usePushSubscription(waiterName);
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -337,6 +342,15 @@ export function PosClient() {
   // --- Render ---
 
   const displayError = configError ?? error;
+
+  // Don't render anything until hydrated — avoids SSR/client mismatch
+  if (!hydrated) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-stone-950 text-stone-500">
+        Cargando...
+      </div>
+    );
+  }
 
   if (displayError) {
     return (
