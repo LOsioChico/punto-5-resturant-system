@@ -71,14 +71,14 @@ export function OrdersFeed({
                 </div>
               </div>
 
-              {/* Row 2 — status + waiter */}
+              {/* Row 2 — waiter + status */}
               <div className="mt-1.5 flex items-center justify-between">
-                <span className="flex items-center gap-1.5 text-xs text-stone-500">
+                <span className="truncate text-xs text-stone-500">
+                  {order.waiter_name}
+                </span>
+                <span className="flex shrink-0 items-center gap-1.5 pl-2 text-xs text-stone-500">
                   <span className={cn("size-1.5 rounded-full", statusDot[order.status], isNew && "animate-pulse")} />
                   {statusLabel[order.status]}
-                </span>
-                <span className="truncate pl-2 text-xs text-stone-500">
-                  {order.waiter_name}
                 </span>
               </div>
             </button>
