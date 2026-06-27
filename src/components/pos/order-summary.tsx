@@ -166,8 +166,8 @@ export function OrderSummary({
 
                 {/* Notes */}
                 {editingNotes === item.dish_id ? (
-                  <div className="mt-3" onMouseDown={(e) => e.preventDefault()}>
-                    <div className="flex flex-wrap gap-1.5">
+                  <div className="mt-3">
+                    <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {QUICK_NOTES.map((note) => {
                         const active = item.notes
                           .split(",")
