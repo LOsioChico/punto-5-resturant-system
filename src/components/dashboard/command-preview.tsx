@@ -48,7 +48,7 @@ export function CommandPreview({ order }: { order: Order }) {
         </div>
         <div className="flex items-center justify-between text-xs text-stone-600">
           <span>{order.waiter_name}</span>
-          <span>{itemCount} {itemCount === 1 ? "item" : "items"}</span>
+          <span>{itemCount} {itemCount === 1 ? "plato" : "platos"}</span>
         </div>
 
         {wasModified && (

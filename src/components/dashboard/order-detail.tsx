@@ -112,7 +112,7 @@ export function OrderDetail({
             {wasModified && (
               <span className="flex items-center gap-1 rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400">
                 <PencilLine className="size-3" />
-                Modificado por {order.updated_by}
+                Modificado por {order.updated_by} · {timeAgo(order.updated_at!)}
               </span>
             )}
           </div>

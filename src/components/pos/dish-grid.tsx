@@ -73,7 +73,7 @@ export function DishGrid({
                     </div>
                     <div className="min-w-0">
                       {category && (
-                        <p className="truncate text-[10px] font-medium uppercase tracking-wide text-stone-600">
+                        <p className="truncate text-xs font-medium uppercase tracking-wide text-stone-600">
                           {category.name}
                         </p>
                       )}
@@ -100,7 +100,7 @@ export function DishGrid({
                     <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         onClick={() => onDec(dish.id)}
-                        className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                        className="flex size-9 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                       >
                         <Minus className="size-4" />
                       </button>
@@ -109,7 +109,7 @@ export function DishGrid({
                       </span>
                       <button
                         onClick={() => onInc(dish.id)}
-                        className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                        className="flex size-9 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                       >
                         <Plus className="size-4" />
                       </button>
@@ -117,7 +117,7 @@ export function DishGrid({
                   ) : (
                     <button
                       onClick={() => onAdd(dish)}
-                      className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
+                      className="flex size-9 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
                     >
                       <Plus className="size-4" />
                     </button>

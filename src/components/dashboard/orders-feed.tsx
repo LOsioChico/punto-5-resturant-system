@@ -94,7 +94,7 @@ export function OrdersFeed({
                   {order.waiter_name}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-2 text-xs text-stone-500">
-                  <span className={cn("size-1.5 rounded-full", statusDot[order.status])} />
+                  <span className={cn("size-2 rounded-full", statusDot[order.status])} />
                   {statusLabel[order.status]}
                 </span>
               </div>

@@ -84,7 +84,7 @@ export function OrderSummary({
   const showTooltip = () => {
     if (sendDisabledReason) {
       setTooltip(sendDisabledReason);
-      setTimeout(() => setTooltip(null), 2000);
+      setTimeout(() => setTooltip(null), 3000);
     }
   };
 
@@ -105,7 +105,7 @@ export function OrderSummary({
             <h2 className="text-base font-bold text-stone-100">Sin mesa</h2>
           )}
           <p className="text-xs text-stone-500">
-            {itemCount} {itemCount === 1 ? "item" : "items"}
+            {itemCount} {itemCount === 1 ? "plato" : "platos"}
           </p>
         </div>
         {items.length > 0 && !isEditing && (
@@ -171,25 +171,25 @@ export function OrderSummary({
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onDec(item.dish_id)}
-                      className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                      className="flex size-9 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                     >
-                      <Minus className="size-5" />
+                      <Minus className="size-4" />
                     </button>
                     <span className="min-w-8 text-center text-lg font-bold text-stone-100">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => onInc(item.dish_id)}
-                      className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                      className="flex size-9 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                     >
-                      <Plus className="size-5" />
+                      <Plus className="size-4" />
                     </button>
                   </div>
                   <button
                     onClick={() => onRemove(item.dish_id)}
-                    className="flex size-10 items-center justify-center rounded-lg text-stone-600 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="flex size-9 items-center justify-center rounded-lg text-stone-600 transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
-                    <Trash2 className="size-5" />
+                    <Trash2 className="size-4" />
                   </button>
                 </div>
 

@@ -36,6 +36,11 @@ export function DashboardClient() {
   const [waiterFilter, setWaiterFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all">("today");
   const [isOnline, setIsOnline] = useState(true);
+  const [undoData, setUndoData] = useState<{
+    orderId: string;
+    fromStatus: OrderStatus;
+    toStatus: OrderStatus;
+  } | null>(null);
 
   useEffect(() => {
     if (!supabase) return;
@@ -314,9 +319,43 @@ export function DashboardClient() {
         from_status: fromStatus,
         to_status: nextStatus,
       });
+
+      // Set undo data — expires after 5 seconds
+      setUndoData({ orderId: id, fromStatus, toStatus: nextStatus });
+      setTimeout(() => setUndoData(null), 5000);
     },
     [supabase, orders],
   );
+
+  const undoStatus = useCallback(async () => {
+    if (!supabase || !undoData) return;
+    const { orderId, fromStatus } = undoData;
+    const now = new Date().toISOString();
+
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? { ...o, status: fromStatus, updated_at: now, updated_by: "admin", updated_by_type: "admin" }
+          : o,
+      ),
+    );
+
+    await supabase
+      .from("orders")
+      .update({ status: fromStatus, updated_by: "admin", updated_at: now, updated_by_type: "admin" })
+      .eq("id", orderId);
+
+    await supabase.from("order_events").insert({
+      order_id: orderId,
+      event_type: "status_changed",
+      actor_type: "admin",
+      actor_name: "admin",
+      from_status: undoData.toStatus,
+      to_status: fromStatus,
+    });
+
+    setUndoData(null);
+  }, [supabase, undoData]);
 
   const printOrder = useCallback(
     async (id: string) => {
@@ -448,6 +487,21 @@ export function DashboardClient() {
         <div className="flex items-center justify-center gap-2 bg-amber-500/15 px-6 py-2 text-sm text-amber-400">
           <WifiOff className="size-4" />
           Sin conexión — mostrando datos guardados. Recarga la página cuando vuelva la conexión.
+        </div>
+      )}
+
+      {/* Undo banner — shows for 5s after a status change */}
+      {undoData && (
+        <div className="flex items-center justify-between bg-stone-800 px-6 py-2 text-sm text-stone-300">
+          <span>
+            Estado cambiado a <strong className="text-stone-100">{STATUS_LABELS[undoData.toStatus]}</strong>
+          </span>
+          <button
+            onClick={undoStatus}
+            className="font-medium text-yellow-500 hover:text-yellow-400 transition-colors"
+          >
+            Deshacer
+          </button>
         </div>
       )}
 
