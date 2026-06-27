@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { NotificationBell } from "@/components/ui/notification-bell";
@@ -614,9 +615,13 @@ export function PosClient() {
         style={{ paddingTop: "max(0.875rem, env(safe-area-inset-top))" }}
       >
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-yellow-500 text-base font-bold text-stone-950">
-            P5
-          </div>
+          <Image
+            src="/icon-192.png"
+            alt="Punto 5"
+            width={36}
+            height={36}
+            className="rounded-lg"
+          />
           <div>
             <span className="text-base font-bold text-stone-100">Punto 5</span>
             <span className="ml-2 text-sm text-stone-600">POS</span>

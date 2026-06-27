@@ -40,7 +40,7 @@ self.addEventListener("push", (event) => {
   const options = {
     body: data.body || "Tienes una actualización de pedido",
     icon: "/icon-192.png",
-    badge: "/icon-192.png",
+    badge: "/badge-72.png",
     tag: data.tag || "order-update",
     renotify: true,
     data: { url: data.url || "/pos" },

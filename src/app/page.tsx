@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { UtensilsCrossed, LayoutDashboard } from "lucide-react";
+import Image from "next/image";
 
 export default function HomePage() {
   return (
@@ -7,9 +8,14 @@ export default function HomePage() {
       <div className="flex flex-col items-center gap-2">
         <div className="h-1 w-16 rounded-full bg-red-500" />
         <div className="flex items-center gap-3">
-          <div className="flex size-10 items-center justify-center rounded-lg bg-yellow-500 text-lg font-bold text-stone-950">
-            P5
-          </div>
+          <Image
+            src="/icon-192.png"
+            alt="Punto 5"
+            width={48}
+            height={48}
+            className="rounded-lg"
+            priority
+          />
           <h1 className="text-3xl font-bold tracking-tight text-stone-100">
             Punto 5
           </h1>

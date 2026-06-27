@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { OrdersFeed } from "./orders-feed";
@@ -527,9 +528,13 @@ export function DashboardClient() {
       {/* Top bar */}
       <div className="flex items-center justify-between bg-stone-900 px-6 py-3">
         <div className="flex items-center gap-3">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-yellow-500 text-sm font-bold text-stone-950">
-            P5
-          </div>
+          <Image
+            src="/icon-192.png"
+            alt="Punto 5"
+            width={36}
+            height={36}
+            className="rounded-lg"
+          />
           <div>
             <h1 className="text-base font-bold text-stone-100">Panel principal</h1>
             <p className="text-xs text-stone-500">

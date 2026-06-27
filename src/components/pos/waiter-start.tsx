@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 
 /** Waiter start screen — enter a name, no auth. */
@@ -18,9 +19,14 @@ export function WaiterStart({ onStart }: { onStart: (name: string) => void }) {
     <div className="flex min-h-dvh flex-col items-center justify-center gap-10 p-8">
       <div className="flex flex-col items-center gap-4">
         <div className="h-1.5 w-20 rounded-full bg-red-500" />
-        <div className="flex size-20 items-center justify-center rounded-xl bg-yellow-500 text-3xl font-bold text-stone-950">
-          P5
-        </div>
+        <Image
+          src="/icon-192.png"
+          alt="Punto 5"
+          width={80}
+          height={80}
+          className="rounded-xl"
+          priority
+        />
         <h1 className="text-3xl font-bold text-stone-100">Punto 5 — Mesero</h1>
         <p className="text-base text-stone-500">Ingresa tu nombre para comenzar</p>
       </div>
