@@ -1,9 +1,9 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { cn, formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
-import { useState } from "react";
 
 const QUICK_NOTES = [
   "Sin salsas",
@@ -75,6 +75,11 @@ export function OrderSummary({
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isEditing = editingOrderId !== null;
+
+  // Cancel clear confirmation if items change (e.g. user adds an item while "¿Seguro?" is showing)
+  useEffect(() => {
+    setConfirmClear(false);
+  }, [itemCount, items.length]);
 
   const sendDisabledReason =
     items.length === 0
@@ -280,7 +285,7 @@ export function OrderSummary({
               onClick={onSaveEdit}
               disabled={items.length === 0 || sending || !editHasChanges}
             >
-              {sending ? "Guardando..." : "Guardar cambios"}
+              {sending ? "Guardando..." : items.length === 0 ? "Sin platos" : "Guardar cambios"}
             </Button>
           </div>
         ) : (

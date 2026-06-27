@@ -287,6 +287,7 @@ export function DashboardClient() {
       const fromStatus = order.status;
       const now = new Date().toISOString();
 
+      // Optimistic update
       setOrders((prev) =>
         prev.map((o) =>
           o.id === id
@@ -301,7 +302,7 @@ export function DashboardClient() {
         ),
       );
 
-      await supabase
+      const { error: updateErr } = await supabase
         .from("orders")
         .update({
           status: nextStatus,
@@ -310,6 +311,14 @@ export function DashboardClient() {
           updated_by_type: "admin",
         })
         .eq("id", id);
+
+      if (updateErr) {
+        // Rollback optimistic update
+        setOrders((prev) =>
+          prev.map((o) => (o.id === id ? { ...o, status: fromStatus } : o)),
+        );
+        return;
+      }
 
       await supabase.from("order_events").insert({
         order_id: id,
@@ -329,9 +338,10 @@ export function DashboardClient() {
 
   const undoStatus = useCallback(async () => {
     if (!supabase || !undoData) return;
-    const { orderId, fromStatus } = undoData;
+    const { orderId, fromStatus, toStatus } = undoData;
     const now = new Date().toISOString();
 
+    // Optimistic revert
     setOrders((prev) =>
       prev.map((o) =>
         o.id === orderId
@@ -340,17 +350,26 @@ export function DashboardClient() {
       ),
     );
 
-    await supabase
+    const { error: updateErr } = await supabase
       .from("orders")
       .update({ status: fromStatus, updated_by: "admin", updated_at: now, updated_by_type: "admin" })
       .eq("id", orderId);
+
+    if (updateErr) {
+      // Rollback the revert — go back to the new status
+      setOrders((prev) =>
+        prev.map((o) => (o.id === orderId ? { ...o, status: toStatus } : o)),
+      );
+      setUndoData(null);
+      return;
+    }
 
     await supabase.from("order_events").insert({
       order_id: orderId,
       event_type: "status_changed",
       actor_type: "admin",
       actor_name: "admin",
-      from_status: undoData.toStatus,
+      from_status: toStatus,
       to_status: fromStatus,
     });
 
