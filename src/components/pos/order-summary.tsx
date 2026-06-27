@@ -95,6 +95,11 @@ export function OrderSummary({
               <li key={item.dish_id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
+                    {item.category_name && (
+                      <span className="text-[11px] font-medium uppercase tracking-wide text-stone-600">
+                        {item.category_name}
+                      </span>
+                    )}
                     <span className="block text-base font-medium text-stone-100">
                       {item.dish_name}
                     </span>
