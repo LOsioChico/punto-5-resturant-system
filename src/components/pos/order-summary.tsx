@@ -7,10 +7,28 @@ import { useState } from "react";
 
 const QUICK_NOTES = [
   "Sin salsas",
-  "Sin cebolla",
   "Sin tomate",
+  "Sin mostaza",
+  "Sin tártara",
+  "Sin piña",
+  "Sin cebolla",
   "Para llevar",
 ];
+
+/** Toggle a quick note on/off within the notes string (comma-separated). */
+function toggleQuickNote(current: string, note: string): string {
+  const parts = current
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  const idx = parts.indexOf(note);
+  if (idx >= 0) {
+    parts.splice(idx, 1);
+  } else {
+    parts.push(note);
+  }
+  return parts.join(", ");
+}
 
 export interface CartItem {
   dish_id: string;
@@ -150,15 +168,27 @@ export function OrderSummary({
                 {editingNotes === item.dish_id ? (
                   <div className="mt-3" onMouseDown={(e) => e.preventDefault()}>
                     <div className="flex flex-wrap gap-1.5">
-                      {QUICK_NOTES.map((note) => (
-                        <button
-                          key={note}
-                          onClick={() => onSetNotes(item.dish_id, note)}
-                          className="rounded-lg bg-stone-800 px-2.5 py-1.5 text-xs text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
-                        >
-                          {note}
-                        </button>
-                      ))}
+                      {QUICK_NOTES.map((note) => {
+                        const active = item.notes
+                          .split(",")
+                          .map((p) => p.trim())
+                          .includes(note);
+                        return (
+                          <button
+                            key={note}
+                            onClick={() =>
+                              onSetNotes(item.dish_id, toggleQuickNote(item.notes, note))
+                            }
+                            className={
+                              active
+                                ? "rounded-lg bg-yellow-500/15 px-2.5 py-1.5 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-500/30"
+                                : "rounded-lg bg-stone-800 px-2.5 py-1.5 text-xs text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
+                            }
+                          >
+                            {note}
+                          </button>
+                        );
+                      })}
                     </div>
                     <input
                       value={item.notes}
