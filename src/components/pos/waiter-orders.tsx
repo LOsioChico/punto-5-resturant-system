@@ -88,31 +88,34 @@ export function WaiterOrders({
                   </div>
                 </div>
 
-                {/* Items — flat list, no category nesting */}
+                {/* Items — grouped by category */}
                 <div className="border-t border-white/5 px-5 py-4">
-                  <ul className="space-y-2">
+                  <ul className="space-y-3">
                     {order.items.map((item) => (
-                      <li key={item.id} className="flex items-center justify-between text-base">
-                        <span className="flex items-center gap-2.5 text-stone-300">
-                          <span className="font-bold text-stone-400 tabular-nums">
-                            {item.quantity}x
+                      <li key={item.id}>
+                        <div className="flex items-center justify-between text-base">
+                          <span className="flex items-center gap-2.5 text-stone-300">
+                            <span className="font-bold text-stone-400 tabular-nums">
+                              {item.quantity}x
+                            </span>
+                            <span>
+                              {item.category_name && (
+                                <span className="text-sm text-stone-600">{item.category_name} · </span>
+                              )}
+                              {item.dish_name}
+                            </span>
                           </span>
-                          {item.dish_name}
-                        </span>
-                        <span className="text-stone-500">
-                          {formatCOP(item.price * item.quantity)}
-                        </span>
+                          <span className="text-stone-500">
+                            {formatCOP(item.price * item.quantity)}
+                          </span>
+                        </div>
+                        {item.notes && (
+                          <p className="ml-7 mt-1 text-sm text-amber-400/80">
+                            → {item.notes}
+                          </p>
+                        )}
                       </li>
                     ))}
-                    {order.items.some((i) => i.notes) && (
-                      <li className="pt-1.5">
-                        {order.items.filter((i) => i.notes).map((item) => (
-                          <p key={item.id} className="text-sm text-amber-400/80">
-                            → {item.dish_name}: {item.notes}
-                          </p>
-                        ))}
-                      </li>
-                    )}
                   </ul>
                 </div>
 
