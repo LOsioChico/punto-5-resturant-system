@@ -51,6 +51,7 @@ export function OrderSummary({
   onSetNotes,
   sending,
   editingOrderId,
+  editHasChanges,
   onSaveEdit,
   onCancelEdit,
 }: {
@@ -64,6 +65,7 @@ export function OrderSummary({
   onSetNotes: (dishId: string, notes: string) => void;
   sending: boolean;
   editingOrderId: string | null;
+  editHasChanges: boolean;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
 }) {
@@ -283,7 +285,7 @@ export function OrderSummary({
               className="flex-1"
               size="lg"
               onClick={onSaveEdit}
-              disabled={items.length === 0 || sending}
+              disabled={items.length === 0 || sending || !editHasChanges}
             >
               {sending ? "Guardando..." : "Guardar cambios"}
             </Button>

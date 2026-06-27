@@ -46,6 +46,7 @@ export function PosClient() {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sending, setSending] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [editInitialCart, setEditInitialCart] = useState<CartItem[] | null>(null);
 
   // All orders (for table status + waiter history) — updated in realtime
   const [orders, setOrders] = useState<Order[]>([]);
@@ -329,18 +330,18 @@ export function PosClient() {
   // Load an existing order into the cart for editing
   const editOrder = useCallback(
     (order: Order) => {
+      const initialCart: CartItem[] = order.items.map((i) => ({
+        dish_id: i.dish_id,
+        dish_name: i.dish_name,
+        category_name: i.category_name ?? "",
+        price: i.price,
+        quantity: i.quantity,
+        notes: i.notes ?? "",
+      }));
       setEditingOrderId(order.id);
       setSelectedTable(order.table_number);
-      setCart(
-        order.items.map((i) => ({
-          dish_id: i.dish_id,
-          dish_name: i.dish_name,
-          category_name: i.category_name ?? "",
-          price: i.price,
-          quantity: i.quantity,
-          notes: i.notes ?? "",
-        })),
-      );
+      setEditInitialCart(initialCart);
+      setCart(initialCart);
       setActiveTab("new");
     },
     [],
@@ -349,6 +350,7 @@ export function PosClient() {
   // Cancel editing — go back to history without saving
   const cancelEdit = useCallback(() => {
     setEditingOrderId(null);
+    setEditInitialCart(null);
     setCart([]);
     setSelectedTable(null);
     setActiveTab("history");
@@ -501,7 +503,7 @@ export function PosClient() {
       }
     }
 
-    // 2. Log the update event
+    // 2. Log the update event with detailed change info
     await supabase.from("order_events").insert({
       order_id: editingOrderId,
       event_type: "updated",
@@ -515,6 +517,22 @@ export function PosClient() {
         added: toInsert.length,
         updated: toUpdate.length,
         removed: toDelete.length,
+        added_items: toInsert.map((i) => ({ name: i.dish_name, qty: i.quantity })),
+        updated_items: toUpdate.map((u) => {
+          const old = oldItems.find((o) => o.id === u.id);
+          const newItem = cart.find((c) => c.dish_id === old?.dish_id);
+          return {
+            name: newItem?.dish_name ?? old?.dish_name ?? "",
+            qty: u.quantity,
+            old_qty: old?.quantity ?? 0,
+            notes: u.notes,
+            old_notes: old?.notes ?? null,
+          };
+        }),
+        removed_items: toDelete.map((id) => {
+          const old = oldItems.find((o) => o.id === id);
+          return { name: old?.dish_name ?? "", qty: old?.quantity ?? 0 };
+        }),
       },
     });
 
@@ -538,12 +556,26 @@ export function PosClient() {
     toast(`Pedido actualizado — Mesa ${selectedTable}`, "success");
     setCart([]);
     setEditingOrderId(null);
+    setEditInitialCart(null);
     setSelectedTable(null);
     setSending(false);
     setActiveTab("history");
   }, [supabase, waiterName, editingOrderId, cart, orders, selectedTable, toast]);
 
   // --- Render ---
+
+  // When editing, check if the cart actually differs from the initial state
+  const editHasChanges = useMemo(() => {
+    if (!editInitialCart || !editingOrderId) return false;
+    if (editInitialCart.length !== cart.length) return true;
+    const initialMap = new Map(editInitialCart.map((i) => [i.dish_id, i]));
+    for (const item of cart) {
+      const old = initialMap.get(item.dish_id);
+      if (!old) return true;
+      if (old.quantity !== item.quantity || (old.notes ?? "") !== (item.notes ?? "")) return true;
+    }
+    return false;
+  }, [editInitialCart, cart, editingOrderId]);
 
   const displayError = configError ?? error;
 
@@ -711,6 +743,7 @@ export function PosClient() {
               onSetNotes={setNotes}
               sending={sending}
               editingOrderId={editingOrderId}
+              editHasChanges={editHasChanges}
               onSaveEdit={saveEditedOrder}
               onCancelEdit={cancelEdit}
             />

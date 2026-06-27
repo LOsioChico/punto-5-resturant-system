@@ -244,11 +244,34 @@ export function OrderDetail({
                   item_count?: number;
                   total?: number;
                   table_number?: number;
+                  added_items?: { name: string; qty: number }[];
+                  updated_items?: { name: string; qty: number; old_qty: number; notes: string | null; old_notes: string | null }[];
+                  removed_items?: { name: string; qty: number }[];
                 };
                 const changes: string[] = [];
                 if (meta.added) changes.push(`+${meta.added} agregado${meta.added > 1 ? "s" : ""}`);
                 if (meta.updated) changes.push(`${meta.updated} modificado${meta.updated > 1 ? "s" : ""}`);
                 if (meta.removed) changes.push(`-${meta.removed} eliminado${meta.removed > 1 ? "s" : ""}`);
+
+                // Detailed change lines
+                const detailLines: { text: string; type: "add" | "mod" | "del" }[] = [];
+                for (const item of meta.added_items ?? []) {
+                  detailLines.push({ text: `${item.name} (${item.qty}x)`, type: "add" });
+                }
+                for (const item of meta.updated_items ?? []) {
+                  const parts: string[] = [];
+                  if (item.qty !== item.old_qty) parts.push(`${item.old_qty}x → ${item.qty}x`);
+                  if ((item.notes ?? "") !== (item.old_notes ?? "")) {
+                    parts.push(item.notes ? `nota: "${item.notes}"` : "sin nota");
+                  }
+                  detailLines.push({
+                    text: `${item.name}${parts.length > 0 ? ` — ${parts.join(", ")}` : ""}`,
+                    type: "mod",
+                  });
+                }
+                for (const item of meta.removed_items ?? []) {
+                  detailLines.push({ text: `${item.name} (${item.qty}x)`, type: "del" });
+                }
 
                 return (
                   <li key={event.id} className="flex gap-3">
@@ -306,6 +329,25 @@ export function OrderDetail({
                             </span>
                           ))}
                         </div>
+                      )}
+                      {detailLines.length > 0 && (
+                        <ul className="mt-1.5 space-y-0.5">
+                          {detailLines.map((d, i) => (
+                            <li
+                              key={i}
+                              className={
+                                d.type === "add"
+                                  ? "text-[11px] text-green-400/80"
+                                  : d.type === "del"
+                                    ? "text-[11px] text-red-400/80"
+                                    : "text-[11px] text-amber-400/80"
+                              }
+                            >
+                              {d.type === "add" ? "+ " : d.type === "del" ? "− " : "~ "}
+                              {d.text}
+                            </li>
+                          ))}
+                        </ul>
                       )}
                     </div>
                   </li>
