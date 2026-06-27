@@ -5,6 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
 import { useState } from "react";
 
+const QUICK_NOTES = [
+  "Sin salsas",
+  "Sin cebolla",
+  "Sin tomate",
+  "Extra queso",
+  "Extra picante",
+  "Para llevar",
+];
+
 export interface CartItem {
   dish_id: string;
   dish_name: string;
@@ -141,19 +150,32 @@ export function OrderSummary({
 
                 {/* Notes */}
                 {editingNotes === item.dish_id ? (
-                  <input
-                    autoFocus
-                    value={item.notes}
-                    onChange={(e) => onSetNotes(item.dish_id, e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === "Escape") {
-                        setEditingNotes(null);
-                      }
-                    }}
-                    onBlur={() => setEditingNotes(null)}
-                    placeholder="Ej: sin cebolla, extra picante..."
-                    className="mt-3 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2.5 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
-                  />
+                  <div className="mt-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {QUICK_NOTES.map((note) => (
+                        <button
+                          key={note}
+                          onClick={() => onSetNotes(item.dish_id, note)}
+                          className="rounded-lg bg-stone-800 px-2.5 py-1.5 text-xs text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
+                        >
+                          {note}
+                        </button>
+                      ))}
+                    </div>
+                    <input
+                      autoFocus
+                      value={item.notes}
+                      onChange={(e) => onSetNotes(item.dish_id, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === "Escape") {
+                          setEditingNotes(null);
+                        }
+                      }}
+                      onBlur={() => setEditingNotes(null)}
+                      placeholder="Ej: sin cebolla, extra picante..."
+                      className="mt-2 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2.5 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
+                    />
+                  </div>
                 ) : (
                   <button
                     onClick={() => setEditingNotes(item.dish_id)}
