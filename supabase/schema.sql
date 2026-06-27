@@ -80,6 +80,21 @@ create table if not exists order_events (
 create index if not exists idx_order_events_order on order_events(order_id, created_at desc);
 
 -- ============================================================
+-- Push subscriptions — one waiter can have multiple devices
+-- ============================================================
+create table if not exists push_subscriptions (
+  id            uuid primary key default gen_random_uuid(),
+  waiter_name   text not null,                          -- waiter name (links to orders.waiter_name)
+  endpoint      text not null,                          -- push service endpoint URL (unique per device/browser)
+  p256dh        text not null,                          -- ECDH public key from browser
+  auth          text not null,                          -- auth secret from browser
+  created_at    timestamptz not null default now()
+);
+
+create index if not exists idx_push_subs_waiter on push_subscriptions(waiter_name);
+create unique index if not exists idx_push_subs_endpoint on push_subscriptions(endpoint);
+
+-- ============================================================
 -- RLS — POC: allow all operations with the anon key.
 -- Tighten before production.
 --
@@ -96,6 +111,7 @@ alter table dishes        enable row level security;
 alter table orders        enable row level security;
 alter table order_items   enable row level security;
 alter table order_events  enable row level security;
+alter table push_subscriptions enable row level security;
 
 create policy "poc_read_categories"  on categories  for select using (true);
 create policy "poc_read_dishes"      on dishes      for select using (true);
@@ -106,6 +122,9 @@ create policy "poc_read_order_items"   on order_items  for select using (true);
 create policy "poc_insert_order_items" on order_items  for insert with check (true);
 create policy "poc_read_order_events"  on order_events for select using (true);
 create policy "poc_insert_order_events" on order_events for insert with check (true);
+create policy "poc_insert_push_subs" on push_subscriptions for insert with check (true);
+create policy "poc_delete_push_subs" on push_subscriptions for delete using (true);
+create policy "poc_read_push_subs"   on push_subscriptions for select using (true);
 
 -- ============================================================
 -- Realtime — enable publication for the tables we subscribe to

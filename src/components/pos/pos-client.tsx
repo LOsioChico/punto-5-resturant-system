@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { NotificationBell } from "@/components/ui/notification-bell";
+import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { WaiterStart } from "./waiter-start";
 import { TableSelector } from "./table-selector";
@@ -12,6 +13,7 @@ import { DishGrid } from "./dish-grid";
 import { OrderSummary, type CartItem } from "./order-summary";
 import { WaiterOrders } from "./waiter-orders";
 import { PosTabs, type PosTab } from "./pos-tabs";
+import { Bell, BellOff } from "lucide-react";
 
 const WAITER_KEY = "punto5:waiter-name";
 
@@ -26,6 +28,7 @@ export function PosClient() {
     if (typeof window === "undefined") return null;
     return localStorage.getItem(WAITER_KEY);
   });
+  const { permission, subscribed, subscribe, unsubscribe } = usePushSubscription(waiterName);
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
@@ -374,6 +377,21 @@ export function PosClient() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationBell />
+          {/* Push notification toggle */}
+          {permission !== "unsupported" && permission !== "denied" && (
+            <button
+              onClick={() => (subscribed ? unsubscribe() : subscribe())}
+              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
+                subscribed
+                  ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                  : "bg-stone-900 text-stone-500 hover:bg-stone-800 hover:text-stone-300"
+              }`}
+              title={subscribed ? "Notificaciones activadas" : "Activar notificaciones"}
+            >
+              {subscribed ? <Bell className="size-3.5" /> : <BellOff className="size-3.5" />}
+              {subscribed ? "On" : "Off"}
+            </button>
+          )}
           <span className="text-sm text-stone-600">
             {waiterName}
           </span>

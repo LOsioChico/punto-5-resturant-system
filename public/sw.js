@@ -24,6 +24,49 @@ self.addEventListener("activate", (event) => {
   );
 });
 
+// Handle push events — show notification to waiter.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    data = { title: "Punto 5", body: event.data ? event.data.text() : "" };
+  }
+
+  const title = data.title || "Punto 5";
+  const options = {
+    body: data.body || "Tienes una actualización de pedido",
+    icon: "/icon-192.png",
+    badge: "/icon-192.png",
+    tag: data.tag || "order-update",
+    renotify: true,
+    data: { url: data.url || "/pos" },
+  };
+
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+// Handle notification click — focus or open the POS tab.
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = event.notification.data?.url || "/pos";
+
+  event.waitUntil(
+    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+      // Focus existing tab if open
+      for (const client of clientList) {
+        if (client.url.includes(url) && "focus" in client) {
+          return client.focus();
+        }
+      }
+      // Open new tab
+      if (clients.openWindow) {
+        return clients.openWindow(url);
+      }
+    }),
+  );
+});
+
 // Serve cached assets when offline, fall back to offline page for navigations.
 self.addEventListener("fetch", (event) => {
   const { request } = event;
