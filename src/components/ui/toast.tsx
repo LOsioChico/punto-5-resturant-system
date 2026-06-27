@@ -80,12 +80,13 @@ const variantConfig: Record<
 
 /** Map a stored push notification (from IndexedDB) to a NotificationItem. */
 function storedToItem(n: StoredNotification): NotificationItem {
-  // Parse variant from the tag (e.g. "order-abc-lista" → "status-lista")
+  // Parse variant from the tag (e.g. "order-abc-lista") or body text
+  const text = `${n.tag} ${n.body}`.toLowerCase();
   let variant: ToastVariant = "info";
-  if (n.tag.includes("nueva")) variant = "status-nueva";
-  else if (n.tag.includes("en_cocina")) variant = "status-en_cocina";
-  else if (n.tag.includes("lista")) variant = "status-lista";
-  else if (n.tag.includes("servida")) variant = "status-servida";
+  if (text.includes("recibido")) variant = "status-nueva";
+  else if (text.includes("cocina")) variant = "status-en_cocina";
+  else if (text.includes("listo")) variant = "status-lista";
+  else if (text.includes("servida")) variant = "status-servida";
 
   // Extract table number from title (e.g. "Mesa 5" → 5)
   const tableMatch = n.title.match(/Mesa\s+(\d+)/);
@@ -101,38 +102,44 @@ function storedToItem(n: StoredNotification): NotificationItem {
   };
 }
 
+/** Normalize a message for dedup comparison (strip whitespace, lowercase). */
+function normalizeMsg(s: string): string {
+  return s.replace(/\s+/g, " ").trim().toLowerCase();
+}
+
 let toastId = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<NotificationItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
-  // Load persisted notifications from IndexedDB on mount
+  // Load persisted notifications from IndexedDB on mount.
+  // Deduplicate against notifications already in the list (from realtime
+  // channel) by comparing normalized message text within a 10-second window.
   useEffect(() => {
     loadNotifications().then((stored) => {
-      if (stored.length > 0) {
-        setNotifications((prev) => {
-          // Merge: add stored notifications that aren't already in the list
-          const existingIds = new Set(prev.map((n) => n.id));
-          const merged = [...prev, ...stored.map(storedToItem).filter((n) => !existingIds.has(n.id))];
-          return merged.sort((a, b) => b.timestamp - a.timestamp).slice(0, 50);
-        });
-      }
+      if (stored.length === 0) return;
+      setNotifications((prev) => {
+        const existing = prev.map((n) => ({
+          msg: normalizeMsg(n.message),
+          ts: n.timestamp,
+        }));
+        const isDup = (item: NotificationItem) =>
+          existing.some(
+            (e) =>
+              e.msg === normalizeMsg(item.message) &&
+              Math.abs(e.ts - item.timestamp) < 10_000,
+          );
+        const mapped = stored.map(storedToItem).filter((item) => !isDup(item));
+        const merged = [...prev, ...mapped];
+        return merged.sort((a, b) => b.timestamp - a.timestamp).slice(0, 50);
+      });
     });
   }, []);
 
-  // Listen for push events from the service worker (when app is in foreground)
-  useEffect(() => {
-    if (!("serviceWorker" in navigator)) return;
-    const handler = (event: MessageEvent) => {
-      if (event.data?.type === "PUSH_RECEIVED") {
-        const item = storedToItem(event.data.notification);
-        setNotifications((prev) => [item, ...prev].slice(0, 50));
-      }
-    };
-    navigator.serviceWorker.addEventListener("message", handler);
-    return () => navigator.serviceWorker.removeEventListener("message", handler);
-  }, []);
+  // No PUSH_RECEIVED handler — the realtime channel handles foreground
+  // notifications (with proper colored icons). IndexedDB handles background
+  // notifications (loaded on mount above). This avoids duplicates.
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));

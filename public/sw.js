@@ -91,18 +91,10 @@ self.addEventListener("push", (event) => {
     read: false,
   };
 
-  // Notify any open clients (foreground app) about the push
-  const notifyClients = clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-    for (const client of clientList) {
-      client.postMessage({ type: "PUSH_RECEIVED", notification });
-    }
-  });
-
   event.waitUntil(
     Promise.all([
       self.registration.showNotification(title, options),
       saveNotification(notification),
-      notifyClients,
     ]),
   );
 });

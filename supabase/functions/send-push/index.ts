@@ -75,7 +75,7 @@ Deno.serve(async (req) => {
     const payload = JSON.stringify({
       title: `Mesa ${tableNumber}`,
       body: statusMsg.charAt(0).toUpperCase() + statusMsg.slice(1),
-      tag: `order-${record.id}`,
+      tag: `order-${record.id}-${newStatus}`,
       url: "/pos",
     });
 
