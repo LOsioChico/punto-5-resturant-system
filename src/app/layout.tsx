@@ -53,8 +53,9 @@ export default function RootLayout({
     <html
       lang="es"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
-      <body className="h-full bg-stone-950 text-stone-100">
+      <body className="h-full bg-stone-950 text-stone-100" suppressHydrationWarning>
         <ToastProvider>
           <ServiceWorkerRegister />
           {children}
