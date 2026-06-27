@@ -69,6 +69,7 @@ export function OrderSummary({
 }) {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [tooltip, setTooltip] = useState<string | null>(null);
+  const [confirmClear, setConfirmClear] = useState(false);
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isEditing = editingOrderId !== null;
@@ -109,10 +110,23 @@ export function OrderSummary({
         </div>
         {items.length > 0 && !isEditing && (
           <button
-            onClick={onClear}
-            className="rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-400"
+            onClick={() => {
+              if (confirmClear) {
+                onClear();
+                setConfirmClear(false);
+              } else {
+                setConfirmClear(true);
+                setTimeout(() => setConfirmClear(false), 3000);
+              }
+            }}
+            className={cn(
+              "rounded-lg px-3 py-2 text-sm transition-colors",
+              confirmClear
+                ? "bg-red-500/10 text-red-400"
+                : "text-stone-500 hover:bg-stone-800 hover:text-red-400",
+            )}
           >
-            Limpiar
+            {confirmClear ? "¿Seguro?" : "Limpiar"}
           </button>
         )}
       </div>
