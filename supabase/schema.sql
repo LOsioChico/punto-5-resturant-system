@@ -134,55 +134,65 @@ alter publication supabase_realtime add table order_items;
 alter publication supabase_realtime add table order_events;
 
 -- ============================================================
--- Seed data — placeholder prices (replace with real prices later)
+-- Seed data — real menu
 -- ============================================================
 insert into categories (name, description, sort_order) values
-  ('Hamburguesas', 'Carne de res, pollo o salchicha con guarniciones', 1),
-  ('Salchipapas y Perros', 'Papas, salchichas y perros con salsas de la casa', 2),
-  ('Adicionales', 'Agrega extra ingredientes a tu pedido', 3)
+  ('Hamburguesas', 'Todas las hamburguesas incluyen una variedad de ingredientes y salsas específicas', 1),
+  ('Salchipapas', 'Papas, salchicha y salsas de la casa', 2),
+  ('Perros', 'Long, ripio, queso y salsas de la casa', 3),
+  ('Toppings', 'Adiciones para tu pedido', 4)
 on conflict do nothing;
 
 -- Hamburguesas
 insert into dishes (category_id, name, description, price, sort_order)
 select c.id, d.name, d.description, d.price, d.sort_order
 from (values
-  ('Sencilla',     'Carne de res, lechuga, ripio, queso mozarella, salsas (tomate, mostaza, tartara), papas a la francesa', 15000, 1),
-  ('Mexicana',     'Carne de res, jalapeño, ají vasco, lechuga, ripio, queso mozarella, salsas (tartara, tomate, mostaza)', 16000, 2),
-  ('Pollo',        'Carne de pollo, lechuga, ripio, queso mozarella, salsas (tartara, tomate, mostaza)', 15000, 3),
-  ('Doble',        'Doble carne de res, jamón, tocineta, ripio, lechuga, queso mozarella, salsas (tartara, tomate, mostaza), papas a la francesa', 22000, 4),
-  ('Salchidurguer','Carne de res, lechuga, ripio, queso mozarella, papa a la francesa, queso costeño, salsas (tartara, tomate, mostaza, piña)', 18000, 5)
+  ('Sencilla',      'Carne de res, lechuga, ripio, queso mozzarella, salsas (tomate, mostaza, tártara) y papas a la francesa', 5000, 1),
+  ('Mexicana',      'Carne de res, jalapeño ají vasco, lechuga, ripio, queso mozzarella y salsas (tártara, tomate, mostaza)', 6000, 2),
+  ('Pollo',         'Carne de pollo, lechuga, ripio, queso mozzarella y salsas (tártara, tomate, mostaza)', 6000, 3),
+  ('Doble Carne',   'Doble carne de res, jamón, tocineta, ripio, lechuga, queso mozzarella, salsas (tártara, tomate, mostaza) y papas a la francesa', 12000, 4),
+  ('Salchiburguer', 'Carne de res, lechuga, ripio, queso mozzarella, papa a la francesa, queso costeño y salsas (tártara, tomate, mostaza, piña)', 10000, 5)
 ) as d(name, description, price, sort_order)
 cross join categories c
 where c.name = 'Hamburguesas'
 on conflict do nothing;
 
--- Salchipapas y Perros
+-- Salchipapas
 insert into dishes (category_id, name, description, price, sort_order)
 select c.id, d.name, d.description, d.price, d.sort_order
 from (values
-  ('Salchipapa',  'Papa a la francesa, salchicha, queso costeño, lechuga, papa ripio, salsas (tomate, tartara, piña)', 12000, 1),
-  ('Sencillo',    'Long, ripio, queso mozarella, salsas (tartara, tomate, mostaza)', 8000, 2),
-  ('Planchiperro','Long, carne de res, lechuga, ripio, queso costeño, queso mozarella, salsas (tartara, piña, tomate)', 14000, 3),
-  ('Salchidog',   'Long, ripio, lechuga, papas a la francesa, salchicha, queso costeño, queso mozarella, salsas (tartara, piña, mostaza, tomate)', 15000, 4)
+  ('Salchipapa', 'Papa a la francesa, salchicha, queso costeño, lechuga, papa ripio y salsas (tomate, tártara, piña)', 5000, 1)
 ) as d(name, description, price, sort_order)
 cross join categories c
-where c.name = 'Salchipapas y Perros'
+where c.name = 'Salchipapas'
 on conflict do nothing;
 
--- Adicionales
+-- Perros
 insert into dishes (category_id, name, description, price, sort_order)
 select c.id, d.name, d.description, d.price, d.sort_order
 from (values
-  ('Jamón',                  'Jamón adicional', 1500, 1),
-  ('Queso mozarella',        'Queso mozarella adicional', 1500, 2),
-  ('Carne',                  'Carne adicional', 3000, 3),
-  ('Pollo',                  'Pollo adicional', 3000, 4),
-  ('Mexicana',               'Mexicana adicional', 3000, 5),
-  ('Porción de papas',       'Porción de papas a la francesa', 3000, 6),
-  ('Huevo frito',            'Huevo frito adicional', 1000, 7),
-  ('Tocineta',               'Tocineta adicional', 1500, 8),
-  ('Cebolla caramelizada',   'Cebolla caramelizada adicional', 500, 9)
+  ('Sencillo',     'Long (salchicha), ripio, queso mozzarella y salsas (tártara, tomate, mostaza)', 5000, 1),
+  ('Planchiperro', 'Long (salchicha), carne de res, lechuga, ripio, queso costeño, queso mozzarella y salsas (tártara, piña, tomate)', 10000, 2),
+  ('Salchidog',    'Long (salchicha), ripio, lechuga, papas a la francesa, salchicha, queso costeño, queso mozzarella y salsas (tártara, piña, mostaza, tomate)', 10000, 3)
 ) as d(name, description, price, sort_order)
 cross join categories c
-where c.name = 'Adicionales'
+where c.name = 'Perros'
+on conflict do nothing;
+
+-- Toppings (Adiciones)
+insert into dishes (category_id, name, description, price, sort_order)
+select c.id, d.name, d.description, d.price, d.sort_order
+from (values
+  ('Huevo Frito',           'Huevo frito adicional', 1000, 1),
+  ('Jamón',                 'Jamón adicional', 1500, 2),
+  ('Queso Mozzarella',      'Queso mozzarella adicional', 1500, 3),
+  ('Tocineta',              'Tocineta adicional', 1500, 4),
+  ('Cebolla Caramelizada',  'Cebolla caramelizada adicional', 1500, 5),
+  ('Carne',                 'Carne adicional', 3000, 6),
+  ('Pollo',                 'Pollo adicional', 3000, 7),
+  ('Mexicana',              'Mexicana adicional', 3000, 8),
+  ('Porción de Papas',      'Porción de papas a la francesa', 3000, 9)
+) as d(name, description, price, sort_order)
+cross join categories c
+where c.name = 'Toppings'
 on conflict do nothing;
