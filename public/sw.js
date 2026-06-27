@@ -1,9 +1,12 @@
 // Simple service worker for PWA — matches the Next.js team's recommended approach.
 // https://nextjs.org/docs/app/guides/progressive-web-apps
 
-const CACHE_NAME = "punto5-v2";
+const CACHE_NAME = "punto5-v3";
 const OFFLINE_URL = "/~offline";
 const DASHBOARD_URL = "/dashboard";
+const NOTIFICATIONS_STORE = "notifications";
+const NOTIFICATIONS_DB = "punto5-notifications";
+const NOTIFICATIONS_DB_VERSION = 1;
 
 // Precache the offline page and dashboard on install.
 self.addEventListener("install", (event) => {
@@ -27,7 +30,35 @@ self.addEventListener("activate", (event) => {
   );
 });
 
-// Handle push events — show notification to waiter.
+// --- IndexedDB helper for storing notifications ---
+
+function saveNotification(notification) {
+  return new Promise((resolve) => {
+    try {
+      const req = indexedDB.open(NOTIFICATIONS_DB, NOTIFICATIONS_DB_VERSION);
+      req.onupgradeneeded = () => {
+        const db = req.result;
+        if (!db.objectStoreNames.contains(NOTIFICATIONS_STORE)) {
+          const store = db.createObjectStore(NOTIFICATIONS_STORE, { keyPath: "id", autoIncrement: true });
+          store.createIndex("timestamp", "timestamp", { unique: false });
+        }
+      };
+      req.onsuccess = () => {
+        const db = req.result;
+        const tx = db.transaction(NOTIFICATIONS_STORE, "readwrite");
+        tx.objectStore(NOTIFICATIONS_STORE).add(notification);
+        tx.oncomplete = () => { db.close(); resolve(); };
+        tx.onerror = () => { db.close(); resolve(); };
+      };
+      req.onerror = () => resolve();
+    } catch {
+      resolve();
+    }
+  });
+}
+
+// --- Handle push events — show notification + persist to IndexedDB ---
+
 self.addEventListener("push", (event) => {
   let data = {};
   try {
@@ -37,40 +68,76 @@ self.addEventListener("push", (event) => {
   }
 
   const title = data.title || "Punto 5";
+  const body = data.body || "Tienes una actualización de pedido";
+  const tag = data.tag || "order-update";
+  const url = data.url || "/pos";
+
   const options = {
-    body: data.body || "Tienes una actualización de pedido",
+    body,
     icon: "/icon-192.png",
     badge: "/badge-72.png",
-    tag: data.tag || "order-update",
+    tag,
     renotify: true,
-    data: { url: data.url || "/pos" },
+    data: { url, title, body, tag, timestamp: Date.now() },
   };
 
-  event.waitUntil(self.registration.showNotification(title, options));
+  // Persist notification to IndexedDB so the app can show it later
+  const notification = {
+    title,
+    body,
+    tag,
+    url,
+    timestamp: Date.now(),
+    read: false,
+  };
+
+  // Notify any open clients (foreground app) about the push
+  const notifyClients = clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+    for (const client of clientList) {
+      client.postMessage({ type: "PUSH_RECEIVED", notification });
+    }
+  });
+
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(title, options),
+      saveNotification(notification),
+      notifyClients,
+    ]),
+  );
 });
 
-// Handle notification click — focus or open the POS tab.
+// --- Handle notification click — focus or open the app ---
+
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const url = event.notification.data?.url || "/pos";
+  const path = event.notification.data?.url || "/pos";
+  // Build absolute URL — clients.openWindow requires absolute URLs on iOS
+  const absoluteUrl = new URL(path, self.location.origin).href;
 
   event.waitUntil(
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      // Focus existing tab if open
+      // Focus existing tab if open (match by origin + path)
       for (const client of clientList) {
-        if (client.url.includes(url) && "focus" in client) {
+        const clientUrl = new URL(client.url);
+        if (clientUrl.origin === self.location.origin && "focus" in client) {
+          // Navigate to the target path if different, then focus
+          if (clientUrl.pathname !== path && client.navigate) {
+            client.navigate(absoluteUrl);
+          }
           return client.focus();
         }
       }
-      // Open new tab
+      // Open new tab with absolute URL
       if (clients.openWindow) {
-        return clients.openWindow(url);
+        return clients.openWindow(absoluteUrl);
       }
     }),
   );
 });
 
-// Serve cached assets when offline, fall back to cached pages for navigations.
+// --- Serve cached assets when offline, fall back to cached pages for navigations. ---
+
 self.addEventListener("fetch", (event) => {
   const { request } = event;
 

@@ -5,10 +5,17 @@ import {
   useCallback,
   useContext,
   useState,
+  useEffect,
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
 import { CheckCircle2, XCircle, Info, X, Clock, ChefHat, Utensils } from "lucide-react";
+import {
+  loadNotifications,
+  markAllNotificationsRead,
+  clearNotifications as clearStoredNotifications,
+  type StoredNotification,
+} from "@/lib/notifications/db";
 
 type ToastVariant = "success" | "error" | "info" | "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida";
 
@@ -71,11 +78,61 @@ const variantConfig: Record<
   },
 };
 
+/** Map a stored push notification (from IndexedDB) to a NotificationItem. */
+function storedToItem(n: StoredNotification): NotificationItem {
+  // Parse variant from the tag (e.g. "order-abc-lista" → "status-lista")
+  let variant: ToastVariant = "info";
+  if (n.tag.includes("nueva")) variant = "status-nueva";
+  else if (n.tag.includes("en_cocina")) variant = "status-en_cocina";
+  else if (n.tag.includes("lista")) variant = "status-lista";
+  else if (n.tag.includes("servida")) variant = "status-servida";
+
+  // Extract table number from title (e.g. "Mesa 5" → 5)
+  const tableMatch = n.title.match(/Mesa\s+(\d+)/);
+  const tableNumber = tableMatch ? parseInt(tableMatch[1], 10) : undefined;
+
+  return {
+    id: n.id ?? Date.now(),
+    message: `${n.title} — ${n.body}`,
+    variant,
+    tableNumber,
+    timestamp: n.timestamp,
+    read: n.read,
+  };
+}
+
 let toastId = 0;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<NotificationItem[]>([]);
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+
+  // Load persisted notifications from IndexedDB on mount
+  useEffect(() => {
+    loadNotifications().then((stored) => {
+      if (stored.length > 0) {
+        setNotifications((prev) => {
+          // Merge: add stored notifications that aren't already in the list
+          const existingIds = new Set(prev.map((n) => n.id));
+          const merged = [...prev, ...stored.map(storedToItem).filter((n) => !existingIds.has(n.id))];
+          return merged.sort((a, b) => b.timestamp - a.timestamp).slice(0, 50);
+        });
+      }
+    });
+  }, []);
+
+  // Listen for push events from the service worker (when app is in foreground)
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    const handler = (event: MessageEvent) => {
+      if (event.data?.type === "PUSH_RECEIVED") {
+        const item = storedToItem(event.data.notification);
+        setNotifications((prev) => [item, ...prev].slice(0, 50));
+      }
+    };
+    navigator.serviceWorker.addEventListener("message", handler);
+    return () => navigator.serviceWorker.removeEventListener("message", handler);
+  }, []);
 
   const dismiss = useCallback((id: number) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
@@ -101,10 +158,12 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 
   const markAllRead = useCallback(() => {
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    markAllNotificationsRead();
   }, []);
 
   const clearNotifications = useCallback(() => {
     setNotifications([]);
+    clearStoredNotifications();
   }, []);
 
   const unreadCount = notifications.filter((n) => !n.read).length;
