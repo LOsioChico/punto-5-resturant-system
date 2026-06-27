@@ -52,7 +52,7 @@ export function CommandPreview({ order }: { order: Order }) {
         </div>
 
         {wasModified && (
-          <p className="mt-1.5 text-center text-xs font-bold uppercase tracking-widest text-red-600">
+          <p className="mt-1.5 text-center text-xs font-bold uppercase tracking-widest text-stone-700">
             ★ Modificada ★
           </p>
         )}
@@ -77,13 +77,11 @@ export function CommandPreview({ order }: { order: Order }) {
                       {item.dish_name}
                     </span>
                   </div>
-                  {/* Notes — highlighted callout, impossible to miss */}
+                  {/* Notes — indented, bold, clear */}
                   {item.notes && (
-                    <div className="mt-0.5 ml-6 border-l-[3px] border-red-600 bg-red-50 px-2 py-1">
-                      <p className="text-xs font-bold text-red-700">
-                        {item.notes}
-                      </p>
-                    </div>
+                    <p className="mt-0.5 ml-6 border-l-2 border-stone-400 pl-1.5 text-xs font-bold text-stone-700">
+                      {item.notes}
+                    </p>
                   )}
                 </li>
               ))}
