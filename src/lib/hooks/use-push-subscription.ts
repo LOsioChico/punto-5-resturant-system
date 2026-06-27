@@ -18,17 +18,28 @@ export function usePushSubscription(waiterName: string | null) {
   const [permission, setPermission] = useState<PermissionState>("default");
   const [subscribed, setSubscribed] = useState(false);
 
-  // Sync permission state on mount
+  // Sync permission + existing subscription state on mount
   useEffect(() => {
     if (!("Notification" in window)) {
       setPermission("unsupported");
       return;
     }
     setPermission(Notification.permission as PermissionState);
+
+    // Check if already subscribed (permission granted + SW has a push subscription)
+    if (Notification.permission === "granted" && "serviceWorker" in navigator) {
+      navigator.serviceWorker.ready
+        .then((reg) => reg.pushManager.getSubscription())
+        .then((sub) => {
+          if (sub) setSubscribed(true);
+        })
+        .catch(() => {});
+    }
   }, []);
 
   const subscribe = useCallback(async () => {
     if (!waiterName || !VAPID_PUBLIC_KEY || !("serviceWorker" in navigator)) {
+      console.warn("Push subscribe skipped:", { waiterName, hasVapid: !!VAPID_PUBLIC_KEY, hasSW: "serviceWorker" in navigator });
       return;
     }
 
