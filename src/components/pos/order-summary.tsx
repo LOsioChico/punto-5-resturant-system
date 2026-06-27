@@ -150,7 +150,7 @@ export function OrderSummary({
 
                 {/* Notes */}
                 {editingNotes === item.dish_id ? (
-                  <div className="mt-3">
+                  <div className="mt-3" onMouseDown={(e) => e.preventDefault()}>
                     <div className="flex flex-wrap gap-1.5">
                       {QUICK_NOTES.map((note) => (
                         <button
