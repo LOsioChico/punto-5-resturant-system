@@ -5,7 +5,7 @@ import type { Category, Dish } from "@/lib/types";
 import { getDishIcon } from "@/components/icons/dish-icons";
 import { Minus, Plus } from "lucide-react";
 
-/** Middle area — grid of dishes. Warm cards with clear hierarchy. */
+/** Dish grid — auto-fill columns that adapt to available width. */
 export function DishGrid({
   dishes,
   categories,
@@ -33,8 +33,8 @@ export function DishGrid({
 
   return (
     <div className="flex-1 overflow-y-auto bg-stone-950">
-      <div className="p-5">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="p-4">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
           {dishes.map((dish) => {
             const category = categories.find((c) => c.id === dish.category_id);
             const Icon = getDishIcon(dish.name, category?.name);
@@ -50,69 +50,69 @@ export function DishGrid({
                     : "flex flex-col overflow-hidden rounded-xl border border-white/10 bg-stone-900"
                 }
               >
-                {/* Top — icon + name + description (tap to add) */}
+                {/* Top — tap to add */}
                 <button
                   onClick={() => onAdd(dish)}
-                  className="flex flex-1 flex-col p-4 text-left active:scale-[0.98]"
+                  className="flex flex-1 flex-col p-3.5 text-left active:scale-[0.98]"
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-start gap-2.5">
                     <div
                       className={
                         inCart
-                          ? "flex size-11 shrink-0 items-center justify-center rounded-lg bg-yellow-500/15"
-                          : "flex size-11 shrink-0 items-center justify-center rounded-lg bg-stone-800"
+                          ? "flex size-8 shrink-0 items-center justify-center rounded-lg bg-yellow-500/15"
+                          : "flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-800"
                       }
                     >
                       <Icon
                         className={
                           inCart
-                            ? "size-6 text-yellow-500"
-                            : "size-6 text-stone-500"
+                            ? "size-4 text-yellow-500"
+                            : "size-4 text-stone-500"
                         }
                       />
                     </div>
-                    <h3 className="text-base font-semibold leading-tight text-stone-100">
+                    <h3 className="line-clamp-2 break-words text-sm font-semibold leading-tight text-stone-100">
                       {dish.name}
                     </h3>
                   </div>
 
                   {dish.description && (
-                    <p className="mt-3 text-sm leading-relaxed text-stone-500">
+                    <p className="mt-2 line-clamp-2 break-words text-xs leading-relaxed text-stone-500">
                       {dish.description}
                     </p>
                   )}
                 </button>
 
                 {/* Bottom bar — price + counter */}
-                <div className="flex items-center justify-between border-t border-white/5 px-4 py-3.5">
-                  <span className="text-base font-bold text-yellow-500">
+                <div className="flex items-center justify-between gap-2 border-t border-white/5 px-3.5 py-3">
+                  <span className="shrink-0 text-sm font-bold text-yellow-500">
                     {formatCOP(dish.price)}
                   </span>
 
                   {inCart ? (
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex shrink-0 items-center gap-1.5">
                       <button
                         onClick={() => onDec(dish.id)}
-                        className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                        className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                       >
-                        <Minus className="size-5" />
+                        <Minus className="size-4" />
                       </button>
-                      <span className="min-w-8 text-center text-lg font-bold text-yellow-500">
+                      <span className="min-w-6 text-center text-base font-bold text-yellow-500">
                         {qty}
                       </span>
                       <button
                         onClick={() => onInc(dish.id)}
-                        className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                        className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                       >
-                        <Plus className="size-5" />
+                        <Plus className="size-4" />
                       </button>
                     </div>
                   ) : (
                     <button
                       onClick={() => onAdd(dish)}
-                      className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
+                      className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
                     >
-                      <Plus className="size-5" />
+                      <Plus className="size-4" />
                     </button>
                   )}
                 </div>
