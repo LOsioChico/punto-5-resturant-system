@@ -274,8 +274,9 @@ export function OrderDetail({
                           {formatTime(event.created_at)}
                         </span>
                       </div>
-                      <p className="mt-0.5 text-xs text-stone-500">
-                        por <span className="text-stone-400">{event.actor_name}</span>
+                      <p className="mt-0.5 flex items-center gap-1 text-xs text-stone-500">
+                        <User className="size-3 text-stone-600" />
+                        <span className="text-stone-400">{event.actor_name}</span>
                         {event.from_status && event.to_status && (
                           <>
                             {" · "}
