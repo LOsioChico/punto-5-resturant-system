@@ -347,7 +347,7 @@ export function PosClient() {
   // Don't render anything until hydrated — avoids SSR/client mismatch
   if (!hydrated) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-stone-950 text-stone-500">
+      <div className="flex min-h-dvh items-center justify-center bg-stone-950 text-stone-500">
         Cargando...
       </div>
     );
@@ -355,7 +355,7 @@ export function PosClient() {
 
   if (displayError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
         <p className="text-lg font-semibold text-red-400">{displayError}</p>
         <p className="text-sm text-stone-600">
           Verifica que las variables de entorno de Supabase estén configuradas y
@@ -371,14 +371,14 @@ export function PosClient() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-stone-500">
+      <div className="flex min-h-dvh items-center justify-center text-stone-500">
         Cargando menú...
       </div>
     );
   }
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-stone-950">
+    <div className="flex h-dvh flex-col overflow-hidden bg-stone-950">
       {/* Top bar */}
       <div
         className="flex items-center justify-between border-b border-white/5 bg-stone-950 px-6 py-3.5"

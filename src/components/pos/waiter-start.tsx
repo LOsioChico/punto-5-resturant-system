@@ -15,7 +15,7 @@ export function WaiterStart({ onStart }: { onStart: (name: string) => void }) {
   };
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-10 p-8">
+    <div className="flex min-h-dvh flex-col items-center justify-center gap-10 p-8">
       <div className="flex flex-col items-center gap-4">
         <div className="h-1.5 w-20 rounded-full bg-red-500" />
         <div className="flex size-20 items-center justify-center rounded-xl bg-yellow-500 text-3xl font-bold text-stone-950">

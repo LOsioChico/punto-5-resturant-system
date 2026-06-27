@@ -279,7 +279,7 @@ export function DashboardClient() {
 
   if (displayError) {
     return (
-      <div className="flex min-h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+      <div className="flex min-h-dvh flex-col items-center justify-center gap-4 p-8 text-center">
         <p className="text-lg font-semibold text-red-400">{displayError}</p>
         <p className="text-sm text-stone-500">
           Verifica que las variables de entorno de Supabase estén configuradas y
@@ -291,7 +291,7 @@ export function DashboardClient() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center text-stone-500">
+      <div className="flex min-h-dvh items-center justify-center text-stone-500">
         Cargando pedidos...
       </div>
     );
@@ -355,7 +355,7 @@ export function DashboardClient() {
   ];
 
   return (
-    <div className="flex h-screen flex-col bg-stone-950">
+    <div className="flex h-dvh flex-col bg-stone-950">
       {/* Top bar */}
       <div className="flex items-center justify-between bg-stone-900 px-6 py-3">
         <div className="flex items-center gap-3">

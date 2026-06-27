@@ -3,7 +3,7 @@ import { UtensilsCrossed, LayoutDashboard } from "lucide-react";
 
 export default function HomePage() {
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center gap-10 p-8">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-10 p-8">
       <div className="flex flex-col items-center gap-2">
         <div className="h-1 w-16 rounded-full bg-red-500" />
         <div className="flex items-center gap-3">
