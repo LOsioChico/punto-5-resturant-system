@@ -26,7 +26,7 @@ export function CategoryList({
             key={cat.id}
             onClick={() => onSelect(cat.id)}
             className={cn(
-              "rounded-xl px-4 py-4 text-left transition-colors active:scale-[0.98]",
+              "rounded-lg px-4 py-4 text-left transition-colors active:scale-[0.98]",
               isSelected
                 ? "bg-yellow-500/10 text-yellow-500 ring-1 ring-inset ring-yellow-500/20"
                 : "text-stone-400 hover:bg-stone-900 hover:text-stone-200",

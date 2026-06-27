@@ -59,14 +59,14 @@ export function WaiterOrders({
                 key={order.id}
                 className={
                   isActive
-                    ? "overflow-hidden rounded-2xl border border-white/10 bg-stone-900"
-                    : "overflow-hidden rounded-2xl border border-white/5 bg-stone-900/50"
+                    ? "overflow-hidden rounded-xl border border-white/10 bg-stone-900"
+                    : "overflow-hidden rounded-xl border border-white/5 bg-stone-900/50"
                 }
               >
                 {/* Top row — table + status + time */}
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex size-11 items-center justify-center rounded-xl bg-stone-950 text-base font-bold text-stone-200">
+                    <span className="flex size-11 items-center justify-center rounded-lg bg-stone-950 text-base font-bold text-stone-200">
                       {order.table_number}
                     </span>
                     <div>

@@ -46,8 +46,8 @@ export function DishGrid({
                 key={dish.id}
                 className={
                   inCart
-                    ? "flex flex-col overflow-hidden rounded-2xl border-2 border-yellow-500/50 bg-stone-900"
-                    : "flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-stone-900"
+                    ? "flex flex-col overflow-hidden rounded-xl border-2 border-yellow-500/50 bg-stone-900"
+                    : "flex flex-col overflow-hidden rounded-xl border border-white/10 bg-stone-900"
                 }
               >
                 {/* Top — icon + name + description (tap to add) */}
@@ -59,8 +59,8 @@ export function DishGrid({
                     <div
                       className={
                         inCart
-                          ? "flex size-11 shrink-0 items-center justify-center rounded-xl bg-yellow-500/15"
-                          : "flex size-11 shrink-0 items-center justify-center rounded-xl bg-stone-800"
+                          ? "flex size-11 shrink-0 items-center justify-center rounded-lg bg-yellow-500/15"
+                          : "flex size-11 shrink-0 items-center justify-center rounded-lg bg-stone-800"
                       }
                     >
                       <Icon
@@ -93,7 +93,7 @@ export function DishGrid({
                     <div className="flex items-center gap-2.5">
                       <button
                         onClick={() => onDec(dish.id)}
-                        className="flex size-10 items-center justify-center rounded-xl bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                        className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                       >
                         <Minus className="size-5" />
                       </button>
@@ -102,7 +102,7 @@ export function DishGrid({
                       </span>
                       <button
                         onClick={() => onInc(dish.id)}
-                        className="flex size-10 items-center justify-center rounded-xl bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                        className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                       >
                         <Plus className="size-5" />
                       </button>
@@ -110,7 +110,7 @@ export function DishGrid({
                   ) : (
                     <button
                       onClick={() => onAdd(dish)}
-                      className="flex size-10 items-center justify-center rounded-xl bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
+                      className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
                     >
                       <Plus className="size-5" />
                     </button>
