@@ -13,6 +13,7 @@ import {
   Printer,
   Utensils,
   User,
+  PencilLine,
 } from "lucide-react";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -73,6 +74,7 @@ export function OrderDetail({
   const action = NEXT_ACTION[order.status];
   const printCount = events.filter((e) => e.event_type === "printed").length;
   const colors = STATUS_COLORS[order.status];
+  const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
 
   return (
     <div className="flex h-full flex-col">
@@ -98,11 +100,19 @@ export function OrderDetail({
               </div>
             </div>
           </div>
-          <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${colors.bg}`}>
-            <span className={`size-2 rounded-full ${colors.dot}`} />
-            <span className={`text-sm font-medium ${colors.text}`}>
-              {STATUS_LABELS[order.status]}
-            </span>
+          <div className="flex flex-col items-end gap-2">
+            <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${colors.bg}`}>
+              <span className={`size-2 rounded-full ${colors.dot}`} />
+              <span className={`text-sm font-medium ${colors.text}`}>
+                {STATUS_LABELS[order.status]}
+              </span>
+            </div>
+            {wasModified && (
+              <span className="flex items-center gap-1 rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400">
+                <PencilLine className="size-3" />
+                Modificado por {order.updated_by}
+              </span>
+            )}
           </div>
         </div>
 

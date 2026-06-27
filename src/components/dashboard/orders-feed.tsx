@@ -3,7 +3,7 @@
 import { cn, timeAgo, formatTime } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Clock } from "lucide-react";
+import { Clock, PencilLine } from "lucide-react";
 
 const statusDot: Record<OrderStatus, string> = {
   nueva: "bg-red-500",
@@ -44,6 +44,7 @@ export function OrdersFeed({
       {orders.map((order) => {
         const isSelected = selectedId === order.id;
         const isNew = order.status === "nueva";
+        const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
 
         return (
           <li key={order.id}>
@@ -67,6 +68,12 @@ export function OrdersFeed({
                   {isNew && (
                     <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-400">
                       Nuevo
+                    </span>
+                  )}
+                  {wasModified && (
+                    <span className="flex items-center gap-0.5 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
+                      <PencilLine className="size-2.5" />
+                      Modificado
                     </span>
                   )}
                 </div>

@@ -3,7 +3,7 @@
 import { formatCOP, formatTime, timeAgo } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils } from "lucide-react";
+import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine } from "lucide-react";
 
 const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; label: string }> = {
   nueva: { icon: <Clock className="size-5" />, ring: "bg-red-500", label: "Nueva" },
@@ -16,9 +16,11 @@ const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; l
 export function WaiterOrders({
   orders,
   waiterName,
+  onEdit,
 }: {
   orders: Order[];
   waiterName: string;
+  onEdit: (order: Order) => void;
 }) {
   const myOrders = orders
     .filter((o) => o.waiter_name === waiterName)
@@ -53,6 +55,8 @@ export function WaiterOrders({
           {myOrders.map((order) => {
             const config = statusConfig[order.status];
             const isActive = order.status !== "servida";
+            const canEdit = order.status === "nueva" || order.status === "en_cocina";
+            const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
 
             return (
               <li
@@ -63,16 +67,24 @@ export function WaiterOrders({
                     : "overflow-hidden rounded-xl border border-white/5 bg-stone-900/50"
                 }
               >
-                {/* Top row — table + status + time */}
+                {/* Top row — table + status + time + edit */}
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
                     <span className="flex size-11 items-center justify-center rounded-lg bg-stone-950 text-base font-bold text-stone-200">
                       {order.table_number}
                     </span>
                     <div>
-                      <p className="text-base font-semibold text-stone-100">
-                        Mesa {order.table_number}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-base font-semibold text-stone-100">
+                          Mesa {order.table_number}
+                        </p>
+                        {wasModified && (
+                          <span className="flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
+                            <PencilLine className="size-2.5" />
+                            Modificado
+                          </span>
+                        )}
+                      </div>
                       <p className="text-sm text-stone-500">
                         {formatTime(order.created_at)} · {timeAgo(order.created_at)}
                       </p>
@@ -85,6 +97,15 @@ export function WaiterOrders({
                     }>
                       {config.label}
                     </span>
+                    {canEdit && (
+                      <button
+                        onClick={() => onEdit(order)}
+                        className="ml-1 flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition-colors hover:bg-yellow-500 hover:text-stone-950"
+                        title="Editar pedido"
+                      >
+                        <PencilLine className="size-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 

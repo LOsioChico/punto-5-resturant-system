@@ -45,6 +45,7 @@ export function PosClient() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sending, setSending] = useState(false);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
 
   // All orders (for table status + waiter history) — updated in realtime
   const [orders, setOrders] = useState<Order[]>([]);
@@ -132,13 +133,36 @@ export function PosClient() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders" },
-        (payload) => {
+        async (payload) => {
           const updated = payload.new as Order;
-          setOrders((prev) =>
-            prev.map((o) =>
-              o.id === updated.id ? { ...o, ...updated, items: o.items } : o,
-            ),
-          );
+
+          // Reload items if the order was modified by a waiter (items may have changed)
+          if (updated.updated_by_type === "waiter" && updated.updated_at) {
+            const { data: items } = await supabase
+              .from("order_items")
+              .select("*, dishes(categories(name))")
+              .eq("order_id", updated.id);
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === updated.id
+                  ? {
+                      ...o,
+                      ...updated,
+                      items: (items ?? []).map((i) => ({
+                        ...i,
+                        category_name: i.dishes?.categories?.name ?? null,
+                      })),
+                    }
+                  : o,
+              ),
+            );
+          } else {
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === updated.id ? { ...o, ...updated, items: o.items } : o,
+              ),
+            );
+          }
 
           // Toast the waiter when their order's status changes
           if (updated.waiter_name === waiterName) {
@@ -277,7 +301,38 @@ export function PosClient() {
     setCart((prev) => prev.filter((i) => i.dish_id !== dishId));
   }, []);
 
-  const clearCart = useCallback(() => setCart([]), []);
+  const clearCart = useCallback(() => {
+    setCart([]);
+    setEditingOrderId(null);
+  }, []);
+
+  // Load an existing order into the cart for editing
+  const editOrder = useCallback(
+    (order: Order) => {
+      setEditingOrderId(order.id);
+      setSelectedTable(order.table_number);
+      setCart(
+        order.items.map((i) => ({
+          dish_id: i.dish_id,
+          dish_name: i.dish_name,
+          category_name: i.category_name ?? "",
+          price: i.price,
+          quantity: i.quantity,
+          notes: i.notes ?? "",
+        })),
+      );
+      setActiveTab("new");
+    },
+    [],
+  );
+
+  // Cancel editing — go back to history without saving
+  const cancelEdit = useCallback(() => {
+    setEditingOrderId(null);
+    setCart([]);
+    setSelectedTable(null);
+    setActiveTab("history");
+  }, []);
 
   const setNotes = useCallback((dishId: string, notes: string) => {
     setCart((prev) =>
@@ -339,6 +394,75 @@ export function PosClient() {
     setCart([]);
     setSending(false);
   }, [supabase, waiterName, selectedTable, cart, toast]);
+
+  // Save edits to an existing order (add/remove items, change quantities, notes)
+  const saveEditedOrder = useCallback(async () => {
+    if (!waiterName || !supabase || !editingOrderId || cart.length === 0) return;
+    setSending(true);
+    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+
+    // Find the original order to compute what changed
+    const original = orders.find((o) => o.id === editingOrderId);
+
+    // Update order total + audit fields
+    const { error: orderErr } = await supabase
+      .from("orders")
+      .update({
+        total,
+        updated_by: waiterName,
+        updated_at: new Date().toISOString(),
+        updated_by_type: "waiter",
+      })
+      .eq("id", editingOrderId);
+
+    if (orderErr) {
+      toast("Error al actualizar el pedido", "error");
+      setSending(false);
+      return;
+    }
+
+    // Replace all items — delete old, insert new
+    await supabase.from("order_items").delete().eq("order_id", editingOrderId);
+
+    const { error: itemsErr } = await supabase.from("order_items").insert(
+      cart.map((item) => ({
+        order_id: editingOrderId,
+        dish_id: item.dish_id,
+        dish_name: item.dish_name,
+        price: item.price,
+        quantity: item.quantity,
+        notes: item.notes || null,
+      })),
+    );
+
+    if (itemsErr) {
+      toast("Error al guardar los items", "error");
+      setSending(false);
+      return;
+    }
+
+    // Log the update event
+    await supabase.from("order_events").insert({
+      order_id: editingOrderId,
+      event_type: "updated",
+      actor_type: "waiter",
+      actor_name: waiterName,
+      to_status: original?.status ?? null,
+      metadata: {
+        table_number: selectedTable,
+        item_count: cart.length,
+        total,
+        changes: "items_modified",
+      },
+    });
+
+    toast(`Pedido actualizado — Mesa ${selectedTable}`, "success");
+    setCart([]);
+    setEditingOrderId(null);
+    setSelectedTable(null);
+    setSending(false);
+    setActiveTab("history");
+  }, [supabase, waiterName, editingOrderId, cart, orders, selectedTable, toast]);
 
   // --- Render ---
 
@@ -507,11 +631,18 @@ export function PosClient() {
               onSend={sendOrder}
               onSetNotes={setNotes}
               sending={sending}
+              editingOrderId={editingOrderId}
+              onSaveEdit={saveEditedOrder}
+              onCancelEdit={cancelEdit}
             />
           </div>
         </>
       ) : (
-        <WaiterOrders orders={orders} waiterName={waiterName} />
+        <WaiterOrders
+          orders={orders}
+          waiterName={waiterName}
+          onEdit={editOrder}
+        />
       )}
     </div>
   );

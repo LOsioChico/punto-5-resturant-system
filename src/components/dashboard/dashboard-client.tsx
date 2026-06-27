@@ -108,13 +108,36 @@ export function DashboardClient() {
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "orders" },
-        (payload) => {
+        async (payload) => {
           const updated = payload.new as Order;
-          setOrders((prev) =>
-            prev.map((o) =>
-              o.id === updated.id ? { ...o, ...updated, items: o.items } : o,
-            ),
-          );
+
+          // Reload items if a waiter modified the order (items may have changed)
+          if (updated.updated_by_type === "waiter" && updated.updated_at) {
+            const { data: items } = await supabase
+              .from("order_items")
+              .select("*, dishes(categories(name))")
+              .eq("order_id", updated.id);
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === updated.id
+                  ? {
+                      ...o,
+                      ...updated,
+                      items: (items ?? []).map((i) => ({
+                        ...i,
+                        category_name: i.dishes?.categories?.name ?? null,
+                      })),
+                    }
+                  : o,
+              ),
+            );
+          } else {
+            setOrders((prev) =>
+              prev.map((o) =>
+                o.id === updated.id ? { ...o, ...updated, items: o.items } : o,
+              ),
+            );
+          }
         },
       )
       .subscribe();

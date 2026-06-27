@@ -2,7 +2,7 @@
 
 import { formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, Pencil, Send } from "lucide-react";
+import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
 import { useState } from "react";
 
 export interface CartItem {
@@ -25,6 +25,9 @@ export function OrderSummary({
   onSend,
   onSetNotes,
   sending,
+  editingOrderId,
+  onSaveEdit,
+  onCancelEdit,
 }: {
   tableNumber: number | null;
   items: CartItem[];
@@ -35,16 +38,26 @@ export function OrderSummary({
   onSend: () => void;
   onSetNotes: (dishId: string, notes: string) => void;
   sending: boolean;
+  editingOrderId: string | null;
+  onSaveEdit: () => void;
+  onCancelEdit: () => void;
 }) {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
+  const isEditing = editingOrderId !== null;
 
   return (
     <aside className="flex w-80 shrink-0 flex-col border-l border-white/5 bg-stone-900">
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/5 px-4 py-3.5">
         <div>
+          {isEditing && (
+            <span className="mb-0.5 flex items-center gap-1.5 text-xs font-medium text-amber-400">
+              <PencilLine className="size-3" />
+              Editando pedido
+            </span>
+          )}
           <h2 className="text-base font-bold text-stone-100">
             {tableNumber !== null ? `Mesa ${tableNumber}` : "Sin mesa"}
           </h2>
@@ -52,7 +65,7 @@ export function OrderSummary({
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </p>
         </div>
-        {items.length > 0 && (
+        {items.length > 0 && !isEditing && (
           <button
             onClick={onClear}
             className="rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-400"
@@ -163,15 +176,37 @@ export function OrderSummary({
             {formatCOP(total)}
           </span>
         </div>
-        <Button
-          className="w-full"
-          size="lg"
-          onClick={onSend}
-          disabled={items.length === 0 || tableNumber === null || sending}
-        >
-          {sending ? "Enviando..." : "Enviar a cocina"}
-        </Button>
-        {tableNumber === null && items.length > 0 && (
+        {isEditing ? (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              size="lg"
+              onClick={onCancelEdit}
+              disabled={sending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="flex-1"
+              size="lg"
+              onClick={onSaveEdit}
+              disabled={items.length === 0 || sending}
+            >
+              {sending ? "Guardando..." : "Guardar cambios"}
+            </Button>
+          </div>
+        ) : (
+          <Button
+            className="w-full"
+            size="lg"
+            onClick={onSend}
+            disabled={items.length === 0 || tableNumber === null || sending}
+          >
+            {sending ? "Enviando..." : "Enviar a cocina"}
+          </Button>
+        )}
+        {!isEditing && tableNumber === null && items.length > 0 && (
           <p className="mt-2.5 text-center text-sm text-amber-400/80">
             Selecciona una mesa primero
           </p>
