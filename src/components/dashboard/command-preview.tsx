@@ -18,6 +18,9 @@ export function CommandPreview({ order }: { order: Order }) {
     grouped.set(cat, list);
   }
 
+  const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
+  const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
+
   return (
     <div className="mx-auto max-w-xs">
       {/* Paper receipt — white background, black text */}
@@ -28,6 +31,7 @@ export function CommandPreview({ order }: { order: Order }) {
         {/* Serrated top edge effect */}
         <div className="-mx-4 -mt-4 mb-3 h-3 bg-[repeating-linear-gradient(90deg,transparent,transparent_4px,#000_4px,#000_5px)] opacity-10" />
 
+        {/* Header */}
         <div className="text-center">
           <p className="text-lg font-bold tracking-wider text-black">PUNTO 5</p>
           <p className="text-xs text-stone-600">Comanda de cocina</p>
@@ -35,33 +39,51 @@ export function CommandPreview({ order }: { order: Order }) {
 
         <div className="my-2 border-t border-dashed border-stone-300" />
 
-        <div className="flex justify-between text-xs text-black">
-          <span className="font-semibold">Mesa: {order.table_number}</span>
-          <span className="text-black">
+        {/* Meta — table, time, waiter */}
+        <div className="flex items-center justify-between text-xs text-black">
+          <span className="text-base font-bold">Mesa {order.table_number}</span>
+          <span className="font-semibold text-black">
             {order.updated_at ? formatTime(order.updated_at) : formatTime(order.created_at)}
           </span>
         </div>
-        <p className="text-xs text-black">Mesero: {order.waiter_name}</p>
+        <div className="flex items-center justify-between text-xs text-stone-600">
+          <span>{order.waiter_name}</span>
+          <span>{itemCount} {itemCount === 1 ? "item" : "items"}</span>
+        </div>
+
+        {wasModified && (
+          <p className="mt-1.5 text-center text-xs font-bold uppercase tracking-widest text-red-600">
+            ★ Modificada ★
+          </p>
+        )}
 
         <div className="my-2 border-t border-dashed border-stone-300" />
 
         {/* Items grouped by category */}
         {Array.from(grouped.entries()).map(([category, items]) => (
-          <div key={category} className="mb-2">
-            <p className="mb-1 border-b border-stone-200 text-xs font-bold uppercase tracking-wider text-stone-800">
+          <div key={category} className="mb-3">
+            <p className="mb-1.5 border-b border-stone-300 text-xs font-bold uppercase tracking-wider text-stone-800">
               {category}
             </p>
-            <ul className="space-y-1.5">
+            <ul className="space-y-2">
               {items.map((item) => (
                 <li key={item.id} className="text-black">
-                  <div className="flex gap-2">
-                    <span className="font-semibold text-black">{item.quantity}x</span>
-                    <span className="text-black">{item.dish_name}</span>
+                  {/* Dish line — big quantity + name */}
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-base font-bold tabular-nums text-black">
+                      {item.quantity}x
+                    </span>
+                    <span className="text-sm font-semibold text-black">
+                      {item.dish_name}
+                    </span>
                   </div>
+                  {/* Notes — highlighted callout, impossible to miss */}
                   {item.notes && (
-                    <p className="ml-5 border-l-2 border-stone-400 pl-1.5 text-xs font-semibold text-stone-700">
-                      {item.notes}
-                    </p>
+                    <div className="mt-0.5 ml-6 border-l-[3px] border-red-600 bg-red-50 px-2 py-1">
+                      <p className="text-xs font-bold text-red-700">
+                        {item.notes}
+                      </p>
+                    </div>
                   )}
                 </li>
               ))}
@@ -71,9 +93,10 @@ export function CommandPreview({ order }: { order: Order }) {
 
         <div className="my-2 border-t border-dashed border-stone-300" />
 
-        <div className="flex justify-between font-bold text-black">
+        {/* Total */}
+        <div className="flex items-center justify-between font-bold text-black">
           <span>TOTAL</span>
-          <span>{formatCOP(order.total)}</span>
+          <span className="text-base">{formatCOP(order.total)}</span>
         </div>
 
         <div className="my-2 border-t border-dashed border-stone-300" />
