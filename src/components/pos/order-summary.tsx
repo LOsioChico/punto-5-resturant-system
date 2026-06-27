@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP } from "@/lib/utils";
+import { cn, formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
 import { useState } from "react";
@@ -68,9 +68,24 @@ export function OrderSummary({
   onCancelEdit: () => void;
 }) {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<string | null>(null);
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isEditing = editingOrderId !== null;
+
+  const sendDisabledReason =
+    items.length === 0
+      ? "Agrega platos al pedido"
+      : tableNumber === null
+        ? "Selecciona una mesa"
+        : null;
+
+  const showTooltip = () => {
+    if (sendDisabledReason) {
+      setTooltip(sendDisabledReason);
+      setTimeout(() => setTooltip(null), 2000);
+    }
+  };
 
   return (
     <aside className="flex w-80 shrink-0 flex-col border-l border-white/5 bg-stone-900">
@@ -260,14 +275,21 @@ export function OrderSummary({
             </Button>
           </div>
         ) : (
-          <Button
-            className="w-full"
-            size="lg"
-            onClick={onSend}
-            disabled={items.length === 0 || tableNumber === null || sending}
-          >
-            {sending ? "Enviando..." : "Enviar a cocina"}
-          </Button>
+          <div className="relative">
+            <Button
+              className={cn("w-full", sendDisabledReason && "opacity-40")}
+              size="lg"
+              onClick={sendDisabledReason ? showTooltip : onSend}
+            >
+              {sending ? "Enviando..." : "Enviar a cocina"}
+            </Button>
+            {tooltip && (
+              <div className="absolute -top-12 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-stone-800 px-3 py-2 text-sm text-stone-100 shadow-xl ring-1 ring-white/10">
+                {tooltip}
+                <div className="absolute -bottom-1 left-1/2 size-2 -translate-x-1/2 rotate-45 bg-stone-800 ring-1 ring-white/10" />
+              </div>
+            )}
+          </div>
         )}
         {!isEditing && tableNumber === null && items.length > 0 && (
           <p className="mt-2.5 text-center text-sm text-amber-400/80">
