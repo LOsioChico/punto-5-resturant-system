@@ -233,45 +233,80 @@ export function OrderDetail({
             </p>
           ) : (
             <ol className="space-y-0">
-              {events.map((event, idx) => (
-                <li key={event.id} className="flex gap-3">
-                  <div className="flex flex-col items-center">
-                    <span
-                      className={
-                        event.event_type === "created"
-                          ? "size-2.5 shrink-0 rounded-full bg-yellow-500 ring-4 ring-yellow-500/10"
-                          : event.event_type === "printed"
-                            ? "size-2.5 shrink-0 rounded-full bg-blue-400 ring-4 ring-blue-400/10"
-                            : "size-2.5 shrink-0 rounded-full bg-stone-500 ring-4 ring-stone-500/10"
-                      }
-                    />
-                    {idx < events.length - 1 && (
-                      <span className="w-px flex-1 bg-stone-800" />
-                    )}
-                  </div>
-                  <div className="flex-1 pb-4">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="text-sm font-medium text-stone-200">
-                        {EVENT_LABELS[event.event_type] ?? event.event_type}
-                      </span>
-                      <span className="shrink-0 text-xs text-stone-500">
-                        {formatTime(event.created_at)}
-                      </span>
-                    </div>
-                    <p className="mt-0.5 text-xs text-stone-500">
-                      por <span className="text-stone-400">{event.actor_name}</span>
-                      {event.from_status && event.to_status && (
-                        <>
-                          {" · "}
-                          {STATUS_LABELS[event.from_status] ?? event.from_status}
-                          {" → "}
-                          {STATUS_LABELS[event.to_status] ?? event.to_status}
-                        </>
+              {events.map((event, idx) => {
+                const meta = event.metadata as {
+                  added?: number;
+                  updated?: number;
+                  removed?: number;
+                  item_count?: number;
+                  total?: number;
+                  table_number?: number;
+                };
+                const changes: string[] = [];
+                if (meta.added) changes.push(`+${meta.added} agregado${meta.added > 1 ? "s" : ""}`);
+                if (meta.updated) changes.push(`${meta.updated} modificado${meta.updated > 1 ? "s" : ""}`);
+                if (meta.removed) changes.push(`-${meta.removed} eliminado${meta.removed > 1 ? "s" : ""}`);
+
+                return (
+                  <li key={event.id} className="flex gap-3">
+                    <div className="flex flex-col items-center">
+                      <span
+                        className={
+                          event.event_type === "created"
+                            ? "size-2.5 shrink-0 rounded-full bg-yellow-500 ring-4 ring-yellow-500/10"
+                            : event.event_type === "printed"
+                              ? "size-2.5 shrink-0 rounded-full bg-blue-400 ring-4 ring-blue-400/10"
+                              : event.event_type === "updated"
+                                ? "size-2.5 shrink-0 rounded-full bg-amber-500 ring-4 ring-amber-500/10"
+                                : "size-2.5 shrink-0 rounded-full bg-stone-500 ring-4 ring-stone-500/10"
+                        }
+                      />
+                      {idx < events.length - 1 && (
+                        <span className="w-px flex-1 bg-stone-800" />
                       )}
-                    </p>
-                  </div>
-                </li>
-              ))}
+                    </div>
+                    <div className="flex-1 pb-4">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="text-sm font-medium text-stone-200">
+                          {EVENT_LABELS[event.event_type] ?? event.event_type}
+                        </span>
+                        <span className="shrink-0 text-xs text-stone-500">
+                          {formatTime(event.created_at)}
+                        </span>
+                      </div>
+                      <p className="mt-0.5 text-xs text-stone-500">
+                        por <span className="text-stone-400">{event.actor_name}</span>
+                        {event.from_status && event.to_status && (
+                          <>
+                            {" · "}
+                            {STATUS_LABELS[event.from_status] ?? event.from_status}
+                            {" → "}
+                            {STATUS_LABELS[event.to_status] ?? event.to_status}
+                          </>
+                        )}
+                      </p>
+                      {changes.length > 0 && (
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                          {changes.map((c) => (
+                            <span
+                              key={c}
+                              className={
+                                c.startsWith("+")
+                                  ? "rounded bg-green-500/10 px-1.5 py-0.5 text-[11px] font-medium text-green-400"
+                                  : c.startsWith("-")
+                                    ? "rounded bg-red-500/10 px-1.5 py-0.5 text-[11px] font-medium text-red-400"
+                                    : "rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-400"
+                              }
+                            >
+                              {c}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </li>
+                );
+              })}
             </ol>
           )}
         </div>
