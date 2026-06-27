@@ -194,14 +194,21 @@ export function OrderSummary({
                       value={item.notes}
                       onChange={(e) => onSetNotes(item.dish_id, e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === "Escape") {
+                        if (e.key === "Enter") {
                           setEditingNotes(null);
                         }
                       }}
-                      onBlur={() => setEditingNotes(null)}
-                      placeholder="Ej: sin cebolla, extra picante..."
+                      placeholder="Nota personalizada..."
                       className="mt-2 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2.5 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
                     />
+                    <div className="mt-2 flex justify-end">
+                      <button
+                        onClick={() => setEditingNotes(null)}
+                        className="rounded-lg bg-stone-800 px-4 py-2 text-sm font-medium text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
+                      >
+                        Listo
+                      </button>
+                    </div>
                   </div>
                 ) : (
                   <button
