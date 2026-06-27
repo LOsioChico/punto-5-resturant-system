@@ -7,6 +7,8 @@ import { useState } from "react";
 
 const QUICK_NOTES = [
   "Sin salsas",
+  "Sin cebolla",
+  "Sin tomate",
   "Para llevar",
 ];
 
