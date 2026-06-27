@@ -6,7 +6,7 @@ import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X, Users } from "lucide-react";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
 
@@ -32,6 +32,7 @@ export function DashboardClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
+  const [waiterFilter, setWaiterFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all">("today");
 
   useEffect(() => {
@@ -307,11 +308,19 @@ export function DashboardClient() {
     });
   }, [orders, dateFilter]);
 
-  // Status filtering (applied on top of date filter)
+  // Status + waiter filtering (applied on top of date filter)
   const filteredOrders = useMemo(() => {
-    if (!statusFilter) return filteredByDate;
-    return filteredByDate.filter((o) => o.status === statusFilter);
-  }, [filteredByDate, statusFilter]);
+    let result = filteredByDate;
+    if (statusFilter) result = result.filter((o) => o.status === statusFilter);
+    if (waiterFilter) result = result.filter((o) => o.waiter_name === waiterFilter);
+    return result;
+  }, [filteredByDate, statusFilter, waiterFilter]);
+
+  // Unique waiter names from visible (date-filtered) orders
+  const visibleWaiters = useMemo(() => {
+    const names = new Set(filteredByDate.map((o) => o.waiter_name));
+    return Array.from(names).sort();
+  }, [filteredByDate]);
 
   if (displayError) {
     return (
@@ -483,16 +492,35 @@ export function DashboardClient() {
                   {d === "today" ? "Hoy" : d === "yesterday" ? "Ayer" : "Todos"}
                 </button>
               ))}
-              {statusFilter && (
-                <button
-                  onClick={() => setStatusFilter(null)}
-                  className="ml-auto flex items-center gap-1 rounded-md px-2 py-1 text-xs text-stone-500 transition-colors hover:text-stone-300"
-                >
-                  <X className="size-3" />
-                  Limpiar
-                </button>
-              )}
             </div>
+            {/* Waiter filter pills */}
+            {visibleWaiters.length > 1 && (
+              <div className="mt-2 flex items-center gap-1.5">
+                <Users className="size-3.5 shrink-0 text-stone-600" />
+                {visibleWaiters.map((name) => (
+                  <button
+                    key={name}
+                    onClick={() => setWaiterFilter(waiterFilter === name ? null : name)}
+                    className={`rounded-md px-2 py-1 text-xs transition-colors ${
+                      waiterFilter === name
+                        ? "bg-stone-800 font-medium text-stone-200"
+                        : "text-stone-500 hover:bg-stone-800/50 hover:text-stone-300"
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
+              </div>
+            )}
+            {(statusFilter || waiterFilter) && (
+              <button
+                onClick={() => { setStatusFilter(null); setWaiterFilter(null); }}
+                className="mt-2 flex items-center gap-1 rounded-md px-2 py-1 text-xs text-stone-500 transition-colors hover:text-stone-300"
+              >
+                <X className="size-3" />
+                Limpiar filtros
+              </button>
+            )}
           </div>
           <div className="flex-1 overflow-y-auto">
             <OrdersFeed
