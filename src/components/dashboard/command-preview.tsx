@@ -51,18 +51,18 @@ export function CommandPreview({ order }: { order: Order }) {
             <p className="mb-1 border-b border-stone-200 text-xs font-bold uppercase tracking-wider text-stone-800">
               {category}
             </p>
-            <ul className="space-y-1">
+            <ul className="space-y-1.5">
               {items.map((item) => (
-                <li key={item.id} className="flex gap-2 text-black">
-                  <span className="font-semibold text-black">{item.quantity}x</span>
-                  <div className="flex-1">
+                <li key={item.id} className="text-black">
+                  <div className="flex gap-2">
+                    <span className="font-semibold text-black">{item.quantity}x</span>
                     <span className="text-black">{item.dish_name}</span>
-                    {item.notes && (
-                      <p className="pl-3 text-xs italic text-stone-700">
-                        → {item.notes}
-                      </p>
-                    )}
                   </div>
+                  {item.notes && (
+                    <p className="ml-5 border-l-2 border-stone-400 pl-1.5 text-xs font-semibold text-stone-700">
+                      {item.notes}
+                    </p>
+                  )}
                 </li>
               ))}
             </ul>
