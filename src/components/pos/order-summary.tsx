@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { cn, formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
+import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
 
 const QUICK_NOTES = [
   "Sin salsas",
@@ -14,30 +15,6 @@ const QUICK_NOTES = [
   "Sin cebolla",
   "Para llevar",
 ];
-
-/** Toggle a quick note on/off within the notes string (comma-separated). */
-function toggleQuickNote(current: string, note: string): string {
-  const parts = current
-    .split(",")
-    .map((p) => p.trim())
-    .filter(Boolean);
-  const idx = parts.indexOf(note);
-  if (idx >= 0) {
-    parts.splice(idx, 1);
-  } else {
-    parts.push(note);
-  }
-  return parts.join(", ");
-}
-
-export interface CartItem {
-  dish_id: string;
-  dish_name: string;
-  category_name: string;
-  price: number;
-  quantity: number;
-  notes: string;
-}
 
 /** Right panel — order summary. Always visible while ordering. */
 export function OrderSummary({

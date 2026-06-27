@@ -10,7 +10,8 @@ import { WaiterStart } from "./waiter-start";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
 import { DishGrid } from "./dish-grid";
-import { OrderSummary, type CartItem } from "./order-summary";
+import { OrderSummary } from "./order-summary";
+import { type CartItem, hasCartChanged } from "@/lib/pos/logic";
 import { WaiterOrders } from "./waiter-orders";
 import { PosTabs, type PosTab } from "./pos-tabs";
 import { Bell, BellOff, ChevronDown, LogOut } from "lucide-react";
@@ -567,14 +568,7 @@ export function PosClient() {
   // When editing, check if the cart actually differs from the initial state
   const editHasChanges = useMemo(() => {
     if (!editInitialCart || !editingOrderId) return false;
-    if (editInitialCart.length !== cart.length) return true;
-    const initialMap = new Map(editInitialCart.map((i) => [i.dish_id, i]));
-    for (const item of cart) {
-      const old = initialMap.get(item.dish_id);
-      if (!old) return true;
-      if (old.quantity !== item.quantity || (old.notes ?? "") !== (item.notes ?? "")) return true;
-    }
-    return false;
+    return hasCartChanged(editInitialCart, cart);
   }, [editInitialCart, cart, editingOrderId]);
 
   const displayError = configError ?? error;
