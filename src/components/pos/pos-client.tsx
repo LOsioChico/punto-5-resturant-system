@@ -415,39 +415,93 @@ export function PosClient() {
     setSending(false);
   }, [supabase, waiterName, selectedTable, cart, toast]);
 
-  // Save edits to an existing order (add/remove items, change quantities, notes)
+  // Save edits to an existing order — diff items instead of delete+reinsert
   const saveEditedOrder = useCallback(async () => {
     if (!waiterName || !supabase || !editingOrderId || cart.length === 0) return;
     setSending(true);
     const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
-    // Find the original order to compute what changed
     const original = orders.find((o) => o.id === editingOrderId);
+    const oldItems = original?.items ?? [];
 
-    // 1. Replace items FIRST — delete old, insert new
-    //    (do this before updating the order so that when the realtime
-    //    UPDATE event fires, the new items are already in the database)
-    await supabase.from("order_items").delete().eq("order_id", editingOrderId);
+    // Build maps by dish_id for diffing
+    const oldByDish = new Map(oldItems.map((i) => [i.dish_id, i]));
+    const newByDish = new Map(cart.map((i) => [i.dish_id, i]));
 
-    const { error: itemsErr } = await supabase.from("order_items").insert(
-      cart.map((item) => ({
-        order_id: editingOrderId,
-        dish_id: item.dish_id,
-        dish_name: item.dish_name,
-        price: item.price,
-        quantity: item.quantity,
-        notes: item.notes || null,
-      })),
-    );
+    const toInsert: CartItem[] = [];
+    const toUpdate: { id: string; quantity: number; notes: string | null }[] = [];
+    const toDelete: string[] = [];
 
-    if (itemsErr) {
-      toast("Error al guardar los items", "error");
-      setSending(false);
-      return;
+    for (const newItem of cart) {
+      const old = oldByDish.get(newItem.dish_id);
+      if (!old) {
+        // New item — insert
+        toInsert.push(newItem);
+      } else if (old.quantity !== newItem.quantity || (old.notes ?? "") !== newItem.notes) {
+        // Changed item — update
+        toUpdate.push({
+          id: old.id,
+          quantity: newItem.quantity,
+          notes: newItem.notes || null,
+        });
+      }
     }
 
-    // 2. Log the update event (before the order UPDATE so it's visible
-    //    when the dashboard reloads events)
+    for (const oldItem of oldItems) {
+      if (!newByDish.has(oldItem.dish_id)) {
+        // Removed item — delete
+        toDelete.push(oldItem.id);
+      }
+    }
+
+    // 1. Apply item changes (insert / update / delete) before the order UPDATE
+    //    so realtime sees the final state when the UPDATE event fires
+
+    if (toDelete.length > 0) {
+      const { error: delErr } = await supabase
+        .from("order_items")
+        .delete()
+        .in("id", toDelete);
+      if (delErr) {
+        toast("Error al eliminar items", "error");
+        setSending(false);
+        return;
+      }
+    }
+
+    if (toUpdate.length > 0) {
+      for (const item of toUpdate) {
+        const { error: updErr } = await supabase
+          .from("order_items")
+          .update({ quantity: item.quantity, notes: item.notes })
+          .eq("id", item.id);
+        if (updErr) {
+          toast("Error al actualizar items", "error");
+          setSending(false);
+          return;
+        }
+      }
+    }
+
+    if (toInsert.length > 0) {
+      const { error: insErr } = await supabase.from("order_items").insert(
+        toInsert.map((item) => ({
+          order_id: editingOrderId,
+          dish_id: item.dish_id,
+          dish_name: item.dish_name,
+          price: item.price,
+          quantity: item.quantity,
+          notes: item.notes || null,
+        })),
+      );
+      if (insErr) {
+        toast("Error al agregar items", "error");
+        setSending(false);
+        return;
+      }
+    }
+
+    // 2. Log the update event
     await supabase.from("order_events").insert({
       order_id: editingOrderId,
       event_type: "updated",
@@ -458,13 +512,13 @@ export function PosClient() {
         table_number: selectedTable,
         item_count: cart.length,
         total,
-        changes: "items_modified",
+        added: toInsert.length,
+        updated: toUpdate.length,
+        removed: toDelete.length,
       },
     });
 
-    // 3. Update order LAST — this fires the realtime UPDATE event
-    //    By this point, items and events are already in the database,
-    //    so the dashboard can fetch them immediately when it receives the event
+    // 3. Update order LAST — fires the realtime UPDATE event
     const { error: orderErr } = await supabase
       .from("orders")
       .update({
