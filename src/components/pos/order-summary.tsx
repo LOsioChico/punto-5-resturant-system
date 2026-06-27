@@ -3,7 +3,7 @@
 import { formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Minus, Plus, Trash2, Pencil, Send } from "lucide-react";
+import { Minus, Plus, Trash2, Pencil, Send, X } from "lucide-react";
 import { useState } from "react";
 
 export interface CartItem {
@@ -15,7 +15,7 @@ export interface CartItem {
   notes: string;
 }
 
-/** Right panel — order summary. Warm, clear, focused on the order. */
+/** Slide-out drawer — order summary. Opens from the right edge. */
 export function OrderSummary({
   tableNumber,
   items,
@@ -26,6 +26,8 @@ export function OrderSummary({
   onSend,
   onSetNotes,
   sending,
+  open,
+  onClose,
 }: {
   tableNumber: number | null;
   items: CartItem[];
@@ -36,13 +38,28 @@ export function OrderSummary({
   onSend: () => void;
   onSetNotes: (dishId: string, notes: string) => void;
   sending: boolean;
+  open: boolean;
+  onClose: () => void;
 }) {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <aside className="flex w-96 shrink-0 flex-col border-l border-white/5 bg-stone-900">
+    <>
+      {/* Backdrop */}
+      {open && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 transition-opacity"
+          onClick={onClose}
+        />
+      )}
+      {/* Drawer */}
+      <aside
+        className={`fixed right-0 top-0 z-50 flex h-full w-96 flex-col bg-stone-900 shadow-2xl transition-transform duration-300 ${
+          open ? "translate-x-0" : "translate-x-full"
+        }`}
+      >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
         <div>
@@ -53,14 +70,22 @@ export function OrderSummary({
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </p>
         </div>
-        {items.length > 0 && (
+        <div className="flex items-center gap-2">
+          {items.length > 0 && (
+            <button
+              onClick={onClear}
+              className="rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-400"
+            >
+              Limpiar
+            </button>
+          )}
           <button
-            onClick={onClear}
-            className="rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-400"
+            onClick={onClose}
+            className="flex size-10 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-300"
           >
-            Limpiar
+            <X className="size-5" />
           </button>
-        )}
+        </div>
       </div>
 
       {/* Items */}
@@ -174,6 +199,7 @@ export function OrderSummary({
           </p>
         )}
       </div>
-    </aside>
+      </aside>
+    </>
   );
 }
