@@ -6,9 +6,8 @@ import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X, Users, WifiOff, Wifi, RefreshCw } from "lucide-react";
-import { cacheOrders, loadCachedOrders, enqueueMutation, getQueuedMutations, clearQueue } from "@/lib/offline/db";
-import { syncQueue } from "@/lib/offline/sync";
+import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X, Users, WifiOff } from "lucide-react";
+import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
 
@@ -37,8 +36,6 @@ export function DashboardClient() {
   const [waiterFilter, setWaiterFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all">("today");
   const [isOnline, setIsOnline] = useState(true);
-  const [pendingCount, setPendingCount] = useState(0);
-  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (!supabase) return;
@@ -194,54 +191,39 @@ export function DashboardClient() {
     };
   }, [supabase]);
 
-  // Online/offline detection + sync on reconnect
+  // Online/offline detection — reload from Supabase when back online
   useEffect(() => {
     const updateOnlineStatus = async () => {
       const online = navigator.onLine;
       setIsOnline(online);
 
+      // When coming back online, reload orders from Supabase
       if (online && supabase) {
-        // Check for pending mutations
-        const pending = await getQueuedMutations();
-        if (pending.length > 0) {
-          setSyncing(true);
-          const { synced, failed } = await syncQueue(supabase);
-          setSyncing(false);
-          if (failed === 0) {
-            await clearQueue();
-          }
-          setPendingCount(0);
+        setLoading(true);
+        const { data: orderRows } = await supabase
+          .from("orders")
+          .select("*")
+          .order("created_at", { ascending: false })
+          .limit(100);
 
-          // Reload orders from Supabase to get the latest state
-          if (synced > 0) {
-            const { data: orderRows } = await supabase
-              .from("orders")
-              .select("*")
-              .order("created_at", { ascending: false })
-              .limit(100);
-            if (orderRows && orderRows.length > 0) {
-              const { data: itemRows } = await supabase
-                .from("order_items")
-                .select("*, dishes(categories(name))")
-                .in("order_id", orderRows.map((o) => o.id));
-              const ordersWithItems: Order[] = orderRows.map((o) => ({
-                ...o,
-                items: (itemRows ?? [])
-                  .filter((i) => i.order_id === o.id)
-                  .map((i) => ({
-                    ...i,
-                    category_name: i.dishes?.categories?.name ?? null,
-                  })),
-              }));
-              setOrders(ordersWithItems);
-              cacheOrders(ordersWithItems);
-            }
-          }
+        if (orderRows && orderRows.length > 0) {
+          const { data: itemRows } = await supabase
+            .from("order_items")
+            .select("*, dishes(categories(name))")
+            .in("order_id", orderRows.map((o) => o.id));
+          const ordersWithItems: Order[] = orderRows.map((o) => ({
+            ...o,
+            items: (itemRows ?? [])
+              .filter((i) => i.order_id === o.id)
+              .map((i) => ({
+                ...i,
+                category_name: i.dishes?.categories?.name ?? null,
+              })),
+          }));
+          setOrders(ordersWithItems);
+          cacheOrders(ordersWithItems);
         }
-      } else {
-        // Update pending count when going offline
-        const pending = await getQueuedMutations();
-        setPendingCount(pending.length);
+        setLoading(false);
       }
     };
 
@@ -322,7 +304,7 @@ export function DashboardClient() {
 
   const advanceStatus = useCallback(
     async (id: string) => {
-      if (!supabase) return;
+      if (!supabase || !navigator.onLine) return;
       const order = orders.find((o) => o.id === id);
       if (!order) return;
       const nextIndex = STATUS_FLOW.indexOf(order.status) + 1;
@@ -331,7 +313,6 @@ export function DashboardClient() {
       const fromStatus = order.status;
       const now = new Date().toISOString();
 
-      // Optimistic update — UI reflects the change immediately
       setOrders((prev) =>
         prev.map((o) =>
           o.id === id
@@ -345,36 +326,6 @@ export function DashboardClient() {
             : o,
         ),
       );
-
-      if (!navigator.onLine) {
-        // Queue for later sync
-        await enqueueMutation({
-          table: "orders",
-          operation: "update",
-          recordId: id,
-          payload: {
-            status: nextStatus,
-            updated_by: "admin",
-            updated_at: now,
-            updated_by_type: "admin",
-          },
-        });
-        await enqueueMutation({
-          table: "order_events",
-          operation: "insert",
-          payload: {
-            order_id: id,
-            event_type: "status_changed",
-            actor_type: "admin",
-            actor_name: "admin",
-            from_status: fromStatus,
-            to_status: nextStatus,
-          },
-        });
-        const pending = await getQueuedMutations();
-        setPendingCount(pending.length);
-        return;
-      }
 
       await supabase
         .from("orders")
@@ -400,26 +351,7 @@ export function DashboardClient() {
 
   const printOrder = useCallback(
     async (id: string) => {
-      if (!supabase) return;
-
-      if (!navigator.onLine) {
-        await enqueueMutation({
-          table: "order_events",
-          operation: "insert",
-          payload: {
-            order_id: id,
-            event_type: "printed",
-            actor_type: "admin",
-            actor_name: "admin",
-            metadata: { printed_at: new Date().toISOString() },
-          },
-        });
-        const pending = await getQueuedMutations();
-        setPendingCount(pending.length);
-        window.print();
-        return;
-      }
-
+      if (!supabase || !navigator.onLine) return;
       await supabase.from("order_events").insert({
         order_id: id,
         event_type: "printed",
@@ -542,34 +474,11 @@ export function DashboardClient() {
 
   return (
     <div className="flex h-dvh flex-col bg-stone-950">
-      {/* Offline / syncing banner */}
-      {(!isOnline || syncing || pendingCount > 0) && (
-        <div
-          className={
-            syncing
-              ? "flex items-center justify-center gap-2 bg-blue-500/15 px-6 py-2 text-sm text-blue-400"
-              : !isOnline
-                ? "flex items-center justify-center gap-2 bg-amber-500/15 px-6 py-2 text-sm text-amber-400"
-                : "flex items-center justify-center gap-2 bg-green-500/15 px-6 py-2 text-sm text-green-400"
-          }
-        >
-          {syncing ? (
-            <>
-              <RefreshCw className="size-4 animate-spin" />
-              Sincronizando cambios...
-            </>
-          ) : !isOnline ? (
-            <>
-              <WifiOff className="size-4" />
-              Sin conexión — los cambios se guardan localmente
-              {pendingCount > 0 && ` (${pendingCount} pendiente${pendingCount > 1 ? "s" : ""})`}
-            </>
-          ) : (
-            <>
-              <Wifi className="size-4" />
-              Conexión restablecida — cambios sincronizados
-            </>
-          )}
+      {/* Offline banner */}
+      {!isOnline && (
+        <div className="flex items-center justify-center gap-2 bg-amber-500/15 px-6 py-2 text-sm text-amber-400">
+          <WifiOff className="size-4" />
+          Sin conexión — mostrando datos guardados. Las acciones están deshabilitadas.
         </div>
       )}
 
@@ -710,6 +619,7 @@ export function DashboardClient() {
             events={events}
             onAdvanceStatus={advanceStatus}
             onPrint={printOrder}
+            disabled={!isOnline}
           />
         </div>
       </div>

@@ -53,11 +53,13 @@ export function OrderDetail({
   events,
   onAdvanceStatus,
   onPrint,
+  disabled = false,
 }: {
   order: Order | null;
   events: OrderEvent[];
   onAdvanceStatus: (id: string) => void;
   onPrint: (id: string) => void;
+  disabled?: boolean;
 }) {
   if (!order) {
     return (
@@ -173,6 +175,7 @@ export function OrderDetail({
                 variant="outline"
                 size="sm"
                 onClick={() => onPrint(order.id)}
+                disabled={disabled}
               >
                 <Printer className="size-3.5" />
                 Imprimir
@@ -320,6 +323,7 @@ export function OrderDetail({
             className="w-full transition-all active:scale-[0.98]"
             size="lg"
             onClick={() => onAdvanceStatus(order.id)}
+            disabled={disabled}
           >
             {action.icon}
             {action.label}
