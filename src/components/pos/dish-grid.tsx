@@ -71,9 +71,16 @@ export function DishGrid({
                         }
                       />
                     </div>
-                    <h3 className="line-clamp-2 break-words text-sm font-semibold leading-tight text-stone-100">
-                      {dish.name}
-                    </h3>
+                    <div className="min-w-0">
+                      {category && (
+                        <p className="truncate text-[10px] font-medium uppercase tracking-wide text-stone-600">
+                          {category.name}
+                        </p>
+                      )}
+                      <h3 className="line-clamp-2 break-words text-sm font-semibold leading-tight text-stone-100">
+                        {dish.name}
+                      </h3>
+                    </div>
                   </div>
 
                   {dish.description && (
