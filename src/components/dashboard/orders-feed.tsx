@@ -3,7 +3,7 @@
 import { cn, timeAgo, formatTime } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Clock, PencilLine } from "lucide-react";
+import { Clock, PencilLine, User } from "lucide-react";
 
 const statusDot: Record<OrderStatus, string> = {
   nueva: "bg-red-500",
@@ -89,7 +89,8 @@ export function OrdersFeed({
 
               {/* Row 2 — waiter + status */}
               <div className="mt-1.5 flex items-center justify-between">
-                <span className="truncate text-xs text-stone-500">
+                <span className="flex items-center gap-1 truncate text-xs text-stone-500">
+                  <User className="size-3 shrink-0 text-stone-600" />
                   {order.waiter_name}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-2 text-xs text-stone-500">
