@@ -163,7 +163,6 @@ export function OrderSummary({
                       ))}
                     </div>
                     <input
-                      autoFocus
                       value={item.notes}
                       onChange={(e) => onSetNotes(item.dish_id, e.target.value)}
                       onKeyDown={(e) => {
