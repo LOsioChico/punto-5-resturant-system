@@ -13,7 +13,7 @@ import { DishGrid } from "./dish-grid";
 import { OrderSummary, type CartItem } from "./order-summary";
 import { WaiterOrders } from "./waiter-orders";
 import { PosTabs, type PosTab } from "./pos-tabs";
-import { Bell, BellOff } from "lucide-react";
+import { Bell, BellOff, ChevronDown, LogOut } from "lucide-react";
 
 const WAITER_KEY = "punto5:waiter-name";
 
@@ -38,6 +38,7 @@ export function PosClient() {
   const [dishes, setDishes] = useState<Dish[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<PosTab>("new");
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
@@ -391,33 +392,71 @@ export function PosClient() {
         </div>
         <div className="flex items-center gap-2">
           <NotificationBell />
-          {/* Push notification toggle */}
-          {permission !== "unsupported" && permission !== "denied" && (
+          {/* Waiter menu dropdown */}
+          <div className="relative">
             <button
-              onClick={() => (subscribed ? unsubscribe() : subscribe())}
-              className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs transition-colors ${
-                subscribed
-                  ? "bg-green-500/10 text-green-400 hover:bg-green-500/20"
-                  : "bg-stone-900 text-stone-500 hover:bg-stone-800 hover:text-stone-300"
-              }`}
-              title={subscribed ? "Notificaciones activadas" : "Activar notificaciones"}
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-stone-600 transition-colors hover:bg-stone-900 hover:text-stone-300"
             >
-              {subscribed ? <Bell className="size-3.5" /> : <BellOff className="size-3.5" />}
-              {subscribed ? "On" : "Off"}
+              {waiterName}
+              <ChevronDown className={`size-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
             </button>
-          )}
-          <span className="text-sm text-stone-600">
-            {waiterName}
-          </span>
-          <button
-            onClick={() => {
-              localStorage.removeItem(WAITER_KEY);
-              setWaiterName(null);
-            }}
-            className="rounded-lg px-2.5 py-1 text-xs text-stone-500 transition-colors hover:bg-stone-900 hover:text-stone-300"
-          >
-            Salir
-          </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-lg border border-white/10 bg-stone-950 shadow-xl">
+                  {/* Notifications toggle */}
+                  {permission !== "unsupported" && permission !== "denied" && (
+                    <button
+                      onClick={() => {
+                        subscribed ? unsubscribe() : subscribe();
+                      }}
+                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-stone-900"
+                    >
+                      <div className={`flex size-8 items-center justify-center rounded-lg ${
+                        subscribed ? "bg-green-500/10 text-green-400" : "bg-stone-800 text-stone-500"
+                      }`}>
+                        {subscribed ? <Bell className="size-4" /> : <BellOff className="size-4" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-stone-200">Notificaciones</p>
+                        <p className="text-xs text-stone-500">
+                          {subscribed ? "Activadas" : "Desactivadas"}
+                        </p>
+                      </div>
+                    </button>
+                  )}
+                  {permission === "denied" && (
+                    <div className="flex items-center gap-3 px-4 py-3">
+                      <div className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-600">
+                        <BellOff className="size-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm text-stone-400">Notificaciones bloqueadas</p>
+                        <p className="text-xs text-stone-600">Actívalas en el navegador</p>
+                      </div>
+                    </div>
+                  )}
+                  {/* Divider */}
+                  <div className="h-px bg-white/5" />
+                  {/* Logout */}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      localStorage.removeItem(WAITER_KEY);
+                      setWaiterName(null);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-stone-900"
+                  >
+                    <div className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-500">
+                      <LogOut className="size-4" />
+                    </div>
+                    <p className="text-sm text-stone-300">Salir</p>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
 
