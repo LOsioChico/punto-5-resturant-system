@@ -185,7 +185,7 @@ export function PosClient() {
   }, [supabase, waiterName, toast]);
 
   // Join presence channel so the dashboard sees this waiter as active.
-  // Heartbeat re-tracks every 10s so the dashboard can detect stale connections.
+  // Heartbeat re-tracks every 5s so the dashboard can detect stale connections quickly.
   useEffect(() => {
     if (!waiterName || !supabase) return;
     const channel = supabase.channel("waiters", {
@@ -204,17 +204,33 @@ export function PosClient() {
       }
     });
 
-    // Heartbeat — re-track every 10s with a fresh timestamp
-    const heartbeat = setInterval(track, 10_000);
+    // Heartbeat — re-track every 5s with a fresh timestamp
+    const heartbeat = setInterval(track, 5_000);
 
-    // Best-effort untrack on tab close / navigation
+    // Untrack when tab is hidden (iOS throttles setInterval in background,
+    // so we untrack immediately to avoid stale presence)
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        channel.untrack();
+      } else if (document.visibilityState === "visible") {
+        track();
+      }
+    };
+
+    // Best-effort untrack on tab close / navigation — pagehide fires
+    // more reliably than beforeunload on iOS/iPadOS, especially in PWA mode
     const handleUnload = () => {
       channel.untrack();
     };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    window.addEventListener("pagehide", handleUnload);
     window.addEventListener("beforeunload", handleUnload);
 
     return () => {
       clearInterval(heartbeat);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      window.removeEventListener("pagehide", handleUnload);
       window.removeEventListener("beforeunload", handleUnload);
       channel.untrack();
       supabase.removeChannel(channel);

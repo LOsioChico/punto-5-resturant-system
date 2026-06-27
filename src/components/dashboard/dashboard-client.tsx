@@ -151,7 +151,7 @@ export function DashboardClient() {
     if (!supabase) return;
     const channel = supabase.channel("waiters");
 
-    const STALE_MS = 30_000; // waiter must heartbeat within 30s
+    const STALE_MS = 15_000; // waiter must heartbeat within 15s
 
     const syncWaiters = () => {
       const state = channel.presenceState<{ name: string; joinedAt: string }>();
@@ -173,7 +173,7 @@ export function DashboardClient() {
       .subscribe();
 
     // Periodic sweep — removes stale waiters even if no presence event fires
-    const sweep = setInterval(syncWaiters, 10_000);
+    const sweep = setInterval(syncWaiters, 5_000);
 
     return () => {
       clearInterval(sweep);
