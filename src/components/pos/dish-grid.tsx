@@ -77,7 +77,7 @@ export function DishGrid({
                   </div>
 
                   {dish.description && (
-                    <p className="mt-2 line-clamp-2 break-words text-xs leading-relaxed text-stone-500">
+                    <p className="mt-2 break-words text-xs leading-relaxed text-stone-500">
                       {dish.description}
                     </p>
                   )}
