@@ -137,6 +137,7 @@ create policy "poc_read_dishes"      on dishes      for select using (true);
 create policy "poc_read_orders"      on orders      for select using (true);
 create policy "poc_insert_orders"    on orders      for insert with check (true);
 create policy "poc_update_orders"    on orders      for update using (true);
+create policy "poc_delete_orders"    on orders      for delete using (true);
 create policy "poc_read_order_items"   on order_items  for select using (true);
 create policy "poc_insert_order_items" on order_items  for insert with check (true);
 create policy "poc_update_order_items" on order_items  for update using (true);

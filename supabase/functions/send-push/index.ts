@@ -12,7 +12,7 @@
 //   SUPABASE_SERVICE_ROLE_KEY — service role key for DB access
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { webpush } from "https://esm.sh/web-push@3.6.7?bundle";
+import webpush from "npm:web-push@3.6.7";
 
 const STATUS_MESSAGES: Record<string, string> = {
   nueva: "pedido recibido",
@@ -20,6 +20,13 @@ const STATUS_MESSAGES: Record<string, string> = {
   lista: "pedido listo para servir",
   servida: "pedido servido",
 };
+
+// Configure web-push once on module load
+webpush.setVapidDetails(
+  Deno.env.get("VAPID_SUBJECT") || "mailto:admin@punto5.com",
+  Deno.env.get("VAPID_PUBLIC_KEY") || "",
+  Deno.env.get("VAPID_PRIVATE_KEY") || "",
+);
 
 Deno.serve(async (req) => {
   if (req.method !== "POST") {
@@ -42,13 +49,6 @@ Deno.serve(async (req) => {
     const tableNumber = record.table_number;
     const newStatus = record.status;
     const statusMsg = STATUS_MESSAGES[newStatus] ?? newStatus;
-
-    // Configure web-push
-    webpush.setVapidDetails(
-      Deno.env.get("VAPID_SUBJECT") || "mailto:admin@punto5.com",
-      Deno.env.get("VAPID_PUBLIC_KEY") || "",
-      Deno.env.get("VAPID_PRIVATE_KEY") || "",
-    );
 
     // Get all push subscriptions for this waiter
     const supabase = createClient(
