@@ -191,51 +191,20 @@ export function DashboardClient() {
     };
   }, [supabase]);
 
-  // Online/offline detection — reload from Supabase when back online
+  // Online/offline detection — just show a banner, don't auto-reload.
+  // The admin can manually refresh the page when back online.
   useEffect(() => {
-    const updateOnlineStatus = async () => {
-      const online = navigator.onLine;
-      setIsOnline(online);
-
-      // When coming back online, reload orders from Supabase
-      if (online && supabase) {
-        setLoading(true);
-        const { data: orderRows } = await supabase
-          .from("orders")
-          .select("*")
-          .order("created_at", { ascending: false })
-          .limit(100);
-
-        if (orderRows && orderRows.length > 0) {
-          const { data: itemRows } = await supabase
-            .from("order_items")
-            .select("*, dishes(categories(name))")
-            .in("order_id", orderRows.map((o) => o.id));
-          const ordersWithItems: Order[] = orderRows.map((o) => ({
-            ...o,
-            items: (itemRows ?? [])
-              .filter((i) => i.order_id === o.id)
-              .map((i) => ({
-                ...i,
-                category_name: i.dishes?.categories?.name ?? null,
-              })),
-          }));
-          setOrders(ordersWithItems);
-          cacheOrders(ordersWithItems);
-        }
-        setLoading(false);
-      }
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
     };
-
     updateOnlineStatus();
     window.addEventListener("online", updateOnlineStatus);
     window.addEventListener("offline", updateOnlineStatus);
-
     return () => {
       window.removeEventListener("online", updateOnlineStatus);
       window.removeEventListener("offline", updateOnlineStatus);
     };
-  }, [supabase]);
+  }, []);
 
   useEffect(() => {
     if (!supabase) return;
@@ -478,7 +447,7 @@ export function DashboardClient() {
       {!isOnline && (
         <div className="flex items-center justify-center gap-2 bg-amber-500/15 px-6 py-2 text-sm text-amber-400">
           <WifiOff className="size-4" />
-          Sin conexión — mostrando datos guardados. Las acciones están deshabilitadas.
+          Sin conexión — mostrando datos guardados. Recarga la página cuando vuelva la conexión.
         </div>
       )}
 
