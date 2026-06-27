@@ -2,7 +2,7 @@
 
 import { formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
+import { Minus, Plus, Trash2, Pencil, Send, PencilLine, AlertCircle } from "lucide-react";
 import { useState } from "react";
 
 export interface CartItem {
@@ -58,9 +58,14 @@ export function OrderSummary({
               Editando pedido
             </span>
           )}
-          <h2 className="text-base font-bold text-stone-100">
-            {tableNumber !== null ? `Mesa ${tableNumber}` : "Sin mesa"}
-          </h2>
+          {tableNumber !== null ? (
+            <h2 className="text-base font-bold text-stone-100">Mesa {tableNumber}</h2>
+          ) : (
+            <h2 className="flex items-center gap-1.5 text-base font-bold text-amber-400">
+              <AlertCircle className="size-4" />
+              Sin mesa
+            </h2>
+          )}
           <p className="text-xs text-stone-500">
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </p>
@@ -203,12 +208,19 @@ export function OrderSummary({
             onClick={onSend}
             disabled={items.length === 0 || tableNumber === null || sending}
           >
-            {sending ? "Enviando..." : "Enviar a cocina"}
+            {sending
+              ? "Enviando..."
+              : tableNumber === null
+                ? "Selecciona una mesa"
+                : items.length === 0
+                  ? "Agrega platos al pedido"
+                  : "Enviar a cocina"}
           </Button>
         )}
-        {!isEditing && tableNumber === null && items.length > 0 && (
-          <p className="mt-2.5 text-center text-sm text-amber-400/80">
-            Selecciona una mesa primero
+        {!isEditing && tableNumber === null && (
+          <p className="mt-2.5 flex items-center justify-center gap-1.5 text-center text-sm text-amber-400/80">
+            <AlertCircle className="size-3.5" />
+            Selecciona una mesa arriba para continuar
           </p>
         )}
       </div>
