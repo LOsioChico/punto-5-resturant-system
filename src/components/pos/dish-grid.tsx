@@ -34,7 +34,7 @@ export function DishGrid({
   return (
     <div className="flex-1 overflow-y-auto bg-stone-950">
       <div className="p-4">
-        <div className="grid grid-cols-[repeat(auto-fill,minmax(170px,1fr))] gap-3">
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(210px,1fr))] gap-3">
           {dishes.map((dish) => {
             const category = categories.find((c) => c.id === dish.category_id);
             const Icon = getDishIcon(dish.name, category?.name);
@@ -91,42 +91,36 @@ export function DishGrid({
                 </button>
 
                 {/* Bottom bar — price + counter */}
-                <div className="border-t border-white/5 px-3.5 py-2.5">
+                <div className="flex items-center justify-between gap-2 border-t border-white/5 px-3.5 py-3">
+                  <span className="shrink-0 text-sm font-bold text-yellow-500">
+                    {formatCOP(dish.price)}
+                  </span>
+
                   {inCart ? (
-                    <div className="flex flex-col gap-2">
-                      <span className="text-sm font-bold text-yellow-500">
-                        {formatCOP(dish.price)}
-                      </span>
-                      <div className="flex items-center justify-between gap-1.5">
-                        <button
-                          onClick={() => onDec(dish.id)}
-                          className="flex size-7 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
-                        >
-                          <Minus className="size-4" />
-                        </button>
-                        <span className="min-w-6 text-center text-base font-bold text-yellow-500">
-                          {qty}
-                        </span>
-                        <button
-                          onClick={() => onInc(dish.id)}
-                          className="flex size-7 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
-                        >
-                          <Plus className="size-4" />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="shrink-0 text-sm font-bold text-yellow-500">
-                        {formatCOP(dish.price)}
+                    <div className="flex shrink-0 items-center gap-1.5">
+                      <button
+                        onClick={() => onDec(dish.id)}
+                        className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                      >
+                        <Minus className="size-4" />
+                      </button>
+                      <span className="min-w-6 text-center text-base font-bold text-yellow-500">
+                        {qty}
                       </span>
                       <button
-                        onClick={() => onAdd(dish)}
-                        className="flex size-7 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
+                        onClick={() => onInc(dish.id)}
+                        className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                       >
                         <Plus className="size-4" />
                       </button>
                     </div>
+                  ) : (
+                    <button
+                      onClick={() => onAdd(dish)}
+                      className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition active:scale-90 hover:bg-yellow-500 hover:text-stone-950"
+                    >
+                      <Plus className="size-4" />
+                    </button>
                   )}
                 </div>
               </div>
