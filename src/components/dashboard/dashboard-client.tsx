@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { OrdersFeed } from "./orders-feed";
@@ -26,6 +26,8 @@ export function DashboardClient() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [waiters, setWaiters] = useState<ActiveWaiter[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedIdRef = useRef<string | null>(null);
+  useEffect(() => { selectedIdRef.current = selectedId; }, [selectedId]);
   const [events, setEvents] = useState<OrderEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -113,6 +115,10 @@ export function DashboardClient() {
 
           // Reload items if a waiter modified the order (items may have changed)
           if (updated.updated_by_type === "waiter" && updated.updated_at) {
+            // Small delay to ensure replication has caught up (items were
+            // inserted before the order UPDATE, but Supabase realtime
+            // may still be propagating)
+            await new Promise((r) => setTimeout(r, 300));
             const { data: items } = await supabase
               .from("order_items")
               .select("*, dishes(categories(name))")
@@ -131,6 +137,17 @@ export function DashboardClient() {
                   : o,
               ),
             );
+
+            // Also reload events for the selected order so the audit
+            // trail shows the "updated" event immediately
+            if (selectedIdRef.current === updated.id) {
+              const { data: evts } = await supabase
+                .from("order_events")
+                .select("*")
+                .eq("order_id", updated.id)
+                .order("created_at", { ascending: true });
+              setEvents((evts as OrderEvent[]) ?? []);
+            }
           } else {
             setOrders((prev) =>
               prev.map((o) =>

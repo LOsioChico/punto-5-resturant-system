@@ -18,6 +18,8 @@ export function CommandPreview({ order }: { order: Order }) {
     grouped.set(cat, list);
   }
 
+  const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
+
   return (
     <div className="mx-auto max-w-xs">
       {/* Paper receipt — white background, black text */}
@@ -31,6 +33,11 @@ export function CommandPreview({ order }: { order: Order }) {
         <div className="text-center">
           <p className="text-lg font-bold tracking-wider text-black">PUNTO 5</p>
           <p className="text-xs text-stone-600">Comanda de cocina</p>
+          {wasModified && (
+            <p className="mt-1 inline-block rounded bg-red-600 px-2 py-0.5 text-xs font-bold uppercase tracking-wider text-white">
+              ★ Modificada ★
+            </p>
+          )}
         </div>
 
         <div className="my-2 border-t border-dashed border-stone-300" />

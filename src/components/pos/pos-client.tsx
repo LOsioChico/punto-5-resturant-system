@@ -138,6 +138,8 @@ export function PosClient() {
 
           // Reload items if the order was modified by a waiter (items may have changed)
           if (updated.updated_by_type === "waiter" && updated.updated_at) {
+            // Small delay to ensure replication has caught up
+            await new Promise((r) => setTimeout(r, 300));
             const { data: items } = await supabase
               .from("order_items")
               .select("*, dishes(categories(name))")
@@ -420,24 +422,9 @@ export function PosClient() {
     // Find the original order to compute what changed
     const original = orders.find((o) => o.id === editingOrderId);
 
-    // Update order total + audit fields
-    const { error: orderErr } = await supabase
-      .from("orders")
-      .update({
-        total,
-        updated_by: waiterName,
-        updated_at: new Date().toISOString(),
-        updated_by_type: "waiter",
-      })
-      .eq("id", editingOrderId);
-
-    if (orderErr) {
-      toast("Error al actualizar el pedido", "error");
-      setSending(false);
-      return;
-    }
-
-    // Replace all items — delete old, insert new
+    // 1. Replace items FIRST — delete old, insert new
+    //    (do this before updating the order so that when the realtime
+    //    UPDATE event fires, the new items are already in the database)
     await supabase.from("order_items").delete().eq("order_id", editingOrderId);
 
     const { error: itemsErr } = await supabase.from("order_items").insert(
@@ -457,7 +444,8 @@ export function PosClient() {
       return;
     }
 
-    // Log the update event
+    // 2. Log the update event (before the order UPDATE so it's visible
+    //    when the dashboard reloads events)
     await supabase.from("order_events").insert({
       order_id: editingOrderId,
       event_type: "updated",
@@ -471,6 +459,25 @@ export function PosClient() {
         changes: "items_modified",
       },
     });
+
+    // 3. Update order LAST — this fires the realtime UPDATE event
+    //    By this point, items and events are already in the database,
+    //    so the dashboard can fetch them immediately when it receives the event
+    const { error: orderErr } = await supabase
+      .from("orders")
+      .update({
+        total,
+        updated_by: waiterName,
+        updated_at: new Date().toISOString(),
+        updated_by_type: "waiter",
+      })
+      .eq("id", editingOrderId);
+
+    if (orderErr) {
+      toast("Error al actualizar el pedido", "error");
+      setSending(false);
+      return;
+    }
 
     toast(`Pedido actualizado — Mesa ${selectedTable}`, "success");
     setCart([]);
