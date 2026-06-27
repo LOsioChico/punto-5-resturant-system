@@ -37,7 +37,9 @@ export function CommandPreview({ order }: { order: Order }) {
 
         <div className="flex justify-between text-xs text-black">
           <span className="font-semibold">Mesa: {order.table_number}</span>
-          <span className="text-black">{formatTime(order.created_at)}</span>
+          <span className="text-black">
+            {order.updated_at ? formatTime(order.updated_at) : formatTime(order.created_at)}
+          </span>
         </div>
         <p className="text-xs text-black">Mesero: {order.waiter_name}</p>
 
