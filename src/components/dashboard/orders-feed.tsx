@@ -53,14 +53,23 @@ export function OrdersFeed({
                 "w-full rounded-lg px-3.5 py-3 text-left transition-all active:scale-[0.99]",
                 isSelected
                   ? "bg-stone-800 ring-1 ring-inset ring-yellow-500/40"
-                  : "bg-stone-900 hover:bg-stone-800/60",
+                  : isNew
+                    ? "bg-red-500/5 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/10"
+                    : "bg-stone-900 hover:bg-stone-800/60",
               )}
             >
               {/* Row 1 — table + time */}
               <div className="flex items-center justify-between">
-                <span className="text-sm font-bold text-stone-100">
-                  Mesa {order.table_number}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-stone-100">
+                    Mesa {order.table_number}
+                  </span>
+                  {isNew && (
+                    <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-400">
+                      Nuevo
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-stone-400">
                     {timeAgo(order.created_at)}
@@ -77,7 +86,7 @@ export function OrdersFeed({
                   {order.waiter_name}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-2 text-xs text-stone-500">
-                  <span className={cn("size-1.5 rounded-full", statusDot[order.status], isNew && "animate-pulse")} />
+                  <span className={cn("size-1.5 rounded-full", statusDot[order.status])} />
                   {statusLabel[order.status]}
                 </span>
               </div>
