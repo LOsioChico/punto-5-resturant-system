@@ -168,15 +168,14 @@ export function DashboardClient() {
     if (!supabase) return;
     const channel = supabase.channel("waiters");
 
-    const STALE_MS = 45_000; // waiter must heartbeat within 45s (tolerates iOS background throttling)
-
     const syncWaiters = () => {
       const state = channel.presenceState<{ name: string; joinedAt: string }>();
-      const now = Date.now();
-      // Dedupe by name — keep the most recent heartbeat per waiter
+      // Dedupe by name — Supabase presence already removes disconnected
+      // clients (WebSocket close fires a leave event), so we don't need
+      // timestamp-based stale filtering. If they're in presence state,
+      // their connection is alive.
       const byName = new Map<string, ActiveWaiter>();
       for (const p of Object.values(state).flat()) {
-        if (now - new Date(p.joinedAt).getTime() >= STALE_MS) continue;
         const existing = byName.get(p.name);
         if (!existing || new Date(p.joinedAt) > new Date(existing.joinedAt)) {
           byName.set(p.name, { name: p.name, joinedAt: p.joinedAt });
@@ -187,13 +186,10 @@ export function DashboardClient() {
 
     channel
       .on("presence", { event: "sync" }, syncWaiters)
+      .on("presence", { event: "leave" }, syncWaiters)
       .subscribe();
 
-    // Periodic sweep — removes stale waiters even if no presence event fires
-    const sweep = setInterval(syncWaiters, 5_000);
-
     return () => {
-      clearInterval(sweep);
       supabase.removeChannel(channel);
     };
   }, [supabase]);

@@ -187,7 +187,10 @@ export function PosClient() {
   }, [supabase, waiterName, toast]);
 
   // Join presence channel so the dashboard sees this waiter as active.
-  // Heartbeat re-tracks every 10s so the dashboard can detect stale connections.
+  // The heartbeat keeps the WebSocket alive (iOS may close idle connections)
+  // and refreshes the joinedAt timestamp. Supabase presence automatically
+  // fires a "leave" event when the WebSocket disconnects (page closed),
+  // so the waiter is only removed when the page is actually closed.
   useEffect(() => {
     if (!waiterName || !supabase) return;
     const channel = supabase.channel("waiters", {
@@ -206,20 +209,20 @@ export function PosClient() {
       }
     });
 
-    // Heartbeat — re-track every 10s with a fresh timestamp
-    const heartbeat = setInterval(track, 10_000);
+    // Heartbeat — re-track every 15s to keep the WebSocket alive
+    // and refresh the timestamp. No need for aggressive timing since
+    // we rely on Supabase's native presence leave detection.
+    const heartbeat = setInterval(track, 15_000);
 
-    // When tab becomes visible again, immediately re-track
-    // (iOS throttles setInterval in background, so the heartbeat
-    // may have missed cycles — re-track to stay alive)
+    // Re-track when tab becomes visible again (in case the WebSocket
+    // was dropped while backgrounded)
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         track();
       }
     };
 
-    // Best-effort untrack on tab close / navigation — pagehide fires
-    // more reliably than beforeunload on iOS/iPadOS, especially in PWA mode
+    // Untrack on actual page close — pagehide fires reliably on iOS/iPadOS
     const handleUnload = () => {
       channel.untrack();
     };
