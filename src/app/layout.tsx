@@ -24,6 +24,14 @@ export const metadata: Metadata = {
     template: "%s — Punto 5",
   },
   description: APP_DESCRIPTION,
+  robots: {
+    index: false,
+    follow: false,
+    noarchive: true,
+    nosnippet: true,
+    noimageindex: true,
+    nocache: true,
+  },
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
