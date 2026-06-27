@@ -127,16 +127,85 @@ src/
 public/
 └── sw.js                       # Service worker (PWA)
 supabase/
-└── schema.sql                  # SQL schema + seed data
+├── schema.sql                  # SQL schema + seed data (for cloud setup)
+├── config.toml                 # Local Supabase config
+├── migrations/
+│   └── *_initial_schema.sql    # Migration (schema + seed + GRANTs + RLS)
+└── functions/
+    └── send-push/              # Edge function for Web Push notifications
+e2e/
+├── helpers.ts                  # preparePage, dismissErrorOverlay
+├── global-setup.ts             # Resets local DB before each run
+├── 01-create-order.spec.ts     # POS create + admin verification
+├── 02-edit-order.spec.ts       # POS edit (add/remove/modify + notes)
+├── 03-admin-status.spec.ts     # Status advance + undo + history
+├── 04-admin-detail.spec.ts     # Detail view (items, notes, preview, print)
+└── 05-filters.spec.ts          # Dashboard filters (date, status, waiter)
 ```
 
 ## Scripts
 
 ```bash
-pnpm dev       # Development server
-pnpm build     # Production build
-pnpm start     # Production server
-pnpm lint      # ESLint
+pnpm dev               # Development server
+pnpm build             # Production build
+pnpm start             # Production server
+pnpm lint              # ESLint
+pnpm test              # Unit + component tests (Vitest)
+pnpm test:watch        # Unit tests in watch mode
+pnpm test:e2e          # E2E tests (Playwright) — requires local Supabase
+pnpm test:e2e:ui       # E2E tests with Playwright UI
+pnpm supabase:start    # Start local Supabase (Docker)
+pnpm supabase:stop     # Stop local Supabase
+pnpm supabase:reset    # Reset local DB (re-run migrations + seed)
+```
+
+## Testing
+
+### Unit & Component Tests
+
+```bash
+pnpm test
+```
+
+Uses Vitest + React Testing Library. 255 tests across 7 files covering:
+- Pure logic (formatting, filters, status flow, cart diffing)
+- Component rendering (OrderDetail, OrderSummary, OrdersFeed, etc.)
+
+### E2E Tests
+
+E2E tests run against a **local Supabase instance** (Docker) — not the
+production database. The Playwright global setup resets the DB before
+each run for deterministic results.
+
+**Prerequisites:**
+- Docker Desktop running
+- Supabase CLI installed (`brew install supabase/tap/supabase`)
+
+**First-time setup:**
+
+```bash
+pnpm supabase:start    # Start local Supabase stack (Docker)
+```
+
+This starts Postgres, Auth, Realtime, Storage, and Studio on
+`http://127.0.0.1:54321`. The DB schema and seed data are applied
+automatically from `supabase/migrations/`.
+
+**Running e2e tests:**
+
+```bash
+pnpm test:e2e
+```
+
+The test runner:
+1. Resets the local DB (`supabase db reset`) via `e2e/global-setup.ts`
+2. Starts the Next.js dev server with `.env.test` (points at local Supabase)
+3. Runs all Playwright specs
+
+**To stop local Supabase:**
+
+```bash
+pnpm supabase:stop
 ```
 
 ## Language

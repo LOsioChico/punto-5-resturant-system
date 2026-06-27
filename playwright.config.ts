@@ -6,6 +6,7 @@ export default defineConfig({
   retries: 0,
   workers: 1,
   reporter: "html",
+  globalSetup: "./e2e/global-setup.ts",
   use: {
     baseURL: "http://localhost:3000",
     trace: "on-first-retry",
@@ -18,7 +19,9 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: "pnpm dev",
+    // Use .env.test so the dev server points at the local Supabase
+    // (Docker) instance instead of the production project.
+    command: "./scripts/dev-test.sh",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 30000,
