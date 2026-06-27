@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, timeAgo } from "@/lib/utils";
+import { cn, timeAgo, formatTime } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Clock } from "lucide-react";
@@ -67,9 +67,14 @@ export function OrdersFeed({
                     {statusLabel[order.status]}
                   </span>
                 </div>
-                <span className="text-xs text-stone-400">
-                  {timeAgo(order.created_at)}
-                </span>
+                <div className="flex flex-col items-end">
+                  <span className="text-xs text-stone-400">
+                    {timeAgo(order.created_at)}
+                  </span>
+                  <span className="text-[10px] text-stone-600">
+                    {formatTime(order.created_at)}
+                  </span>
+                </div>
               </div>
 
               {/* Row 2 — waiter */}
