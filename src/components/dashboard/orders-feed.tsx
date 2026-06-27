@@ -56,17 +56,11 @@ export function OrdersFeed({
                   : "bg-stone-900 hover:bg-stone-800/60",
               )}
             >
-              {/* Row 1 — table + status */}
+              {/* Row 1 — table + time */}
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2.5">
-                  <span className="text-sm font-bold text-stone-100">
-                    Mesa {order.table_number}
-                  </span>
-                  <span className="flex items-center gap-1.5 text-xs text-stone-500">
-                    <span className={cn("size-1.5 rounded-full", statusDot[order.status])} />
-                    {statusLabel[order.status]}
-                  </span>
-                </div>
+                <span className="text-sm font-bold text-stone-100">
+                  Mesa {order.table_number}
+                </span>
                 <div className="flex flex-col items-end">
                   <span className="text-xs text-stone-400">
                     {timeAgo(order.created_at)}
@@ -77,23 +71,16 @@ export function OrdersFeed({
                 </div>
               </div>
 
-              {/* Row 2 — waiter */}
-              <div className="mt-1 flex items-center justify-between">
-                <span className="truncate text-xs text-stone-500">
+              {/* Row 2 — status + waiter */}
+              <div className="mt-1.5 flex items-center justify-between">
+                <span className="flex items-center gap-1.5 text-xs text-stone-500">
+                  <span className={cn("size-1.5 rounded-full", statusDot[order.status], isNew && "animate-pulse")} />
+                  {statusLabel[order.status]}
+                </span>
+                <span className="truncate pl-2 text-xs text-stone-500">
                   {order.waiter_name}
                 </span>
               </div>
-
-              {/* New order pulse */}
-              {isNew && (
-                <div className="mt-1.5 flex items-center gap-1.5">
-                  <span className="relative flex size-2">
-                    <span className="absolute inline-flex size-full animate-ping rounded-full bg-red-500 opacity-75" />
-                    <span className="relative inline-flex size-2 rounded-full bg-red-500" />
-                  </span>
-                  <span className="text-xs font-medium text-red-400">Nuevo</span>
-                </div>
-              )}
             </button>
           </li>
         );
