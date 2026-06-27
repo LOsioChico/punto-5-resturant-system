@@ -77,10 +77,10 @@ export function CommandPreview({ order }: { order: Order }) {
                       {item.dish_name}
                     </span>
                   </div>
-                  {/* Notes — indented, bold, clear */}
+                  {/* Notes */}
                   {item.notes && (
-                    <p className="mt-0.5 ml-6 border-l-2 border-stone-400 pl-1.5 text-xs font-bold text-stone-700">
-                      {item.notes}
+                    <p className="mt-0.5 ml-6 text-xs italic text-stone-600">
+                      → {item.notes}
                     </p>
                   )}
                 </li>
