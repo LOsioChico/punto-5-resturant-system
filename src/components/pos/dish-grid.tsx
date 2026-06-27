@@ -55,7 +55,7 @@ export function DishGrid({
                   onClick={() => onAdd(dish)}
                   className="flex flex-1 flex-col p-3.5 text-left active:scale-[0.98]"
                 >
-                  <div className="flex items-start gap-2.5">
+                  <div className="flex items-center gap-2.5">
                     <div
                       className={
                         inCart
