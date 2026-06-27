@@ -168,7 +168,7 @@ export function DashboardClient() {
     if (!supabase) return;
     const channel = supabase.channel("waiters");
 
-    const STALE_MS = 15_000; // waiter must heartbeat within 15s
+    const STALE_MS = 45_000; // waiter must heartbeat within 45s (tolerates iOS background throttling)
 
     const syncWaiters = () => {
       const state = channel.presenceState<{ name: string; joinedAt: string }>();
