@@ -15,11 +15,11 @@ export function PosTabs({
   historyCount: number;
 }) {
   return (
-    <div className="flex gap-1 border-b border-white/5 bg-stone-950 px-4">
+    <div className="flex gap-2 border-b border-white/5 bg-stone-950 px-5">
       <button
         onClick={() => onChange("new")}
         className={cn(
-          "px-4 py-3 text-sm font-medium transition-colors",
+          "px-5 py-3.5 text-base font-medium transition-colors",
           active === "new"
             ? "border-b-2 border-yellow-500 text-yellow-500"
             : "border-b-2 border-transparent text-stone-500 hover:text-stone-300",
@@ -30,7 +30,7 @@ export function PosTabs({
       <button
         onClick={() => onChange("history")}
         className={cn(
-          "flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors",
+          "flex items-center gap-2 px-5 py-3.5 text-base font-medium transition-colors",
           active === "history"
             ? "border-b-2 border-yellow-500 text-yellow-500"
             : "border-b-2 border-transparent text-stone-500 hover:text-stone-300",
@@ -40,7 +40,7 @@ export function PosTabs({
         {historyCount > 0 && (
           <span
             className={cn(
-              "rounded-full px-1.5 py-0.5 text-[10px] font-bold tabular-nums",
+              "rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
               active === "history"
                 ? "bg-yellow-500/20 text-yellow-500"
                 : "bg-stone-900 text-stone-600",

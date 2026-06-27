@@ -42,21 +42,21 @@ export function OrderSummary({
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-l border-white/5 bg-stone-900">
+    <aside className="flex w-96 shrink-0 flex-col border-l border-white/5 bg-stone-900">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3.5">
+      <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
         <div>
-          <h2 className="text-sm font-bold text-stone-100">
+          <h2 className="text-lg font-bold text-stone-100">
             {tableNumber !== null ? `Mesa ${tableNumber}` : "Sin mesa"}
           </h2>
-          <p className="text-xs text-stone-500">
+          <p className="text-sm text-stone-500">
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </p>
         </div>
         {items.length > 0 && (
           <button
             onClick={onClear}
-            className="text-xs text-stone-500 transition-colors hover:text-red-400"
+            className="rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-400"
           >
             Limpiar
           </button>
@@ -67,52 +67,52 @@ export function OrderSummary({
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
           <EmptyState
-            icon={<Send className="size-6" />}
+            icon={<Send className="size-7" />}
             title="Pedido vacío"
             description="Toca un plato para agregarlo"
           />
         ) : (
           <ul className="divide-y divide-white/5">
             {items.map((item) => (
-              <li key={item.dish_id} className="px-4 py-3.5">
+              <li key={item.dish_id} className="px-5 py-4">
                 <div className="flex items-start justify-between gap-2">
                   <div className="min-w-0 flex-1">
-                    <span className="block text-sm font-medium text-stone-100">
+                    <span className="block text-base font-medium text-stone-100">
                       {item.dish_name}
                     </span>
-                    <span className="text-xs text-stone-500">
+                    <span className="text-sm text-stone-500">
                       {formatCOP(item.price)} c/u
                     </span>
                   </div>
-                  <span className="text-sm font-semibold text-stone-200">
+                  <span className="text-base font-semibold text-stone-200">
                     {formatCOP(item.price * item.quantity)}
                   </span>
                 </div>
 
                 {/* Counter + remove */}
-                <div className="mt-2.5 flex items-center gap-2">
-                  <div className="flex items-center gap-1.5">
+                <div className="mt-3 flex items-center gap-2.5">
+                  <div className="flex items-center gap-2">
                     <button
                       onClick={() => onDec(item.dish_id)}
-                      className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                      className="flex size-10 items-center justify-center rounded-xl bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                     >
-                      <Minus className="size-4" />
+                      <Minus className="size-5" />
                     </button>
-                    <span className="min-w-7 text-center text-sm font-bold text-stone-100">
+                    <span className="min-w-8 text-center text-lg font-bold text-stone-100">
                       {item.quantity}
                     </span>
                     <button
                       onClick={() => onInc(item.dish_id)}
-                      className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
+                      className="flex size-10 items-center justify-center rounded-xl bg-stone-800 text-stone-300 transition active:scale-90 hover:bg-stone-700"
                     >
-                      <Plus className="size-4" />
+                      <Plus className="size-5" />
                     </button>
                   </div>
                   <button
                     onClick={() => onRemove(item.dish_id)}
-                    className="flex size-8 items-center justify-center rounded-lg text-stone-600 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    className="flex size-10 items-center justify-center rounded-xl text-stone-600 transition-colors hover:bg-red-500/10 hover:text-red-400"
                   >
-                    <Trash2 className="size-4" />
+                    <Trash2 className="size-5" />
                   </button>
                 </div>
 
@@ -129,14 +129,14 @@ export function OrderSummary({
                     }}
                     onBlur={() => setEditingNotes(null)}
                     placeholder="Ej: sin cebolla, extra picante..."
-                    className="mt-2.5 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-xs text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
+                    className="mt-3 w-full rounded-xl border border-stone-700 bg-stone-800 px-3 py-2.5 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
                   />
                 ) : (
                   <button
                     onClick={() => setEditingNotes(item.dish_id)}
-                    className="mt-2.5 flex items-center gap-1.5 text-xs text-stone-600 transition-colors hover:text-stone-300"
+                    className="mt-3 flex items-center gap-1.5 text-sm text-stone-600 transition-colors hover:text-stone-300"
                   >
-                    <Pencil className="size-3" />
+                    <Pencil className="size-3.5" />
                     {item.notes ? (
                       <span className="text-stone-400">{item.notes}</span>
                     ) : (
@@ -151,12 +151,12 @@ export function OrderSummary({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-white/5 px-4 py-4">
+      <div className="border-t border-white/5 px-5 py-5">
         <div className="mb-3 flex items-center justify-between">
-          <span className="text-xs font-medium uppercase tracking-wider text-stone-500">
+          <span className="text-sm font-medium uppercase tracking-wider text-stone-500">
             Total
           </span>
-          <span className="text-xl font-bold text-yellow-500">
+          <span className="text-2xl font-bold text-yellow-500">
             {formatCOP(total)}
           </span>
         </div>
@@ -169,7 +169,7 @@ export function OrderSummary({
           {sending ? "Enviando..." : "Enviar a cocina"}
         </Button>
         {tableNumber === null && items.length > 0 && (
-          <p className="mt-2 text-center text-xs text-stone-500">
+          <p className="mt-2 text-center text-sm text-stone-500">
             Selecciona una mesa primero
           </p>
         )}

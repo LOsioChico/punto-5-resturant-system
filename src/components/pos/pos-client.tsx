@@ -380,60 +380,63 @@ export function PosClient() {
   return (
     <div className="flex h-screen flex-col bg-stone-950">
       {/* Top bar */}
-      <div className="flex items-center justify-between border-b border-white/5 bg-stone-950 px-5 py-3">
-        <div className="flex items-center gap-2.5">
-          <div className="flex size-8 items-center justify-center rounded-lg bg-yellow-500 text-sm font-bold text-stone-950">
+      <div
+        className="flex items-center justify-between border-b border-white/5 bg-stone-950 px-6 py-3.5"
+        style={{ paddingTop: "max(0.875rem, env(safe-area-inset-top))" }}
+      >
+        <div className="flex items-center gap-3">
+          <div className="flex size-9 items-center justify-center rounded-lg bg-yellow-500 text-base font-bold text-stone-950">
             P5
           </div>
           <div>
-            <span className="text-sm font-bold text-stone-100">Punto 5</span>
-            <span className="ml-1.5 text-xs text-stone-600">POS</span>
+            <span className="text-base font-bold text-stone-100">Punto 5</span>
+            <span className="ml-2 text-sm text-stone-600">POS</span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <NotificationBell />
           {/* Waiter menu dropdown */}
           <div className="relative">
             <button
               onClick={() => setMenuOpen(!menuOpen)}
-              className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-sm text-stone-600 transition-colors hover:bg-stone-900 hover:text-stone-300"
+              className="flex items-center gap-2 rounded-xl px-3.5 py-2 text-base text-stone-600 transition-colors hover:bg-stone-900 hover:text-stone-300"
             >
               {waiterName}
-              <ChevronDown className={`size-3.5 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+              <ChevronDown className={`size-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
             </button>
             {menuOpen && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                <div className="absolute right-0 top-11 z-50 w-56 overflow-hidden rounded-lg border border-white/10 bg-stone-950 shadow-xl">
+                <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-xl border border-white/10 bg-stone-950 shadow-xl">
                   {/* Notifications toggle */}
                   {permission !== "unsupported" && permission !== "denied" && (
                     <button
                       onClick={() => {
                         subscribed ? unsubscribe() : subscribe();
                       }}
-                      className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-stone-900"
+                      className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
                     >
-                      <div className={`flex size-8 items-center justify-center rounded-lg ${
+                      <div className={`flex size-10 items-center justify-center rounded-xl ${
                         subscribed ? "bg-green-500/10 text-green-400" : "bg-stone-800 text-stone-500"
                       }`}>
-                        {subscribed ? <Bell className="size-4" /> : <BellOff className="size-4" />}
+                        {subscribed ? <Bell className="size-5" /> : <BellOff className="size-5" />}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm text-stone-200">Notificaciones</p>
-                        <p className="text-xs text-stone-500">
+                        <p className="text-base text-stone-200">Notificaciones</p>
+                        <p className="text-sm text-stone-500">
                           {subscribed ? "Activadas" : "Desactivadas"}
                         </p>
                       </div>
                     </button>
                   )}
                   {permission === "denied" && (
-                    <div className="flex items-center gap-3 px-4 py-3">
-                      <div className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-600">
-                        <BellOff className="size-4" />
+                    <div className="flex items-center gap-3 px-4 py-3.5">
+                      <div className="flex size-10 items-center justify-center rounded-xl bg-stone-800 text-stone-600">
+                        <BellOff className="size-5" />
                       </div>
                       <div className="min-w-0">
-                        <p className="text-sm text-stone-400">Notificaciones bloqueadas</p>
-                        <p className="text-xs text-stone-600">Actívalas en el navegador</p>
+                        <p className="text-base text-stone-400">Notificaciones bloqueadas</p>
+                        <p className="text-sm text-stone-600">Actívalas en el navegador</p>
                       </div>
                     </div>
                   )}
@@ -446,12 +449,12 @@ export function PosClient() {
                       localStorage.removeItem(WAITER_KEY);
                       setWaiterName(null);
                     }}
-                    className="flex w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-stone-900"
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
                   >
-                    <div className="flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-500">
-                      <LogOut className="size-4" />
+                    <div className="flex size-10 items-center justify-center rounded-xl bg-stone-800 text-stone-500">
+                      <LogOut className="size-5" />
                     </div>
-                    <p className="text-sm text-stone-300">Salir</p>
+                    <p className="text-base text-stone-300">Salir</p>
                   </button>
                 </div>
               </>
