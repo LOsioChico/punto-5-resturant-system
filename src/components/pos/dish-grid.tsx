@@ -23,8 +23,8 @@ export function DishGrid({
 }) {
   if (dishes.length === 0) {
     return (
-      <div className="flex flex-1 items-center justify-center text-sm text-stone-600">
-        Selecciona una categoría
+      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center">
+        <p className="text-base text-stone-600">Selecciona una categoría</p>
       </div>
     );
   }
@@ -34,7 +34,7 @@ export function DishGrid({
   return (
     <div className="flex-1 overflow-y-auto bg-stone-950">
       <div className="p-5">
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
           {dishes.map((dish) => {
             const category = categories.find((c) => c.id === dish.category_id);
             const Icon = getDishIcon(dish.name, category?.name);

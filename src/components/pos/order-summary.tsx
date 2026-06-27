@@ -2,8 +2,7 @@
 
 import { formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Minus, Plus, Trash2, Pencil, Send, X } from "lucide-react";
+import { Minus, Plus, Trash2, Pencil, Send } from "lucide-react";
 import { useState } from "react";
 
 export interface CartItem {
@@ -15,7 +14,7 @@ export interface CartItem {
   notes: string;
 }
 
-/** Slide-out drawer — order summary. Opens from the right edge. */
+/** Right panel — order summary. Always visible while ordering. */
 export function OrderSummary({
   tableNumber,
   items,
@@ -26,8 +25,6 @@ export function OrderSummary({
   onSend,
   onSetNotes,
   sending,
-  open,
-  onClose,
 }: {
   tableNumber: number | null;
   items: CartItem[];
@@ -38,64 +35,45 @@ export function OrderSummary({
   onSend: () => void;
   onSetNotes: (dishId: string, notes: string) => void;
   sending: boolean;
-  open: boolean;
-  onClose: () => void;
 }) {
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
 
   return (
-    <>
-      {/* Backdrop */}
-      {open && (
-        <div
-          className="fixed inset-0 z-40 bg-black/50 transition-opacity"
-          onClick={onClose}
-        />
-      )}
-      {/* Drawer */}
-      <aside
-        className={`fixed right-0 top-0 z-50 flex h-full w-96 flex-col bg-stone-900 shadow-2xl transition-transform duration-300 ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
+    <aside className="flex w-80 shrink-0 flex-col border-l border-white/5 bg-stone-900">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/5 px-5 py-4">
+      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3.5">
         <div>
-          <h2 className="text-lg font-bold text-stone-100">
+          <h2 className="text-base font-bold text-stone-100">
             {tableNumber !== null ? `Mesa ${tableNumber}` : "Sin mesa"}
           </h2>
-          <p className="text-sm text-stone-500">
+          <p className="text-xs text-stone-500">
             {itemCount} {itemCount === 1 ? "item" : "items"}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          {items.length > 0 && (
-            <button
-              onClick={onClear}
-              className="rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-400"
-            >
-              Limpiar
-            </button>
-          )}
+        {items.length > 0 && (
           <button
-            onClick={onClose}
-            className="flex size-10 items-center justify-center rounded-lg text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-300"
+            onClick={onClear}
+            className="rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-red-400"
           >
-            <X className="size-5" />
+            Limpiar
           </button>
-        </div>
+        )}
       </div>
 
       {/* Items */}
       <div className="flex-1 overflow-y-auto">
         {items.length === 0 ? (
-          <EmptyState
-            icon={<Send className="size-7" />}
-            title="Pedido vacío"
-            description="Toca un plato para agregarlo"
-          />
+          <div className="flex flex-1 flex-col items-center justify-center gap-3 p-8 text-center">
+            <div className="flex size-14 items-center justify-center rounded-xl bg-stone-800">
+              <Send className="size-7 text-stone-600" />
+            </div>
+            <div>
+              <p className="text-base font-medium text-stone-400">Pedido vacío</p>
+              <p className="mt-1 text-sm text-stone-600">Toca un plato para agregarlo</p>
+            </div>
+          </div>
         ) : (
           <ul className="divide-y divide-white/5">
             {items.map((item) => (
@@ -176,8 +154,8 @@ export function OrderSummary({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-white/5 px-5 py-5">
-        <div className="mb-3 flex items-center justify-between">
+      <div className="border-t border-white/5 bg-stone-950/50 px-5 py-5">
+        <div className="mb-4 flex items-center justify-between">
           <span className="text-sm font-medium uppercase tracking-wider text-stone-500">
             Total
           </span>
@@ -194,12 +172,11 @@ export function OrderSummary({
           {sending ? "Enviando..." : "Enviar a cocina"}
         </Button>
         {tableNumber === null && items.length > 0 && (
-          <p className="mt-2 text-center text-sm text-stone-500">
+          <p className="mt-2.5 text-center text-sm text-amber-400/80">
             Selecciona una mesa primero
           </p>
         )}
       </div>
-      </aside>
-    </>
+    </aside>
   );
 }

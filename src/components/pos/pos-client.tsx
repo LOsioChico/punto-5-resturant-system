@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { formatCOP } from "@/lib/utils";
 import { useToast } from "@/components/ui/toast";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
@@ -14,7 +13,7 @@ import { DishGrid } from "./dish-grid";
 import { OrderSummary, type CartItem } from "./order-summary";
 import { WaiterOrders } from "./waiter-orders";
 import { PosTabs, type PosTab } from "./pos-tabs";
-import { Bell, BellOff, ChevronDown, LogOut, ShoppingCart } from "lucide-react";
+import { Bell, BellOff, ChevronDown, LogOut } from "lucide-react";
 
 const WAITER_KEY = "punto5:waiter-name";
 
@@ -40,7 +39,6 @@ export function PosClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [cartOpen, setCartOpen] = useState(false);
 
   const [activeTab, setActiveTab] = useState<PosTab>("new");
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
@@ -340,7 +338,6 @@ export function PosClient() {
     toast(`Pedido enviado a cocina — Mesa ${selectedTable}`, "success");
     setCart([]);
     setSending(false);
-    setCartOpen(false);
   }, [supabase, waiterName, selectedTable, cart, toast]);
 
   // --- Render ---
@@ -490,8 +487,8 @@ export function PosClient() {
             onSelect={setSelectedCategory}
           />
 
-          {/* Dish grid — full width */}
-          <div className="relative flex-1 overflow-hidden">
+          {/* Main 2-column: dishes + cart */}
+          <div className="flex flex-1 overflow-hidden">
             <DishGrid
               dishes={filteredDishes}
               categories={categories}
@@ -500,38 +497,18 @@ export function PosClient() {
               onInc={incItem}
               onDec={decItem}
             />
-
-            {/* Floating cart button */}
-            {cart.length > 0 && (
-              <button
-                onClick={() => setCartOpen(true)}
-                className="absolute bottom-5 right-5 flex items-center gap-3 rounded-xl bg-yellow-500 px-5 py-3.5 text-stone-950 shadow-2xl shadow-yellow-500/30 transition-all active:scale-95"
-              >
-                <ShoppingCart className="size-5" />
-                <span className="text-base font-bold">
-                  {cart.reduce((s, i) => s + i.quantity, 0)} items
-                </span>
-                <span className="text-sm font-semibold text-stone-800">
-                  {formatCOP(cart.reduce((s, i) => s + i.price * i.quantity, 0))}
-                </span>
-              </button>
-            )}
+            <OrderSummary
+              tableNumber={selectedTable}
+              items={cart}
+              onInc={incItem}
+              onDec={decItem}
+              onRemove={removeItem}
+              onClear={clearCart}
+              onSend={sendOrder}
+              onSetNotes={setNotes}
+              sending={sending}
+            />
           </div>
-
-          {/* Cart drawer */}
-          <OrderSummary
-            tableNumber={selectedTable}
-            items={cart}
-            onInc={incItem}
-            onDec={decItem}
-            onRemove={removeItem}
-            onClear={clearCart}
-            onSend={sendOrder}
-            onSetNotes={setNotes}
-            sending={sending}
-            open={cartOpen}
-            onClose={() => setCartOpen(false)}
-          />
         </>
       ) : (
         <WaiterOrders orders={orders} waiterName={waiterName} />
