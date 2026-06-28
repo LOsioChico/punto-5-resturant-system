@@ -3,6 +3,8 @@ import {
   toggleQuickNote,
   diffOrderItems,
   hasCartChanged,
+  isParaLlevar,
+  countParaLlevar,
   type CartItem,
 } from "./logic";
 
@@ -217,5 +219,45 @@ describe("hasCartChanged", () => {
     const current = [item("2", "Fries", 1), item("1", "Burger", 2)];
     // Same items, different order — should NOT detect as changed
     expect(hasCartChanged(initial, current)).toBe(false);
+  });
+});
+
+describe("isParaLlevar", () => {
+  it("returns true for 'Para llevar'", () => {
+    expect(isParaLlevar("Para llevar")).toBe(true);
+  });
+
+  it("returns true when 'Para llevar' is part of comma-separated notes", () => {
+    expect(isParaLlevar("Sin cebolla, Para llevar")).toBe(true);
+  });
+
+  it("is case-insensitive", () => {
+    expect(isParaLlevar("para llevar")).toBe(true);
+    expect(isParaLlevar("PARA LLEVAR")).toBe(true);
+  });
+
+  it("returns false for other notes", () => {
+    expect(isParaLlevar("Sin cebolla")).toBe(false);
+    expect(isParaLlevar("")).toBe(false);
+    expect(isParaLlevar(null)).toBe(false);
+    expect(isParaLlevar(undefined)).toBe(false);
+  });
+});
+
+describe("countParaLlevar", () => {
+  it("counts units with 'Para llevar' in notes", () => {
+    expect(countParaLlevar(["Para llevar", "", "Sin cebolla, Para llevar"])).toBe(2);
+  });
+
+  it("returns 0 when no units have it", () => {
+    expect(countParaLlevar(["Sin cebolla", "", ""])).toBe(0);
+  });
+
+  it("returns 0 for empty notes", () => {
+    expect(countParaLlevar([])).toBe(0);
+  });
+
+  it("counts all units with it", () => {
+    expect(countParaLlevar(["Para llevar", "Para llevar"])).toBe(2);
   });
 });

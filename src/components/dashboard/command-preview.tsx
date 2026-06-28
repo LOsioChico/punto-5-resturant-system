@@ -26,7 +26,12 @@ export function CommandPreview({ order, additionalOnly }: { order: Order; additi
   const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = isDeliveryTable(order.table_number);
-  const desechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
+  // Desechables: delivery adds per dish, non-delivery adds per unit with "Para llevar" in notes
+  const paraLlevarCount = isDelivery ? 0 : items.reduce((sum, i) => {
+    const notes = i.notes ?? [];
+    return sum + notes.filter((n: string | null) => n?.split(",").map((p) => p.trim().toLowerCase()).includes("para llevar")).length;
+  }, 0);
+  const desechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
   const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   return (

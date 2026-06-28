@@ -10,6 +10,7 @@ import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
+import { countParaLlevar } from "@/lib/pos/logic";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -432,7 +433,9 @@ export function PosClient() {
     }
     setSending(true);
     const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const desechables = isDeliveryTable(selectedTable) ? itemCount * DESECHABLES_PER_DISH : 0;
+    const isDelivery = isDeliveryTable(selectedTable);
+    const paraLlevarCount = isDelivery ? 0 : cart.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
+    const desechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
     const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + desechables;
 
     const { data: order, error: orderErr } = await supabase
@@ -525,8 +528,11 @@ export function PosClient() {
       return;
     }
 
-    // Recalculate total (original items + new additional items)
-    const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    // Recalculate total (original items + new additional items + desechables for "Para llevar")
+    const isDelivery = isDeliveryTable(original.table_number);
+    const paraLlevarCount = isDelivery ? 0 : cart.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
+    const additionalDesechables = (isDelivery ? cart.reduce((s, i) => s + i.quantity, 0) : paraLlevarCount) * DESECHABLES_PER_DISH;
+    const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
     const newTotal = original.total + additionalTotal;
 
     // Move order back to "lista" so kitchen knows there's pending work
@@ -572,7 +578,9 @@ export function PosClient() {
     if (!waiterName || !supabase || !editingOrderId || cart.length === 0) return;
     setSending(true);
     const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const desechables = isDeliveryTable(selectedTable!) ? itemCount * DESECHABLES_PER_DISH : 0;
+    const isDelivery = isDeliveryTable(selectedTable!);
+    const paraLlevarCount = isDelivery ? 0 : cart.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
+    const desechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
     const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + desechables;
 
     const original = orders.find((o) => o.id === editingOrderId);

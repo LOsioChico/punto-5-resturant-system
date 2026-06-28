@@ -58,6 +58,22 @@ export function hasNotes(notes: string[] | null | undefined): boolean {
   return notes.some((n) => n.trim().length > 0);
 }
 
+/** Check if a single unit's note string contains "Para llevar". */
+export function isParaLlevar(note: string | null | undefined): boolean {
+  if (!note) return false;
+  return note
+    .split(",")
+    .map((p) => p.trim().toLowerCase())
+    .includes("para llevar");
+}
+
+/**
+ * Count how many units of a cart item have "Para llevar" in their notes.
+ */
+export function countParaLlevar(notes: string[]): number {
+  return notes.filter(isParaLlevar).length;
+}
+
 /**
  * Normalize notes for comparison: trim each entry, drop trailing empty entries.
  */

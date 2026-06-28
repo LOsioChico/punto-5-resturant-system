@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn, formatCOP, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine, PlusCircle } from "lucide-react";
-import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
+import { toggleQuickNote, countParaLlevar, isParaLlevar, type CartItem } from "@/lib/pos/logic";
 import { getQuickNotes } from "@/lib/pos/quick-notes";
 
 /** Right panel — order summary. Always visible while ordering. */
@@ -59,7 +59,9 @@ export function OrderSummary({
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = tableNumber !== null && isDeliveryTable(tableNumber);
-  const desechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
+  // Desechables: delivery adds per dish, non-delivery adds per unit with "Para llevar"
+  const paraLlevarCount = isDelivery ? 0 : items.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
+  const desechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
   const grandTotal = total + desechables;
   const isEditing = editingOrderId !== null;
   const isAdditional = additionalOrderId !== null;
@@ -196,9 +198,14 @@ export function OrderSummary({
                         + {formatCOP(DESECHABLES_PER_DISH)} desechable
                       </span>
                     )}
+                    {!isDelivery && countParaLlevar(item.notes) > 0 && (
+                      <span className="mt-0.5 block text-xs text-yellow-500/70">
+                        + {formatCOP(DESECHABLES_PER_DISH)} desechable ({countParaLlevar(item.notes)} {countParaLlevar(item.notes) === 1 ? "unidad" : "unidades"})
+                      </span>
+                    )}
                   </div>
                   <span className="text-base font-semibold text-stone-200">
-                    {formatCOP(item.price * item.quantity + (isDelivery ? DESECHABLES_PER_DISH * item.quantity : 0))}
+                    {formatCOP(item.price * item.quantity + (isDelivery ? DESECHABLES_PER_DISH * item.quantity : countParaLlevar(item.notes) * DESECHABLES_PER_DISH))}
                   </span>
                 </div>
 
@@ -384,11 +391,11 @@ export function OrderSummary({
 
       {/* Footer */}
       <div className="border-t border-white/5 bg-stone-950/50 px-5 py-5">
-        {/* Delivery fee breakdown */}
-        {isDelivery && desechables > 0 && (
+        {/* Desechables breakdown */}
+        {desechables > 0 && (
           <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
             <span className="text-xs text-yellow-500/70">
-              Desechables ({itemCount} {itemCount === 1 ? "plato" : "platos"})
+              Desechables ({isDelivery ? itemCount : paraLlevarCount} {isDelivery ? (itemCount === 1 ? "plato" : "platos") : (paraLlevarCount === 1 ? "unidad" : "unidades")})
             </span>
             <span className="text-sm font-semibold text-yellow-500/70">
               {formatCOP(desechables)}
