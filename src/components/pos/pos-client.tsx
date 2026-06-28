@@ -6,6 +6,7 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
+import { tableLabel } from "@/lib/utils";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { WaiterStart } from "./waiter-start";
 import { TableSelector } from "./table-selector";
@@ -172,10 +173,10 @@ export function PosClient() {
           // Toast the waiter when their order's status changes
           if (updated.waiter_name === waiterName) {
             const statusMessages: Record<OrderStatus, { msg: string; variant: "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida" }> = {
-              nueva: { msg: `Mesa ${updated.table_number}: pedido recibido`, variant: "status-nueva" },
-              en_cocina: { msg: `Mesa ${updated.table_number}: pedido en cocina`, variant: "status-en_cocina" },
-              lista: { msg: `Mesa ${updated.table_number}: pedido listo para servir`, variant: "status-lista" },
-              servida: { msg: `Mesa ${updated.table_number}: pedido servido`, variant: "status-servida" },
+              nueva: { msg: `${tableLabel(updated.table_number)}: pedido recibido`, variant: "status-nueva" },
+              en_cocina: { msg: `${tableLabel(updated.table_number)}: pedido en cocina`, variant: "status-en_cocina" },
+              lista: { msg: `${tableLabel(updated.table_number)}: pedido listo para servir`, variant: "status-lista" },
+              servida: { msg: `${tableLabel(updated.table_number)}: pedido servido`, variant: "status-servida" },
             };
             const { msg, variant } = statusMessages[updated.status];
             toast(msg, variant, updated.table_number);
@@ -433,7 +434,7 @@ export function PosClient() {
       metadata: { table_number: selectedTable, item_count: cart.length, total },
     });
 
-    toast(`Pedido enviado a cocina — Mesa ${selectedTable}`, "success");
+    toast(`Pedido enviado a cocina — ${tableLabel(selectedTable)}`, "success");
     setCart([]);
     setSending(false);
   }, [supabase, waiterName, selectedTable, cart, toast]);
@@ -583,7 +584,7 @@ export function PosClient() {
       return;
     }
 
-    toast(`Pedido actualizado — Mesa ${selectedTable}`, "success");
+    toast(`Pedido actualizado — ${tableLabel(selectedTable!)}`, "success");
     setCart([]);
     setEditingOrderId(null);
     setEditInitialCart(null);

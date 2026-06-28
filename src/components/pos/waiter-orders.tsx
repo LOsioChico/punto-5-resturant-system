@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP, formatTime, timeAgo } from "@/lib/utils";
+import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine } from "lucide-react";
@@ -71,12 +71,12 @@ export function WaiterOrders({
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
                     <span className="flex size-11 items-center justify-center rounded-lg bg-stone-950 text-base font-bold text-stone-200">
-                      {order.table_number}
+                      {tableShortName(order.table_number)}
                     </span>
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-base font-semibold text-stone-100">
-                          Mesa {order.table_number}
+                          {tableLabel(order.table_number)}
                         </p>
                         {wasModified && (
                           <span className="flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">

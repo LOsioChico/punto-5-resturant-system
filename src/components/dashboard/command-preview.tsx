@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP, formatTime } from "@/lib/utils";
+import { formatCOP, formatTime, tableLabel } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
 /**
@@ -41,7 +41,7 @@ export function CommandPreview({ order }: { order: Order }) {
 
         {/* Meta — table, time, waiter */}
         <div className="flex items-center justify-between text-xs text-black">
-          <span className="text-base font-bold">Mesa {order.table_number}</span>
+          <span className="text-base font-bold">{tableLabel(order.table_number)}</span>
           <span className="font-semibold text-black">
             {order.updated_at ? formatTime(order.updated_at) : formatTime(order.created_at)}
           </span>

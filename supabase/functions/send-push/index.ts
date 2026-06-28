@@ -72,8 +72,9 @@ Deno.serve(async (req) => {
       );
     }
 
+    const tableLabel = tableNumber === 18 ? "Domicilio" : `Mesa ${tableNumber}`;
     const payload = JSON.stringify({
-      title: `Mesa ${tableNumber}`,
+      title: tableLabel,
       body: statusMsg.charAt(0).toUpperCase() + statusMsg.slice(1),
       tag: `order-${record.id}-${newStatus}`,
       url: "/pos",

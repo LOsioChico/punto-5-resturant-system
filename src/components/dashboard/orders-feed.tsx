@@ -1,6 +1,6 @@
 "use client";
 
-import { cn, timeAgo, formatTime } from "@/lib/utils";
+import { cn, timeAgo, formatTime, tableLabel } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Clock, PencilLine, User } from "lucide-react";
@@ -63,7 +63,7 @@ export function OrdersFeed({
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-bold text-stone-100">
-                    Mesa {order.table_number}
+                    {tableLabel(order.table_number)}
                   </span>
                   {isNew && (
                     <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-400">

@@ -44,3 +44,33 @@ export function timeAgo(date: Date | string): string {
   const hours = Math.floor(minutes / 60);
   return `hace ${hours}h ${minutes % 60}min`;
 }
+
+/**
+ * Table 18 is reserved for delivery / to-go orders.
+ * Tables 1-17 are regular dining tables.
+ */
+export const DELIVERY_TABLE = 18;
+export const TABLE_COUNT = 17;
+
+/** Check if a table number is the delivery/to-go table. */
+export function isDeliveryTable(table: number): boolean {
+  return table === DELIVERY_TABLE;
+}
+
+/**
+ * Get the display label for a table.
+ * Tables 1-17: "Mesa N"
+ * Table 18: "Domicilio"
+ */
+export function tableLabel(table: number): string {
+  return isDeliveryTable(table) ? "Domicilio" : `Mesa ${table}`;
+}
+
+/**
+ * Get just the short name for a table (without "Mesa" prefix).
+ * Tables 1-17: the number as string
+ * Table 18: "Domicilio"
+ */
+export function tableShortName(table: number): string {
+  return isDeliveryTable(table) ? "Domicilio" : String(table);
+}

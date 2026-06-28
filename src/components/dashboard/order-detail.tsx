@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP, formatTime, timeAgo } from "@/lib/utils";
+import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName } from "@/lib/utils";
 import type { Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { CommandPreview } from "./command-preview";
@@ -85,11 +85,11 @@ export function OrderDetail({
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="flex size-12 items-center justify-center rounded-xl bg-stone-800 text-xl font-bold text-stone-100">
-              {order.table_number}
+              {tableShortName(order.table_number)}
             </div>
             <div>
               <h2 className="text-xl font-bold text-stone-100">
-                Mesa {order.table_number}
+                {tableLabel(order.table_number)}
               </h2>
               <div className="mt-0.5 flex items-center gap-2 text-xs text-stone-500">
                 <User className="size-3" />

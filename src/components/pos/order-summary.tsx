@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cn, formatCOP } from "@/lib/utils";
+import { cn, formatCOP, tableLabel } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
 import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
@@ -93,7 +93,7 @@ export function OrderSummary({
             </span>
           )}
           {tableNumber !== null ? (
-            <h2 className="text-base font-bold text-stone-100">Mesa {tableNumber}</h2>
+            <h2 className="text-base font-bold text-stone-100">{tableLabel(tableNumber)}</h2>
           ) : (
             <h2 className="text-base font-bold text-stone-100">Sin mesa</h2>
           )}
