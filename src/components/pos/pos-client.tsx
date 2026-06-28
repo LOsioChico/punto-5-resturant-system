@@ -392,7 +392,7 @@ export function PosClient() {
       return;
     // Delivery orders require a customer name
     if (isDeliveryTable(selectedTable) && !deliveryName.trim()) {
-      toast("Ingresa el nombre del cliente para el domicilio", "error");
+      toast("Identifica al cliente para el domicilio", "error");
       return;
     }
     setSending(true);
