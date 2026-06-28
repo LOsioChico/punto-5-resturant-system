@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
+import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
@@ -337,6 +338,39 @@ export function DashboardClient() {
     [supabase, orders],
   );
 
+  // Admin sets the delivery fee for a delivery order
+  const setDeliveryFee = useCallback(
+    async (id: string, fee: number) => {
+      if (!supabase) return;
+      const order = orders.find((o) => o.id === id);
+      if (!order) return;
+
+      // Recalculate total: subtotal + desechables + new delivery fee
+      const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
+      const desechables = isDeliveryTable(order.table_number) ? itemCount * DESECHABLES_PER_DISH : 0;
+      const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
+      const newTotal = subtotal + desechables + fee;
+
+      // Optimistic update
+      setOrders((prev) =>
+        prev.map((o) => (o.id === id ? { ...o, delivery_fee: fee, total: newTotal } : o)),
+      );
+
+      const { error } = await supabase
+        .from("orders")
+        .update({ delivery_fee: fee, total: newTotal })
+        .eq("id", id);
+
+      if (error) {
+        // Rollback
+        setOrders((prev) =>
+          prev.map((o) => (o.id === id ? { ...o, delivery_fee: order.delivery_fee, total: order.total } : o)),
+        );
+      }
+    },
+    [supabase, orders],
+  );
+
   const undoStatus = useCallback(async () => {
     if (!supabase || !undoData) return;
     const { orderId, fromStatus, toStatus } = undoData;
@@ -666,6 +700,7 @@ export function DashboardClient() {
             events={events}
             onAdvanceStatus={advanceStatus}
             onPrint={printOrder}
+            onSetDeliveryFee={setDeliveryFee}
             disabled={!isOnline}
           />
         </div>

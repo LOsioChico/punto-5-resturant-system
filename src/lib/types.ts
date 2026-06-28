@@ -47,6 +47,7 @@ export interface Order {
   total: number;
   notes: string | null;
   delivery_name: string | null;
+  delivery_fee: number;
   created_at: string;
   items: OrderItem[];
   // Audit tracking (nullable — set on first update)

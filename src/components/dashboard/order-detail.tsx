@@ -1,6 +1,7 @@
 "use client";
 
-import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DELIVERY_FEE_PER_DISH } from "@/lib/utils";
+import { useState } from "react";
+import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DESECHABLES_PER_DISH, isDeliveryTable } from "@/lib/utils";
 import type { Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { CommandPreview } from "./command-preview";
@@ -53,14 +54,19 @@ export function OrderDetail({
   events,
   onAdvanceStatus,
   onPrint,
+  onSetDeliveryFee,
   disabled = false,
 }: {
   order: Order | null;
   events: OrderEvent[];
   onAdvanceStatus: (id: string) => void;
   onPrint: (id: string) => void;
+  onSetDeliveryFee: (id: string, fee: number) => void;
   disabled?: boolean;
 }) {
+  const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
+  const [editingFee, setEditingFee] = useState(false);
+
   if (!order) {
     return (
       <EmptyState
@@ -226,14 +232,58 @@ export function OrderDetail({
           </ul>
 
           {order.delivery_name && (
-            <div className="mt-3 flex items-center justify-between border-t border-white/5 px-1 pt-2">
-              <span className="text-xs text-yellow-500/70">
-                Domicilio ({order.items.reduce((s, i) => s + i.quantity, 0)} × {formatCOP(DELIVERY_FEE_PER_DISH)})
-              </span>
-              <span className="text-sm font-semibold text-yellow-500/70">
-                {formatCOP(order.items.reduce((s, i) => s + i.quantity, 0) * DELIVERY_FEE_PER_DISH)}
-              </span>
-            </div>
+            <>
+              <div className="mt-3 flex items-center justify-between border-t border-white/5 px-1 pt-2">
+                <span className="text-xs text-yellow-500/70">
+                  Desechables ({order.items.reduce((s, i) => s + i.quantity, 0)} × {formatCOP(DESECHABLES_PER_DISH)})
+                </span>
+                <span className="text-sm font-semibold text-yellow-500/70">
+                  {formatCOP(order.items.reduce((s, i) => s + i.quantity, 0) * DESECHABLES_PER_DISH)}
+                </span>
+              </div>
+              {/* Delivery fee — admin editable */}
+              <div className="flex items-center justify-between px-1 pt-1">
+                <span className="text-xs text-yellow-500/70">Domicilio</span>
+                {editingFee ? (
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-xs text-stone-600">$</span>
+                    <input
+                      type="number"
+                      autoFocus
+                      value={deliveryFeeInput}
+                      onChange={(e) => setDeliveryFeeInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          const fee = parseInt(deliveryFeeInput, 10) || 0;
+                          onSetDeliveryFee(order.id, fee);
+                          setEditingFee(false);
+                        } else if (e.key === "Escape") {
+                          setEditingFee(false);
+                        }
+                      }}
+                      onBlur={() => {
+                        const fee = parseInt(deliveryFeeInput, 10) || 0;
+                        onSetDeliveryFee(order.id, fee);
+                        setEditingFee(false);
+                      }}
+                      placeholder="0"
+                      className="w-24 rounded border border-stone-700 bg-stone-800 px-2 py-0.5 text-right text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
+                    />
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => {
+                      setDeliveryFeeInput(order.delivery_fee ? String(order.delivery_fee) : "");
+                      setEditingFee(true);
+                    }}
+                    disabled={disabled}
+                    className="text-sm font-semibold text-yellow-500/70 transition-colors hover:text-yellow-400 disabled:opacity-50"
+                  >
+                    {order.delivery_fee > 0 ? formatCOP(order.delivery_fee) : "Agregar"}
+                  </button>
+                )}
+              </div>
+            </>
           )}
           <div className="mt-3 flex items-center justify-between px-1">
             <span className="text-sm text-stone-500">Total</span>

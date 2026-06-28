@@ -36,6 +36,7 @@ create table if not exists orders (
   total           int  not null default 0,    -- total in pesos
   notes           text,
   delivery_name   text,                       -- customer name for delivery orders (table 18)
+  delivery_fee    int  not null default 0,    -- admin-set delivery charge (separate from desechables)
   created_at      timestamptz not null default now(),
   -- Audit tracking: who last touched this order
   updated_by      text,                        -- name of the last actor

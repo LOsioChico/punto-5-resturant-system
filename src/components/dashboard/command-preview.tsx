@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP, formatTime, tableLabel, isDeliveryTable, DELIVERY_FEE_PER_DISH } from "@/lib/utils";
+import { formatCOP, formatTime, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
 /**
@@ -21,7 +21,7 @@ export function CommandPreview({ order }: { order: Order }) {
   const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
   const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = isDeliveryTable(order.table_number);
-  const deliveryFee = isDelivery ? itemCount * DELIVERY_FEE_PER_DISH : 0;
+  const desechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
   const subtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   return (
@@ -120,16 +120,22 @@ export function CommandPreview({ order }: { order: Order }) {
         <div className="my-2 border-t border-dashed border-stone-300" />
 
         {/* Total */}
-        {isDelivery && deliveryFee > 0 && (
+        {isDelivery && (
           <>
             <div className="flex items-center justify-between text-xs text-stone-600">
               <span>Subtotal</span>
               <span>{formatCOP(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between text-xs text-stone-600">
-              <span>Domicilio ({itemCount} × {formatCOP(DELIVERY_FEE_PER_DISH)})</span>
-              <span>{formatCOP(deliveryFee)}</span>
+              <span>Desechables ({itemCount} × {formatCOP(DESECHABLES_PER_DISH)})</span>
+              <span>{formatCOP(desechables)}</span>
             </div>
+            {order.delivery_fee > 0 && (
+              <div className="flex items-center justify-between text-xs text-stone-600">
+                <span>Domicilio</span>
+                <span>{formatCOP(order.delivery_fee)}</span>
+              </div>
+            )}
           </>
         )}
         <div className="flex items-center justify-between font-bold text-black">

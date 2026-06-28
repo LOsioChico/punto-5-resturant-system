@@ -6,7 +6,7 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
-import { tableLabel, isDeliveryTable, DELIVERY_FEE_PER_DISH } from "@/lib/utils";
+import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { WaiterStart } from "./waiter-start";
 import { TableSelector } from "./table-selector";
@@ -397,8 +397,8 @@ export function PosClient() {
     }
     setSending(true);
     const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const deliveryFee = isDeliveryTable(selectedTable) ? itemCount * DELIVERY_FEE_PER_DISH : 0;
-    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + deliveryFee;
+    const desechables = isDeliveryTable(selectedTable) ? itemCount * DESECHABLES_PER_DISH : 0;
+    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + desechables;
 
     const { data: order, error: orderErr } = await supabase
       .from("orders")
@@ -456,8 +456,8 @@ export function PosClient() {
     if (!waiterName || !supabase || !editingOrderId || cart.length === 0) return;
     setSending(true);
     const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const deliveryFee = isDeliveryTable(selectedTable!) ? itemCount * DELIVERY_FEE_PER_DISH : 0;
-    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + deliveryFee;
+    const desechables = isDeliveryTable(selectedTable!) ? itemCount * DESECHABLES_PER_DISH : 0;
+    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + desechables;
 
     const original = orders.find((o) => o.id === editingOrderId);
     const oldItems = original?.items ?? [];

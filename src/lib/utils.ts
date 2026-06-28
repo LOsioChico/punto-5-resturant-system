@@ -52,8 +52,8 @@ export function timeAgo(date: Date | string): string {
 export const DELIVERY_TABLE = 18;
 export const TABLE_COUNT = 17;
 
-/** Delivery fee charged per dish (in COP) for Domicilio orders. */
-export const DELIVERY_FEE_PER_DISH = 1000;
+/** Desechables (disposables) fee charged per dish (in COP) for Domicilio orders. */
+export const DESECHABLES_PER_DISH = 1000;
 
 /** Check if a table number is the delivery/to-go table. */
 export function isDeliveryTable(table: number): boolean {

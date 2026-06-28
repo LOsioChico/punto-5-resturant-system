@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cn, formatCOP, tableLabel, isDeliveryTable, DELIVERY_FEE_PER_DISH } from "@/lib/utils";
+import { cn, formatCOP, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
 import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
@@ -50,8 +50,8 @@ export function OrderSummary({
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = tableNumber !== null && isDeliveryTable(tableNumber);
-  const deliveryFee = isDelivery ? itemCount * DELIVERY_FEE_PER_DISH : 0;
-  const grandTotal = total + deliveryFee;
+  const desechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
+  const grandTotal = total + desechables;
   const isEditing = editingOrderId !== null;
 
   // Close notes editor when clicking outside of it.
@@ -175,13 +175,13 @@ export function OrderSummary({
                       {formatCOP(item.price)} c/u
                       {isDelivery && (
                         <span className="text-yellow-500/70">
-                          {" "}+ {formatCOP(DELIVERY_FEE_PER_DISH)} domicilio
+                          {" "}+ {formatCOP(DESECHABLES_PER_DISH)} desechables
                         </span>
                       )}
                     </span>
                   </div>
                   <span className="text-base font-semibold text-stone-200">
-                    {formatCOP(item.price * item.quantity + (isDelivery ? DELIVERY_FEE_PER_DISH * item.quantity : 0))}
+                    {formatCOP(item.price * item.quantity + (isDelivery ? DESECHABLES_PER_DISH * item.quantity : 0))}
                   </span>
                 </div>
 
@@ -297,13 +297,13 @@ export function OrderSummary({
       {/* Footer */}
       <div className="border-t border-white/5 bg-stone-950/50 px-5 py-5">
         {/* Delivery fee breakdown */}
-        {isDelivery && deliveryFee > 0 && (
+        {isDelivery && desechables > 0 && (
           <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
             <span className="text-xs font-medium uppercase tracking-wider text-yellow-500/70">
-              Domicilio ({itemCount} {itemCount === 1 ? "plato" : "platos"} × {formatCOP(DELIVERY_FEE_PER_DISH)})
+              Desechables ({itemCount} {itemCount === 1 ? "plato" : "platos"} × {formatCOP(DESECHABLES_PER_DISH)})
             </span>
             <span className="text-sm font-semibold text-yellow-500/70">
-              {formatCOP(deliveryFee)}
+              {formatCOP(desechables)}
             </span>
           </div>
         )}
