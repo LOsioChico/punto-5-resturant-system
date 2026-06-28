@@ -199,21 +199,21 @@ export function OrderSummary({
                     {/* Quick notes — apply to the focused unit */}
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {QUICK_NOTES.map((note) => {
-                        // Check if any unit has this note active
-                        const activeInAny = item.notes.some((n) =>
-                          n.split(",").map((p) => p.trim()).includes(note),
-                        );
+                        // Highlight only if the focused unit has this note
+                        const unitIdx = editingNotesUnit ?? 0;
+                        const currentUnitNotes = item.notes[unitIdx] ?? "";
+                        const active = currentUnitNotes
+                          .split(",")
+                          .map((p) => p.trim())
+                          .includes(note);
                         return (
                           <button
                             key={note}
                             onClick={() => {
-                              // Apply to the unit currently being edited (or unit 0)
-                              const unitIdx = editingNotesUnit ?? 0;
-                              const current = item.notes[unitIdx] ?? "";
-                              onSetNotes(item.dish_id, unitIdx, toggleQuickNote(current, note));
+                              onSetNotes(item.dish_id, unitIdx, toggleQuickNote(currentUnitNotes, note));
                             }}
                             className={
-                              activeInAny
+                              active
                                 ? "rounded-lg bg-yellow-500/15 px-2.5 py-1.5 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-500/30"
                                 : "rounded-lg bg-stone-800 px-2.5 py-1.5 text-xs text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
                             }
