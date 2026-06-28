@@ -175,7 +175,7 @@ export function OrderSummary({
                       {formatCOP(item.price)} c/u
                       {isDelivery && (
                         <span className="text-yellow-500/70">
-                          {" "}+ {formatCOP(DESECHABLES_PER_DISH)} desechables
+                          {" "}+ {formatCOP(DESECHABLES_PER_DISH)} desechable
                         </span>
                       )}
                     </span>
@@ -299,8 +299,8 @@ export function OrderSummary({
         {/* Delivery fee breakdown */}
         {isDelivery && desechables > 0 && (
           <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
-            <span className="text-xs font-medium uppercase tracking-wider text-yellow-500/70">
-              Desechables ({itemCount} {itemCount === 1 ? "plato" : "platos"} × {formatCOP(DESECHABLES_PER_DISH)})
+            <span className="text-xs text-yellow-500/70">
+              Desechables {itemCount}×{formatCOP(DESECHABLES_PER_DISH)}
             </span>
             <span className="text-sm font-semibold text-yellow-500/70">
               {formatCOP(desechables)}

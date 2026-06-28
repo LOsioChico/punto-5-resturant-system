@@ -127,7 +127,7 @@ export function CommandPreview({ order }: { order: Order }) {
               <span>{formatCOP(subtotal)}</span>
             </div>
             <div className="flex items-center justify-between text-xs text-stone-600">
-              <span>Desechables ({itemCount} × {formatCOP(DESECHABLES_PER_DISH)})</span>
+              <span>Desechables {itemCount}×{formatCOP(DESECHABLES_PER_DISH)}</span>
               <span>{formatCOP(desechables)}</span>
             </div>
             {order.delivery_fee > 0 && (

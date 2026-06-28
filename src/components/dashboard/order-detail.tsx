@@ -235,7 +235,7 @@ export function OrderDetail({
             <>
               <div className="mt-3 flex items-center justify-between border-t border-white/5 px-1 pt-2">
                 <span className="text-xs text-yellow-500/70">
-                  Desechables ({order.items.reduce((s, i) => s + i.quantity, 0)} × {formatCOP(DESECHABLES_PER_DISH)})
+                  Desechables {order.items.reduce((s, i) => s + i.quantity, 0)}×{formatCOP(DESECHABLES_PER_DISH)}
                 </span>
                 <span className="text-sm font-semibold text-yellow-500/70">
                   {formatCOP(order.items.reduce((s, i) => s + i.quantity, 0) * DESECHABLES_PER_DISH)}
