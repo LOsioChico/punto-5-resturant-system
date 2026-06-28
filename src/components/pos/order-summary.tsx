@@ -384,17 +384,17 @@ export function OrderSummary({
                     {item.notes.some((n) => n.trim()) ? (
                       <div className="flex flex-col items-start gap-0.5">
                         {(() => {
-                          // If all non-empty notes are the same, show once
+                          // Group identical notes and show with count
                           const nonEmpty = item.notes.filter((n) => n.trim());
-                          const allSame = nonEmpty.length > 0 && nonEmpty.every((n) => n === nonEmpty[0]);
-                          if (allSame) {
-                            return [<span key={0} className="text-stone-400">→ {nonEmpty[0]}</span>];
+                          const groups = new Map<string, number>();
+                          for (const n of nonEmpty) {
+                            groups.set(n, (groups.get(n) ?? 0) + 1);
                           }
-                          return item.notes.map((n, idx) => (
+                          return Array.from(groups.entries()).map(([note, count], idx) => (
                             <span key={idx} className="text-stone-400">
-                              {n.trim() ? `→ ${n}` : null}
+                              → {note}{count > 1 ? ` (${count}x)` : ""}
                             </span>
-                          )).filter(Boolean);
+                          ));
                         })()}
                       </div>
                     ) : (

@@ -188,8 +188,8 @@ describe("OrderSummary — notes", () => {
   it("defaults to Todas mode when all units share the same note", async () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })] });
-    // Display deduplicates — shows "→ Sin cebolla" only once
-    await user.click(screen.getByText("→ Sin cebolla"));
+    // Display groups identical notes: "→ Sin cebolla (3x)"
+    await user.click(screen.getByText("→ Sin cebolla (3x)"));
     // "Todas" should be the active mode (bg-stone-600)
     const todasBtn = screen.getByText("Todas");
     expect(todasBtn.className).toContain("bg-stone-600");
@@ -221,8 +221,8 @@ describe("OrderSummary — notes", () => {
       items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })],
       onSetNotes,
     });
-    // Display deduplicates — shows "→ Sin cebolla" only once
-    await user.click(screen.getByText("→ Sin cebolla"));
+    // Display groups identical notes: "→ Sin cebolla (3x)"
+    await user.click(screen.getByText("→ Sin cebolla (3x)"));
     await user.click(screen.getByText("Por unidad"));
     // Should keep note on first unit, clear the rest
     expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "Sin cebolla");
@@ -263,15 +263,27 @@ describe("OrderSummary — notes", () => {
 
   it("deduplicates note display when all units have the same note (Todas)", () => {
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })] });
-    // Should show "→ Sin cebolla" only once, not 3 times
-    const notes = screen.getAllByText("→ Sin cebolla");
-    expect(notes).toHaveLength(1);
+    // Should show "→ Sin cebolla (3x)" once, not 3 times
+    expect(screen.getByText("→ Sin cebolla (3x)")).toBeInTheDocument();
   });
 
   it("shows each note individually when units have different notes (Por unidad)", () => {
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
     expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
     expect(screen.getByText("→ Para llevar")).toBeInTheDocument();
+  });
+
+  it("groups identical notes with count in mixed scenario", () => {
+    // 5 units: 2 with "Para llevar", 1 with "Sin cebolla", 2 empty
+    renderSummary({ items: [makeItem({ notes: ["Para llevar", "Para llevar", "Sin cebolla", "", ""], quantity: 5 })] });
+    expect(screen.getByText("→ Para llevar (2x)")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
+  });
+
+  it("does not show count when only 1 unit has the note", () => {
+    renderSummary({ items: [makeItem({ notes: ["Para llevar", "", ""], quantity: 3 })] });
+    expect(screen.getByText("→ Para llevar")).toBeInTheDocument();
+    expect(screen.queryByText("→ Para llevar (1x)")).not.toBeInTheDocument();
   });
 });
 
