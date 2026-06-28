@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { cn, formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
@@ -46,14 +46,28 @@ export function OrderSummary({
   onSaveEdit: () => void;
   onCancelEdit: () => void;
 }) {
-  // Track which item + unit is being edited: `${dishId}:${unitIndex}` or null
+  // Track which item's notes are being edited
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [editingNotesUnit, setEditingNotesUnit] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
+  const notesEditorRef = useRef<HTMLDivElement | null>(null);
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isEditing = editingOrderId !== null;
+
+  // Close notes editor when clicking outside of it
+  useEffect(() => {
+    if (!editingNotes) return;
+    const handler = (e: MouseEvent) => {
+      if (notesEditorRef.current && !notesEditorRef.current.contains(e.target as Node)) {
+        setEditingNotes(null);
+        setEditingNotesUnit(null);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [editingNotes]);
 
   // Cancel clear confirmation if items change (e.g. user adds an item while "¿Seguro?" is showing)
   useEffect(() => {
@@ -181,19 +195,7 @@ export function OrderSummary({
 
                 {/* Notes — one input per unit */}
                 {editingNotes === item.dish_id ? (
-                  <div
-                    className="mt-3 space-y-2"
-                    onBlur={(e) => {
-                      // Only close if focus leaves the entire notes container
-                      // (not moving to another input or quick-note button inside it)
-                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-                        setTimeout(() => {
-                          setEditingNotes(null);
-                          setEditingNotesUnit(null);
-                        }, 150);
-                      }
-                    }}
-                  >
+                  <div ref={notesEditorRef} className="mt-3 space-y-2">
                     {/* Quick notes — apply to the focused unit */}
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {QUICK_NOTES.map((note) => {
