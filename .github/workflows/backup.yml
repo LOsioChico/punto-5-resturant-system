@@ -28,9 +28,11 @@ jobs:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           # Force IPv4 (GitHub runners don't have IPv6 outbound)
-          # Extract host from connection string and resolve to IPv4
           HOST=$(echo "$SUPABASE_DB_URL" | sed -n 's|.*@\([^:]*\).*|\1|p')
-          IPV4=$(getent ahostsv4 "$HOST" | head -1 | awk '{print $1}')
+          IPV4=$(dig +short A "$HOST" | head -1)
+          if [ -z "$IPV4" ]; then
+            IPV4=$(nslookup "$HOST" | grep "Address:" | tail -1 | awk '{print $2}')
+          fi
           echo "Resolved $HOST -> $IPV4"
           pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --column-inserts --host="$IPV4" -f data.sql
 
