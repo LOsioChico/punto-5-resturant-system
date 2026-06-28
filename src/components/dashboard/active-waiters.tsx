@@ -27,8 +27,8 @@ export function ActiveWaiters({ waiters }: { waiters: ActiveWaiter[] }) {
           <span className="absolute inline-flex size-full animate-ping rounded-full bg-green-500 opacity-60" />
           <span className="relative inline-flex size-2.5 rounded-full bg-green-500" />
         </span>
-        <span className="hidden font-medium sm:inline">
-          {waiters.length} {waiters.length === 1 ? "mesero" : "meseros"}
+        <span className="hidden max-w-[120px] truncate font-medium sm:inline">
+          {waiters.length === 1 ? waiters[0].name : `${waiters.length} meseros`}
         </span>
         <ChevronDown className={`size-4 text-stone-500 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>

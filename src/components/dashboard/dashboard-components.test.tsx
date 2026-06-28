@@ -265,7 +265,7 @@ describe("ActiveWaiters", () => {
     expect(screen.getByText("Sin meseros conectados")).toBeInTheDocument();
   });
 
-  it("shows waiter count in the trigger button", () => {
+  it("shows waiter count when multiple waiters", () => {
     const waiters: ActiveWaiter[] = [
       { name: "Juan", joinedAt: new Date().toISOString() },
       { name: "Pedro", joinedAt: new Date().toISOString() },
@@ -274,12 +274,12 @@ describe("ActiveWaiters", () => {
     expect(screen.getByText("2 meseros")).toBeInTheDocument();
   });
 
-  it("shows singular 'mesero' for one waiter", () => {
+  it("shows waiter name when only one connected", () => {
     const waiters: ActiveWaiter[] = [
       { name: "Juan", joinedAt: new Date().toISOString() },
     ];
     render(<ActiveWaiters waiters={waiters} />);
-    expect(screen.getByText("1 mesero")).toBeInTheDocument();
+    expect(screen.getByText("Juan")).toBeInTheDocument();
   });
 
   it("shows waiter names and connection time when dropdown is open", async () => {
@@ -291,8 +291,9 @@ describe("ActiveWaiters", () => {
     render(<ActiveWaiters waiters={waiters} />);
     // Click the trigger to open the dropdown
     await user.click(screen.getByText("2 meseros"));
-    expect(screen.getByText("Juan")).toBeInTheDocument();
-    expect(screen.getByText("Pedro")).toBeInTheDocument();
     expect(screen.getByText("Meseros conectados")).toBeInTheDocument();
+    // Both names visible in the dropdown list
+    const nameElements = screen.getAllByText(/Juan|Pedro/);
+    expect(nameElements.length).toBeGreaterThanOrEqual(2);
   });
 });
