@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { isPastLogoutTime, nextLogoutTime } from "@/lib/timezone";
+import { nextLogoutTime } from "@/lib/timezone";
 import type { AuthRole, Waiter } from "@/lib/types";
 
 interface AuthState {
@@ -55,8 +55,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         .single();
       waiter = (data as Waiter) ?? null;
 
-      // Check 6am logout
-      if (isPastLogoutTime()) {
+      // 6am auto-logout: only log out if the session predates the most recent 6am.
+      // A waiter logging in fresh after 6am is starting a new shift — don't block them.
+      // The most recent 6am = nextLogoutTime(now) - 24h (works for both before/after 6am).
+      const last6am = new Date(nextLogoutTime().getTime() - 86_400_000);
+      const sessionCreated = new Date(session.user.created_at);
+      if (sessionCreated < last6am) {
         await supabase.auth.signOut();
         setState({ user: null, session: null, role: null, waiter: null, loading: false });
         return;
