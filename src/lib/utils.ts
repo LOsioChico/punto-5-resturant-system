@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { Order } from "./types";
+import type { Order, OrderItem } from "./types";
 
 /** Merge Tailwind classes with conditional support. */
 export function cn(...inputs: ClassValue[]) {
@@ -76,4 +76,17 @@ export function tableLabel(table: number): string {
  */
 export function tableShortName(table: number): string {
   return isDeliveryTable(table) ? "Domicilio" : String(table);
+}
+
+/**
+ * Split an order item into individual units when any unit has a note.
+ * If no notes, returns null (caller should render grouped).
+ * If any unit has a note, returns an array of per-unit objects.
+ */
+export function splitPerUnit(item: OrderItem): { note: string }[] | null {
+  const notes = item.notes ?? [];
+  if (!notes.some((n) => n.trim())) return null;
+  return Array.from({ length: item.quantity }, (_, i) => ({
+    note: notes[i]?.trim() ?? "",
+  }));
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DESECHABLES_PER_DISH, isDeliveryTable } from "@/lib/utils";
+import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DESECHABLES_PER_DISH, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import type { Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { CommandPreview } from "./command-preview";
@@ -207,33 +207,52 @@ export function OrderDetail({
             Items del pedido
           </h3>
           <ul className="overflow-hidden rounded-xl bg-stone-900">
-            {order.items.map((item, idx) => (
-              <li
-                key={item.id}
-                className={idx > 0 ? "flex items-center gap-3 p-3.5 border-t border-white/5" : "flex items-center gap-3 p-3.5"}
-              >
-                <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-800 text-sm font-bold text-stone-200 tabular-nums">
-                  {item.quantity}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <span className="block text-sm text-stone-100">
-                    {item.dish_name}
-                  </span>
-                  {item.notes && item.notes.some((n) => n.trim()) && (
-                    <span className="block text-xs text-amber-400/80">
-                      {item.notes.map((n, unitIdx) => (
-                        <span key={unitIdx} className="block truncate">
-                          {n.trim() ? `→ ${n}` : null}
-                        </span>
-                      )).filter(Boolean)}
+            {order.items.map((item, idx) => {
+              const units = splitPerUnit(item);
+              return units ? (
+                // Split per unit when any unit has a note
+                units.map((u, unitIdx) => (
+                  <li
+                    key={`${item.id}-${unitIdx}`}
+                    className={idx > 0 || unitIdx > 0 ? "flex items-center gap-3 p-3.5 border-t border-white/5" : "flex items-center gap-3 p-3.5"}
+                  >
+                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-800 text-sm font-bold text-stone-200 tabular-nums">
+                      1
                     </span>
-                  )}
-                </div>
-                <span className="text-sm font-medium text-stone-400">
-                  {formatCOP(item.price * item.quantity)}
-                </span>
-              </li>
-            ))}
+                    <div className="min-w-0 flex-1">
+                      <span className="block text-sm text-stone-100">
+                        {item.dish_name}
+                      </span>
+                      {u.note && (
+                        <span className="block truncate text-xs text-amber-400/80">
+                          → {u.note}
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-sm font-medium text-stone-400">
+                      {formatCOP(item.price)}
+                    </span>
+                  </li>
+                ))
+              ) : (
+                <li
+                  key={item.id}
+                  className={idx > 0 ? "flex items-center gap-3 p-3.5 border-t border-white/5" : "flex items-center gap-3 p-3.5"}
+                >
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-800 text-sm font-bold text-stone-200 tabular-nums">
+                    {item.quantity}
+                  </span>
+                  <div className="min-w-0 flex-1">
+                    <span className="block text-sm text-stone-100">
+                      {item.dish_name}
+                    </span>
+                  </div>
+                  <span className="text-sm font-medium text-stone-400">
+                    {formatCOP(item.price * item.quantity)}
+                  </span>
+                </li>
+              );
+            })}
           </ul>
 
           {order.delivery_name && (

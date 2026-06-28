@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable } from "@/lib/utils";
+import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike } from "lucide-react";
@@ -130,35 +130,59 @@ export function WaiterOrders({
                 {/* Items — grouped by category */}
                 <div className="border-t border-white/5 px-5 py-4">
                   <ul className="space-y-3">
-                    {order.items.map((item) => (
-                      <li key={item.id}>
-                        <div className="flex items-center justify-between text-base">
-                          <span className="flex items-center gap-2.5 text-stone-300">
-                            <span className="font-bold text-stone-400 tabular-nums">
-                              {item.quantity}x
-                            </span>
-                            <span>
-                              {item.category_name && (
-                                <span className="text-sm text-stone-600">{item.category_name} · </span>
-                              )}
-                              {item.dish_name}
-                            </span>
-                          </span>
-                          <span className="text-stone-500">
-                            {formatCOP(item.price * item.quantity)}
-                          </span>
-                        </div>
-                        {item.notes && item.notes.some((n) => n.trim()) && (
-                          <div className="ml-7 mt-1 space-y-0.5">
-                            {item.notes.map((n, unitIdx) => (
-                              <p key={unitIdx} className="text-sm text-amber-400/80">
-                                {n.trim() ? `→ ${n}` : null}
-                              </p>
-                            )).filter(Boolean)}
-                          </div>
-                        )}
-                      </li>
-                    ))}
+                    {order.items.map((item) => {
+                      const units = splitPerUnit(item);
+                      return (
+                        <li key={item.id}>
+                          {units ? (
+                            // Split per unit when any unit has a note
+                            <div className="space-y-1.5">
+                              {units.map((u, idx) => (
+                                <div key={idx}>
+                                  <div className="flex items-center justify-between text-base">
+                                    <span className="flex items-center gap-2.5 text-stone-300">
+                                      <span className="font-bold text-stone-400 tabular-nums">1x</span>
+                                      <span>
+                                        {item.category_name && (
+                                          <span className="text-sm text-stone-600">{item.category_name} · </span>
+                                        )}
+                                        {item.dish_name}
+                                      </span>
+                                    </span>
+                                    <span className="text-stone-500">
+                                      {formatCOP(item.price)}
+                                    </span>
+                                  </div>
+                                  {u.note && (
+                                    <p className="ml-7 mt-0.5 text-sm text-amber-400/80">
+                                      → {u.note}
+                                    </p>
+                                  )}
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            // Grouped when no notes
+                            <div className="flex items-center justify-between text-base">
+                              <span className="flex items-center gap-2.5 text-stone-300">
+                                <span className="font-bold text-stone-400 tabular-nums">
+                                  {item.quantity}x
+                                </span>
+                                <span>
+                                  {item.category_name && (
+                                    <span className="text-sm text-stone-600">{item.category_name} · </span>
+                                  )}
+                                  {item.dish_name}
+                                </span>
+                              </span>
+                              <span className="text-stone-500">
+                                {formatCOP(item.price * item.quantity)}
+                              </span>
+                            </div>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
 

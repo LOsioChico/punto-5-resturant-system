@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP, formatTime, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
+import { formatCOP, formatTime, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH, splitPerUnit } from "@/lib/utils";
 import type { Order } from "@/lib/types";
 
 /**
@@ -76,15 +76,10 @@ export function CommandPreview({ order }: { order: Order }) {
             </p>
             <ul className="space-y-2">
               {items.map((item) => {
-                // Split per unit — each unit gets its own line with its note
-                const notes = item.notes ?? [];
-                const hasAnyNote = notes.some((n) => n.trim());
-                const units = Array.from({ length: item.quantity }, (_, i) => ({
-                  unitNote: notes[i]?.trim() ?? "",
-                }));
+                const units = splitPerUnit(item);
                 return (
                   <li key={item.id} className="text-black">
-                    {hasAnyNote ? (
+                    {units ? (
                       // Split per unit when any unit has a note
                       units.map((u, idx) => (
                         <div key={idx} className={idx > 0 ? "mt-1" : ""}>
@@ -92,9 +87,9 @@ export function CommandPreview({ order }: { order: Order }) {
                             <span className="text-base font-bold tabular-nums text-black">1x</span>
                             <span className="text-sm font-semibold text-black">{item.dish_name}</span>
                           </div>
-                          {u.unitNote && (
+                          {u.note && (
                             <p className="mt-0.5 ml-6 text-xs italic text-stone-600">
-                              → {u.unitNote}
+                              → {u.note}
                             </p>
                           )}
                         </div>
