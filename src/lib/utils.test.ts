@@ -152,7 +152,7 @@ describe("isOrderOwner", () => {
     id: "1",
     table_number: 5,
     waiter_name: "Juan",
-    waiter_id: null,
+    waiter_id: "waiter-1",
     status: "nueva",
     total: 25000,
     notes: null,

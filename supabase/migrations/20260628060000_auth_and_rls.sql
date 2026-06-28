@@ -31,13 +31,22 @@ create index if not exists idx_waiters_cedula on waiters(cedula);
 create index if not exists idx_waiters_active on waiters(is_active) where is_active = true;
 
 -- ============================================================
--- Add waiter_id to orders (nullable for backward compat with existing orders)
+-- Add waiter_id to orders (NOT NULL — every order must have a waiter)
+-- Existing test orders are deleted first since they have no waiter_id.
 -- ============================================================
-alter table orders add column if not exists waiter_id uuid references waiters(id) on delete set null;
-create index if not exists idx_orders_waiter_id on orders(waiter_id) where waiter_id is not null;
+alter table orders add column if not exists waiter_id uuid references waiters(id) on delete restrict;
+
+-- Delete existing orders that have no waiter_id (test data from POC)
+delete from order_items where order_id in (select id from orders where waiter_id is null);
+delete from order_events where order_id in (select id from orders where waiter_id is null);
+delete from orders where waiter_id is null;
+
+-- Now enforce NOT NULL
+alter table orders alter column waiter_id set not null;
+create index if not exists idx_orders_waiter_id on orders(waiter_id);
 
 -- ============================================================
--- Add actor_id to order_events (nullable for backward compat)
+-- Add actor_id to order_events (nullable — system events may not have an actor)
 -- ============================================================
 alter table order_events add column if not exists actor_id uuid references auth.users(id) on delete set null;
 create index if not exists idx_order_events_actor_id on order_events(actor_id) where actor_id is not null;

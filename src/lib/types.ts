@@ -43,7 +43,7 @@ export interface Order {
   id: string;
   table_number: number;
   waiter_name: string;
-  waiter_id: string | null;
+  waiter_id: string;
   status: OrderStatus;
   total: number;
   notes: string | null;

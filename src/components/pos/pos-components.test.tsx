@@ -28,7 +28,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     id: "order-1",
     table_number: 5,
     waiter_name: "Juan",
-    waiter_id: null,
+    waiter_id: "waiter-1",
     status: "nueva",
     total: 30000,
     notes: null,

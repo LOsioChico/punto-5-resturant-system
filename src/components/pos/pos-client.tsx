@@ -403,7 +403,7 @@ export function PosClient() {
   }, []);
 
   const sendOrder = useCallback(async () => {
-    if (!waiterName || !supabase || selectedTable === null || cart.length === 0)
+    if (!waiterName || !waiterId || !supabase || selectedTable === null || cart.length === 0)
       return;
     // Delivery orders require a customer name
     if (isDeliveryTable(selectedTable) && !deliveryName.trim()) {
