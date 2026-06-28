@@ -142,6 +142,24 @@ create policy "read_waiters" on waiters
 create policy "service_role_all_waiters" on waiters
   for all to service_role using (true) with check (true);
 
+-- Security definer function for public waiter lookup by cédula.
+-- The login page needs to verify a cédula exists before showing the PIN
+-- keypad, but the user has no session yet. This function exposes only
+-- cedula, name, and is_active for active waiters.
+create or replace function public.lookup_waiter_by_cedula(p_cedula text)
+returns table(cedula text, name text, is_active boolean)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select cedula, name, is_active
+  from public.waiters
+  where cedula = p_cedula and is_active = true;
+$$;
+
+grant execute on function public.lookup_waiter_by_cedula(text) to anon, authenticated;
+
 -- ============================================================
 -- Orders — admin: all | waiter: own orders only
 -- ============================================================

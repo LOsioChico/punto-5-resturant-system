@@ -55,6 +55,9 @@ export async function signInAdmin(email: string, password: string) {
  * Look up a waiter by cédula (without signing in).
  * Used to validate the cédula before showing the PIN keypad.
  * Returns the waiter's name and status, or null if not found.
+ *
+ * Uses a security definer RPC because the waiters table requires
+ * authentication (RLS), but the login page has no session yet.
  */
 export async function lookupWaiterByCedula(
   cedula: string,
@@ -62,13 +65,12 @@ export async function lookupWaiterByCedula(
   const supabase = createSupabaseClient();
   if (!supabase) return null;
 
-  const { data } = await supabase
-    .from("waiters")
-    .select("name, is_active")
-    .eq("cedula", cedula)
-    .single();
+  const { data, error } = await supabase.rpc("lookup_waiter_by_cedula", {
+    p_cedula: cedula,
+  });
 
-  return (data as { name: string; is_active: boolean } | null) ?? null;
+  if (error || !data || data.length === 0) return null;
+  return data[0] as { name: string; is_active: boolean };
 }
 
 /**
