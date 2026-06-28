@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
@@ -28,15 +28,22 @@ export function PosClient() {
     : null;
 
   const [waiterName, setWaiterName] = useState<string | null>(null);
-  const [hydrated, setHydrated] = useState(false);
+  // useSyncExternalStore gives us a hydration-safe "is client" flag
+  // without calling setState synchronously in an effect.
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,   // client
+    () => false,  // server
+  );
   const presenceChannelRef = useRef<ReturnType<NonNullable<ReturnType<typeof createSupabaseClient>>["channel"]> | null>(null);
 
   // Read localStorage after hydration to avoid SSR mismatch
   useEffect(() => {
-    setHydrated(true);
+    if (!hydrated) return;
     const stored = localStorage.getItem(WAITER_KEY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading from localStorage on mount, only runs once
     if (stored) setWaiterName(stored);
-  }, []);
+  }, [hydrated]);
   const { permission, subscribed, subscribe, unsubscribe } = usePushSubscription(waiterName);
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -716,7 +723,8 @@ export function PosClient() {
                   {permission !== "unsupported" && permission !== "denied" && (
                     <button
                       onClick={() => {
-                        subscribed ? unsubscribe() : subscribe();
+                        if (subscribed) unsubscribe();
+                        else subscribe();
                       }}
                       className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
                     >

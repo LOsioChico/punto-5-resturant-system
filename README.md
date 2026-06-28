@@ -17,7 +17,7 @@ Every action on an order is logged in the `order_events` table, providing full t
 
 The `orders` table also tracks `updated_by`, `updated_at`, and `updated_by_type` for quick "last modified" queries.
 
-**Waiter ownership**: waiters can only modify orders they created. This is enforced at the app level (`isOrderOwner` in `lib/utils.ts`) for the POC. In production, this should be enforced via Supabase RLS with auth (see comments in `schema.sql`).
+**Waiter ownership**: waiters can only modify orders they created. This is enforced at the app level (`isOrderOwner` in `lib/utils.ts`) for the POC. In production, this should be enforced via Supabase RLS with auth (see comments in `supabase/migrations/`).
 
 **Print**: the "Imprimir" button triggers `window.print()` and logs a print event. Replace with a printer bridge integration when available.
 
@@ -70,13 +70,20 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_your-key-here
 
 ### 4. Create the database schema
 
-1. In the Supabase dashboard, go to **SQL Editor**.
-2. Paste the contents of `supabase/schema.sql`.
-3. Run the script. This creates the tables (`categories`, `dishes`, `orders`, `order_items`), enables RLS, activates Realtime, and seeds the initial menu.
+The schema is managed via Supabase migrations. To apply them to your remote project:
+
+```bash
+npx supabase link --project-ref your-project-ref
+npx supabase db push
+```
+
+This creates the tables (`categories`, `dishes`, `orders`, `order_items`, `order_events`, `push_subscriptions`), enables RLS, activates Realtime, and seeds the initial menu.
+
+Alternatively, you can run each migration file in `supabase/migrations/` manually via the Supabase SQL Editor in order.
 
 ### 5. (Optional) Adjust the menu
 
-Main dish prices are placeholders. Edit the values in `supabase/schema.sql` before running it, or update the records directly in Supabase (**Table Editor → dishes**).
+Main dish prices are placeholders. Edit the seed data in `supabase/migrations/20260627160152_initial_schema.sql` before applying, or update the records directly in Supabase (**Table Editor → dishes**).
 
 ### 6. Run the dev server
 
@@ -101,8 +108,15 @@ Open:
 
 1. Push the repository to GitHub.
 2. On [vercel.com](https://vercel.com), import the repository.
-3. Add the environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`).
+3. Add the environment variables (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`).
 4. Deploy. Vercel detects Next.js automatically.
+5. In Vercel project settings, enable **GitHub Checks** so deployments wait for CI to pass before promoting to production.
+
+## CI/CD
+
+- **CI** (`.github/workflows/ci.yml`): runs lint, tests, and build on every push to `main` and on PRs.
+- **Deploy**: Vercel auto-deploys on push to `main` after CI passes (enable GitHub Checks in Vercel settings).
+- **Backup** (`.github/workflows/backup.yml`): dumps the Supabase database hourly via `pg_dump`, only saves if data changed. Requires `SUPABASE_DB_URL` secret (pooler connection string). Backups stored as GitHub Actions artifacts (90-day retention) and on a `backups` branch.
 
 ## Project Structure
 
@@ -127,10 +141,12 @@ src/
 public/
 └── sw.js                       # Service worker (PWA)
 supabase/
-├── schema.sql                  # SQL schema + seed data (for cloud setup)
 ├── config.toml                 # Local Supabase config
-├── migrations/
-│   └── *_initial_schema.sql    # Migration (schema + seed + GRANTs + RLS)
+├── migrations/                 # Schema migrations (source of truth)
+│   ├── *_initial_schema.sql    # Tables, RLS, Realtime, seed data
+│   ├── *_notes_to_jsonb.sql    # Migrate notes to jsonb array
+│   ├── *_add_delivery_name.sql # Delivery customer name column
+│   └── *_add_delivery_fee.sql  # Delivery fee column
 └── functions/
     └── send-push/              # Edge function for Web Push notifications
 e2e/
@@ -167,7 +183,7 @@ pnpm supabase:reset    # Reset local DB (re-run migrations + seed)
 pnpm test
 ```
 
-Uses Vitest + React Testing Library. 255 tests across 7 files covering:
+Uses Vitest + React Testing Library. 265 tests across 8 files covering:
 - Pure logic (formatting, filters, status flow, cart diffing)
 - Component rendering (OrderDetail, OrderSummary, OrdersFeed, etc.)
 
@@ -219,4 +235,5 @@ pnpm supabase:stop
 - [ ] Add PWA icons (`public/icon-192.png`, `public/icon-512.png`)
 - [ ] Replace `window.print()` with printer bridge integration
 - [ ] Authentication (not needed for the POC, but required for production RLS enforcement)
-- [ ] POS order editing (waiters can only edit their own orders — `isOrderOwner` helper ready)
+- [ ] Menu management UI (currently dishes are seeded via migrations only)
+- [ ] Metrics/reporting module (daily sales, popular items)

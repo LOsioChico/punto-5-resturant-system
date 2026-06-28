@@ -17,7 +17,7 @@ import {
   countPrints,
   parseEventMetadata,
 } from "./logic";
-import type { Order, OrderStatus, OrderEvent } from "@/lib/types";
+import type { Order, OrderEvent } from "@/lib/types";
 
 // Helpers
 function makeOrder(overrides: Partial<Order> = {}): Order {

@@ -245,6 +245,7 @@ export function DashboardClient() {
 
   useEffect(() => {
     if (!supabase || !selectedId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- clearing stale state when selection is removed
       setEvents([]);
       return;
     }

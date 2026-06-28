@@ -2,8 +2,8 @@
  * Health check endpoint — pings the Supabase database to keep it awake.
  *
  * Supabase Free tier pauses projects after 7 days of inactivity.
- * Point a free cron service (cron-job.org, UptimeRobot) at this endpoint
- * every 5 minutes to prevent pausing.
+ * This endpoint is called daily via Vercel Cron (see vercel.json).
+ * A single daily ping is enough to prevent auto-pausing.
  *
  * Also useful as a general health check: returns DB status + timestamp.
  */

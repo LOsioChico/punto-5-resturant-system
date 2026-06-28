@@ -15,19 +15,16 @@ type PermissionState = "default" | "granted" | "denied" | "unsupported";
  * - Cleans up on unmount
  */
 export function usePushSubscription(waiterName: string | null) {
-  const [permission, setPermission] = useState<PermissionState>("default");
+  // Compute initial permission from the browser API (lazy initializer avoids effect)
+  const [permission, setPermission] = useState<PermissionState>(() => {
+    if (typeof window === "undefined" || !("Notification" in window)) return "unsupported";
+    return Notification.permission as PermissionState;
+  });
   const [subscribed, setSubscribed] = useState(false);
 
-  // Sync permission + existing subscription state on mount
+  // Check if already subscribed on mount (async — no synchronous setState)
   useEffect(() => {
-    if (!("Notification" in window)) {
-      setPermission("unsupported");
-      return;
-    }
-    setPermission(Notification.permission as PermissionState);
-
-    // Check if already subscribed (permission granted + SW has a push subscription)
-    if (Notification.permission === "granted" && "serviceWorker" in navigator) {
+    if (permission === "granted" && "serviceWorker" in navigator) {
       navigator.serviceWorker.ready
         .then((reg) => reg.pushManager.getSubscription())
         .then((sub) => {
@@ -35,7 +32,7 @@ export function usePushSubscription(waiterName: string | null) {
         })
         .catch(() => {});
     }
-  }, []);
+  }, [permission]);
 
   const subscribe = useCallback(async () => {
     if (!waiterName || !VAPID_PUBLIC_KEY || !("serviceWorker" in navigator)) {

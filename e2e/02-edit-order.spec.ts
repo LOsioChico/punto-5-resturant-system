@@ -85,8 +85,6 @@ test("waiter edits order: add, remove, modify items", async ({ page }) => {
   await dishButtons.nth(2).click();
 
   // Remove the first item from cart (trash button)
-  // The cart items have a trash icon button
-  const trashButtons = page.locator("button").filter({ has: page.locator("svg") });
   // Find the trash button — it's the one with a Trash2 icon in the cart area
   // We'll use the cart's border-t section
   const cartSection = page.locator("[class*='border-t']").last();

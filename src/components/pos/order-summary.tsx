@@ -74,6 +74,7 @@ export function OrderSummary({
 
   // Cancel clear confirmation if items change (e.g. user adds an item while "¿Seguro?" is showing)
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resetting derived state on prop change
     setConfirmClear(false);
   }, [itemCount, items.length]);
 

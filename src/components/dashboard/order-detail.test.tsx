@@ -51,10 +51,6 @@ function makeEvent(overrides: Partial<OrderEvent> = {}): OrderEvent {
 }
 
 const noop = () => {};
-const handlers = {
-  onAdvanceStatus: vi.fn(),
-  onPrint: vi.fn(),
-};
 
 // ============================================================
 // OrderDetail — Empty state
