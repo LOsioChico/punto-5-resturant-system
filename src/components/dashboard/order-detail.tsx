@@ -15,6 +15,7 @@ import {
   Utensils,
   User,
   PencilLine,
+  Bike,
 } from "lucide-react";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -90,8 +91,12 @@ export function OrderDetail({
       <div className="bg-stone-900/50 p-5">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex size-12 items-center justify-center rounded-xl bg-stone-800 text-xl font-bold text-stone-100">
-              {tableShortName(order.table_number)}
+            <div className={
+              isDeliveryTable(order.table_number)
+                ? "flex size-12 items-center justify-center rounded-xl bg-yellow-500/10 text-yellow-400"
+                : "flex size-12 items-center justify-center rounded-xl bg-stone-800 text-xl font-bold text-stone-100"
+            }>
+              {isDeliveryTable(order.table_number) ? <Bike className="size-6" /> : tableShortName(order.table_number)}
             </div>
             <div>
               <h2 className="text-xl font-bold text-stone-100">

@@ -1,9 +1,9 @@
 "use client";
 
-import { cn, timeAgo, formatTime, tableLabel } from "@/lib/utils";
+import { cn, timeAgo, formatTime, tableLabel, isDeliveryTable } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Clock, PencilLine, User } from "lucide-react";
+import { Clock, PencilLine, User, Bike } from "lucide-react";
 
 const statusDot: Record<OrderStatus, string> = {
   nueva: "bg-red-500",
@@ -45,6 +45,7 @@ export function OrdersFeed({
         const isSelected = selectedId === order.id;
         const isNew = order.status === "nueva";
         const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
+        const isDelivery = isDeliveryTable(order.table_number);
 
         return (
           <li key={order.id}>
@@ -56,20 +57,18 @@ export function OrdersFeed({
                   ? "bg-stone-800 ring-1 ring-inset ring-yellow-500/40"
                   : isNew
                     ? "bg-red-500/5 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/10"
-                    : "bg-stone-900 hover:bg-stone-800/60",
+                    : isDelivery
+                      ? "bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/15 hover:bg-yellow-500/10"
+                      : "bg-stone-900 hover:bg-stone-800/60",
               )}
             >
               {/* Row 1 — table + time */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
+                  {isDelivery && <Bike className="size-4 shrink-0 text-yellow-400" />}
                   <span className="text-sm font-bold text-stone-100">
                     {tableLabel(order.table_number)}
                   </span>
-                  {order.delivery_name && (
-                    <span className="text-xs font-medium text-yellow-400">
-                      · {order.delivery_name}
-                    </span>
-                  )}
                   {isNew && (
                     <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-400">
                       Nuevo
@@ -95,8 +94,14 @@ export function OrdersFeed({
               {/* Row 2 — waiter + status */}
               <div className="mt-1.5 flex items-center justify-between">
                 <span className="flex items-center gap-1 truncate text-xs text-stone-500">
-                  <User className="size-3 shrink-0 text-stone-600" />
-                  {order.waiter_name}
+                  {order.delivery_name ? (
+                    <span className="font-medium text-yellow-400">{order.delivery_name}</span>
+                  ) : (
+                    <>
+                      <User className="size-3 shrink-0 text-stone-600" />
+                      {order.waiter_name}
+                    </>
+                  )}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-2 text-xs text-stone-500">
                   <span className={cn("size-2 rounded-full", statusDot[order.status])} />
