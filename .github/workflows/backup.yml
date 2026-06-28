@@ -23,18 +23,11 @@ jobs:
           git fetch origin backups --depth=1 || true
           git show origin/backups:data.sql.gz > prev_data.sql.gz 2>/dev/null && echo "Found previous backup" || echo "No previous backup"
 
-      - name: Dump data (pg_dump directly, no CLI needed)
+      - name: Dump data
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          # Force IPv4 (GitHub runners don't have IPv6 outbound)
-          HOST=$(echo "$SUPABASE_DB_URL" | sed -n 's|.*@\([^:]*\).*|\1|p')
-          IPV4=$(dig +short A "$HOST" | head -1)
-          if [ -z "$IPV4" ]; then
-            IPV4=$(nslookup "$HOST" | grep "Address:" | tail -1 | awk '{print $2}')
-          fi
-          echo "Resolved $HOST -> $IPV4"
-          pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --column-inserts --host="$IPV4" -f data.sql
+          pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --column-inserts -f data.sql
 
       - name: Check if data changed (normalized)
         id: changed
