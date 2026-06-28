@@ -67,11 +67,14 @@ jobs:
       - name: Commit to backups branch
         if: steps.changed.outputs.changed == 'true'
         run: |
+          # Move dump files out of the working tree before cleaning
+          mv schema.sql.gz /tmp/schema.sql.gz
+          mv data.sql.gz /tmp/data.sql.gz
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout --orphan backups
-          git rm -rf .
-          cp schema.sql.gz data.sql.gz .
+          git rm -rf . 2>/dev/null || true
+          mv /tmp/schema.sql.gz /tmp/data.sql.gz .
           git add schema.sql.gz data.sql.gz
           git commit -m "Backup $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push origin backups --force
