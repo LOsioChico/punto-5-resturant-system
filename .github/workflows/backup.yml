@@ -40,13 +40,13 @@ jobs:
         id: changed
         run: |
           # Strip volatile restrict/unrestrict tokens that change every dump
-          grep -v '^-- \\restrict\|^-- \\unrestrict' data.sql > data_normalized.sql
+          grep -v '^\\restrict\|^\\unrestrict\|^-- \\restrict\|^-- \\unrestrict' data.sql > data_normalized.sql
           CURRENT_HASH=$(md5sum data_normalized.sql | awk '{print $1}')
           echo "Current data hash: $CURRENT_HASH"
           
           if [ -f prev_data.sql.gz ]; then
             gunzip -c prev_data.sql.gz > prev_data.sql
-            grep -v '^-- \\restrict\|^-- \\unrestrict' prev_data.sql > prev_data_normalized.sql
+            grep -v '^\\restrict\|^\\unrestrict\|^-- \\restrict\|^-- \\unrestrict' prev_data.sql > prev_data_normalized.sql
             PREV_HASH=$(md5sum prev_data_normalized.sql | awk '{print $1}')
             echo "Previous data hash: $PREV_HASH"
             
