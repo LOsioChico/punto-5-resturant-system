@@ -119,8 +119,20 @@ describe("WaiterOrders", () => {
     expect(screen.getByTitle("Agregar adicional")).toBeInTheDocument();
   });
 
-  it("does not show additional button on non-served orders", () => {
+  it("shows additional button on lista orders", () => {
+    const orders = [makeOrder({ id: "lista-id", waiter_name: "Juan", status: "lista" })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    expect(screen.getByTitle("Agregar adicional")).toBeInTheDocument();
+  });
+
+  it("does not show additional button on nueva orders", () => {
     const orders = [makeOrder({ id: "active-id", waiter_name: "Juan", status: "nueva" })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    expect(screen.queryByTitle("Agregar adicional")).not.toBeInTheDocument();
+  });
+
+  it("does not show additional button on en_cocina orders", () => {
+    const orders = [makeOrder({ id: "kitchen-id", waiter_name: "Juan", status: "en_cocina" })];
     render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
     expect(screen.queryByTitle("Agregar adicional")).not.toBeInTheDocument();
   });
@@ -145,6 +157,21 @@ describe("WaiterOrders", () => {
     })];
     render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
     expect(screen.getByText("Adicional #1")).toBeInTheDocument();
+  });
+
+  it("shows Adicional badge on order card when order has additionals", () => {
+    const orders = [makeOrder({
+      waiter_name: "Juan",
+      status: "lista",
+      items: [
+        makeItem({ id: "orig" }),
+        makeItem({ id: "add-1", is_additional: true, additional_number: 1 }),
+      ],
+    })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    // The "Adicional" badge (without #) on the order header
+    const badges = screen.getAllByText("Adicional");
+    expect(badges.length).toBeGreaterThanOrEqual(1);
   });
 
   it("shows 'Modificado' badge when order was modified by waiter", () => {

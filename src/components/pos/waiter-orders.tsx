@@ -3,7 +3,7 @@
 import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike, Plus } from "lucide-react";
+import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike, Plus, PlusCircle } from "lucide-react";
 
 const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; label: string }> = {
   nueva: { icon: <Clock className="size-5" />, ring: "bg-red-500", label: "Nueva" },
@@ -58,7 +58,7 @@ export function WaiterOrders({
             const config = statusConfig[order.status];
             const isActive = order.status !== "servida";
             const canEdit = order.status === "nueva" || order.status === "en_cocina";
-            const canAddAdditional = order.status === "servida";
+            const canAddAdditional = order.status === "lista" || order.status === "servida";
             const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
             const isDelivery = isDeliveryTable(order.table_number);
             const hasAdditionals = order.items.some((i) => i.is_additional);
@@ -93,6 +93,12 @@ export function WaiterOrders({
                           <span className="flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
                             <PencilLine className="size-2.5" />
                             Modificado
+                          </span>
+                        )}
+                        {hasAdditionals && (
+                          <span className="flex items-center gap-1 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
+                            <PlusCircle className="size-2.5" />
+                            Adicional
                           </span>
                         )}
                       </div>

@@ -525,15 +525,29 @@ export function OrderDetail({
       {/* Action bar */}
       {nextStatus && action.label ? (
         <div className="bg-stone-900/50 p-4">
-          <Button
-            className="w-full transition-all active:scale-[0.98]"
-            size="lg"
-            onClick={() => onAdvanceStatus(order.id)}
-            disabled={disabled}
-          >
-            {action.icon}
-            {action.label}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              className="flex-1 transition-all active:scale-[0.98]"
+              size="lg"
+              onClick={() => onAdvanceStatus(order.id)}
+              disabled={disabled}
+            >
+              {action.icon}
+              {action.label}
+            </Button>
+            {(order.status === "lista" || order.status === "servida") && (
+              <Button
+                variant="outline"
+                className="transition-all active:scale-[0.98]"
+                size="lg"
+                onClick={() => onAddAdditional(order)}
+                disabled={disabled}
+              >
+                <PlusCircle className="size-4" />
+                Adicional
+              </Button>
+            )}
+          </div>
         </div>
       ) : order.status === "servida" ? (
         <div className="bg-stone-900/50 p-4">
