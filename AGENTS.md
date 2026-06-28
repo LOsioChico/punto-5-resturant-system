@@ -37,6 +37,7 @@ pnpm supabase:reset    # Reset local DB (re-run migrations)
 |---|---|---|
 | `NEXT_PUBLIC_SUPABASE_URL` | `.env.local` + Vercel | Supabase project URL |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | `.env.local` + Vercel | Supabase publishable key (sb_publishable_) |
+| `SUPABASE_SERVICE_ROLE_KEY` | `.env` only (NOT Vercel) | Service role key for scripts (create-admin.mjs). Never exposed to client. |
 | `NEXT_PUBLIC_VAPID_PUBLIC_KEY` | `.env.local` + Vercel | Web Push VAPID public key |
 | `VAPID_PRIVATE_KEY` | `.env.local` + Vercel | Web Push VAPID private key (server-only) |
 
@@ -45,7 +46,18 @@ pnpm supabase:reset    # Reset local DB (re-run migrations)
 - Schema is managed via **migrations only** (`supabase/migrations/`). No standalone `schema.sql`.
 - Apply to remote: `npx supabase link --project-ref <ref> && npx supabase db push`
 - Postgres version: 17 (Supabase). `pg_dump` must be version 17+ to dump.
-- RLS is currently open (POC). Tighten before production.
+- RLS enabled on all tables. Admin = full access, waiter = own orders only.
+
+### Destructive operations — ASK FIRST
+
+**Never run `DELETE`, `DROP`, `TRUNCATE`, or any data-modifying SQL against the remote/production database without showing the user the exact SQL and getting explicit confirmation.** This includes migrations that contain `DELETE` statements.
+
+Before running any migration against the remote database:
+1. Read the migration file
+2. If it contains `DELETE`, `DROP`, `TRUNCATE`, or `ALTER TABLE ... DROP COLUMN`, show the user those specific lines
+3. Wait for explicit "yes" before running
+
+This rule exists because a migration with `DELETE FROM orders WHERE waiter_id IS NULL` was run against production without asking, wiping all test data. Even if data looks like test data, the decision is the user's — not the agent's.
 
 ## Key Conventions
 
