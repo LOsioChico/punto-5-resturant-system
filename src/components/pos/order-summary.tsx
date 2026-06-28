@@ -173,12 +173,12 @@ export function OrderSummary({
                     </span>
                     <span className="text-sm text-stone-500">
                       {formatCOP(item.price)} c/u
-                      {isDelivery && (
-                        <span className="text-yellow-500/70">
-                          {" "}+ {formatCOP(DESECHABLES_PER_DISH)} desechable
-                        </span>
-                      )}
                     </span>
+                    {isDelivery && (
+                      <span className="mt-0.5 block text-xs text-yellow-500/70">
+                        + {formatCOP(DESECHABLES_PER_DISH)} desechable
+                      </span>
+                    )}
                   </div>
                   <span className="text-base font-semibold text-stone-200">
                     {formatCOP(item.price * item.quantity + (isDelivery ? DESECHABLES_PER_DISH * item.quantity : 0))}
@@ -300,7 +300,7 @@ export function OrderSummary({
         {isDelivery && desechables > 0 && (
           <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
             <span className="text-xs text-yellow-500/70">
-              Desechables {itemCount}×{formatCOP(DESECHABLES_PER_DISH)}
+              Desechables ({itemCount} {itemCount === 1 ? "plato" : "platos"})
             </span>
             <span className="text-sm font-semibold text-yellow-500/70">
               {formatCOP(desechables)}
