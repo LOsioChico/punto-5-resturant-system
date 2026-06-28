@@ -56,7 +56,9 @@ export function OrderSummary({
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isEditing = editingOrderId !== null;
 
-  // Close notes editor when clicking outside of it
+  // Close notes editor when clicking outside of it.
+  // Uses 'click' (not 'mousedown') so button onClick handlers (like +/- counters)
+  // fire first, then the editor closes — both in the same batched re-render.
   useEffect(() => {
     if (!editingNotes) return;
     const handler = (e: MouseEvent) => {
@@ -65,8 +67,8 @@ export function OrderSummary({
         setEditingNotesUnit(null);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("click", handler);
+    return () => document.removeEventListener("click", handler);
   }, [editingNotes]);
 
   // Cancel clear confirmation if items change (e.g. user adds an item while "¿Seguro?" is showing)
