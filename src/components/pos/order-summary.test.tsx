@@ -173,6 +173,92 @@ describe("OrderSummary — notes", () => {
     // Quick notes should be hidden after Enter
     expect(screen.queryByText("Sin salsas")).not.toBeInTheDocument();
   });
+
+  // ============================================================
+  // Notes mode — "Todas" vs "Por unidad" toggle
+  // ============================================================
+  it("shows Todas/Por unidad toggle only for multi-unit items", async () => {
+    const user = userEvent.setup();
+    renderSummary({ items: [makeItem({ notes: [], quantity: 1 })] });
+    await user.click(screen.getByText("Nota"));
+    expect(screen.queryByText("Todas")).not.toBeInTheDocument();
+    expect(screen.queryByText("Por unidad")).not.toBeInTheDocument();
+  });
+
+  it("defaults to Todas mode when all units share the same note", async () => {
+    const user = userEvent.setup();
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })] });
+    // Multiple "→ Sin cebolla" elements — click the first one
+    await user.click(screen.getAllByText("→ Sin cebolla")[0]);
+    // "Todas" should be the active mode (bg-stone-600)
+    const todasBtn = screen.getByText("Todas");
+    expect(todasBtn.className).toContain("bg-stone-600");
+  });
+
+  it("defaults to Por unidad mode when units have different notes", async () => {
+    const user = userEvent.setup();
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar", ""], quantity: 3 })] });
+    // Open notes editor — need to click the note display
+    const noteDisplay = screen.getByText("→ Sin cebolla");
+    await user.click(noteDisplay);
+    // "Por unidad" should be the active mode
+    const perUnitBtn = screen.getByText("Por unidad");
+    expect(perUnitBtn.className).toContain("bg-stone-600");
+  });
+
+  it("defaults to Todas mode when all units are empty", async () => {
+    const user = userEvent.setup();
+    renderSummary({ items: [makeItem({ notes: ["", "", ""], quantity: 3 })] });
+    await user.click(screen.getByText("Nota (3 unidades)"));
+    const todasBtn = screen.getByText("Todas");
+    expect(todasBtn.className).toContain("bg-stone-600");
+  });
+
+  it("clears extra units when switching from Todas to Por unidad", async () => {
+    const user = userEvent.setup();
+    const onSetNotes = vi.fn();
+    renderSummary({
+      items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })],
+      onSetNotes,
+    });
+    await user.click(screen.getAllByText("→ Sin cebolla")[0]);
+    await user.click(screen.getByText("Por unidad"));
+    // Should keep note on first unit, clear the rest
+    expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "Sin cebolla");
+    expect(onSetNotes).toHaveBeenCalledWith("d1", 1, "");
+    expect(onSetNotes).toHaveBeenCalledWith("d1", 2, "");
+  });
+
+  it("does not clear notes when switching to Por unidad if notes are already different", async () => {
+    const user = userEvent.setup();
+    const onSetNotes = vi.fn();
+    renderSummary({
+      items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla", "Para llevar", ""], quantity: 3 })],
+      onSetNotes,
+    });
+    await user.click(screen.getByText("→ Sin cebolla"));
+    await user.click(screen.getByText("Por unidad"));
+    // Should NOT call onSetNotes (notes are already per-unit)
+    expect(onSetNotes).not.toHaveBeenCalled();
+  });
+
+  it("shows single input in Todas mode for multi-unit items", async () => {
+    const user = userEvent.setup();
+    // Use a note that's the same on all units so it defaults to "Todas"
+    renderSummary({ items: [makeItem({ notes: ["", ""], quantity: 2 })] });
+    await user.click(screen.getByText("Nota (2 unidades)"));
+    expect(screen.getByPlaceholderText("Nota para todas...")).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText("Nota unidad 1...")).not.toBeInTheDocument();
+  });
+
+  it("shows per-unit inputs in Por unidad mode", async () => {
+    const user = userEvent.setup();
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
+    await user.click(screen.getByText("→ Sin cebolla"));
+    // Should be in perUnit mode (notes are different)
+    expect(screen.getByPlaceholderText("Nota unidad 1...")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Nota unidad 2...")).toBeInTheDocument();
+  });
 });
 
 // ============================================================

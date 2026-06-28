@@ -257,7 +257,16 @@ describe("countParaLlevar", () => {
     expect(countParaLlevar([])).toBe(0);
   });
 
-  it("counts all units with it", () => {
-    expect(countParaLlevar(["Para llevar", "Para llevar"])).toBe(2);
+  it("counts all units with it (Todas mode)", () => {
+    expect(countParaLlevar(["Para llevar", "Para llevar", "Para llevar"])).toBe(3);
+  });
+
+  it("counts comma-separated 'Para llevar' alongside other notes", () => {
+    expect(countParaLlevar(["Sin cebolla, Para llevar", "Para llevar, Sin salsas"])).toBe(2);
+  });
+
+  it("counts only 1 after switching from Todas to Por unidad", () => {
+    // After switch: note kept on first unit only
+    expect(countParaLlevar(["Para llevar", "", ""])).toBe(1);
   });
 });
