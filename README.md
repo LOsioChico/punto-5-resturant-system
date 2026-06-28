@@ -231,9 +231,7 @@ pnpm supabase:stop
 
 ## Pending
 
-- [ ] Fill in real menu prices (items 1–9 are placeholders)
-- [ ] Add PWA icons (`public/icon-192.png`, `public/icon-512.png`)
 - [ ] Replace `window.print()` with printer bridge integration
 - [ ] Authentication (not needed for the POC, but required for production RLS enforcement)
 - [ ] Menu management UI (currently dishes are seeded via migrations only)
-- [ ] Metrics/reporting module (daily sales, popular items)
+- [ ] Metrics/reporting module (future scope — daily sales, popular items)
