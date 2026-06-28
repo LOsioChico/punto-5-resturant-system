@@ -1,6 +1,6 @@
 "use client";
 
-import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName } from "@/lib/utils";
+import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DELIVERY_FEE_PER_DISH } from "@/lib/utils";
 import type { Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { CommandPreview } from "./command-preview";
@@ -225,6 +225,16 @@ export function OrderDetail({
             ))}
           </ul>
 
+          {order.delivery_name && (
+            <div className="mt-3 flex items-center justify-between border-t border-white/5 px-1 pt-2">
+              <span className="text-xs text-yellow-500/70">
+                Domicilio ({order.items.reduce((s, i) => s + i.quantity, 0)} × {formatCOP(DELIVERY_FEE_PER_DISH)})
+              </span>
+              <span className="text-sm font-semibold text-yellow-500/70">
+                {formatCOP(order.items.reduce((s, i) => s + i.quantity, 0) * DELIVERY_FEE_PER_DISH)}
+              </span>
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-between px-1">
             <span className="text-sm text-stone-500">Total</span>
             <span className="text-xl font-bold text-yellow-500">
