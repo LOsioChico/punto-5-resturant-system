@@ -4,5 +4,11 @@
       "path": "/api/health",
       "schedule": "0 0 * * *"
     }
-  ]
+  ],
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "backups": false
+    }
+  }
 }
