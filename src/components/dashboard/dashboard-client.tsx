@@ -11,7 +11,7 @@ import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -592,6 +592,14 @@ export function DashboardClient() {
         </div>
         <div className="flex items-center gap-4">
           <ActiveWaiters waiters={waiters} />
+          <button
+            onClick={() => router.push("/dashboard/waiters")}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-300"
+            title="Gestión de meseros"
+          >
+            <UserCog className="size-4" />
+            <span className="hidden sm:inline">Meseros</span>
+          </button>
           <button
             onClick={async () => {
               await signOut();
