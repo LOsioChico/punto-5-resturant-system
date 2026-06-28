@@ -131,6 +131,18 @@ create policy "read_dishes" on dishes
   for select to authenticated using (true);
 
 -- ============================================================
+-- Waiters — read-only for authenticated, write via service_role only
+-- (admin manages waiters through the edge function using service role)
+-- ============================================================
+alter table waiters enable row level security;
+
+create policy "read_waiters" on waiters
+  for select to authenticated using (true);
+
+create policy "service_role_all_waiters" on waiters
+  for all to service_role using (true) with check (true);
+
+-- ============================================================
 -- Orders — admin: all | waiter: own orders only
 -- ============================================================
 create policy "orders_select" on orders
