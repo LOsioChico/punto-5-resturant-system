@@ -233,5 +233,4 @@ pnpm supabase:stop
 
 - [ ] Replace `window.print()` with printer bridge integration
 - [ ] Authentication (not needed for the POC, but required for production RLS enforcement)
-- [ ] Menu management UI (currently dishes are seeded via migrations only)
 - [ ] Metrics/reporting module (future scope — daily sales, popular items)
