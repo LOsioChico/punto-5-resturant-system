@@ -10,12 +10,18 @@ describe("getQuickNotes", () => {
     expect(notes).toContain("Sin piña");
   });
 
-  it("detects common ingredients", () => {
+  it("detects lechuga", () => {
     const notes = getQuickNotes("Carne de res, lechuga, ripio, queso mozzarella, salsas (tomate, mostaza, tártara) y papas a la francesa");
     expect(notes).toContain("Sin lechuga");
-    expect(notes).toContain("Sin ripio");
-    expect(notes).toContain("Sin queso mozzarella");
-    expect(notes).toContain("Sin papas");
+  });
+
+  it("does not include shortcuts for ripio, quesos, papas, jamón, tocineta", () => {
+    const notes = getQuickNotes("Doble carne de res, jamón, tocineta, ripio, lechuga, queso mozzarella, salsas (tártara, tomate, mostaza) y papas a la francesa");
+    expect(notes).not.toContain("Sin ripio");
+    expect(notes).not.toContain("Sin jamón");
+    expect(notes).not.toContain("Sin tocineta");
+    expect(notes).not.toContain("Sin queso mozzarella");
+    expect(notes).not.toContain("Sin papas");
   });
 
   it("always includes 'Para llevar'", () => {
@@ -46,12 +52,6 @@ describe("getQuickNotes", () => {
   it("includes 'Sin piña' when dish has piña", () => {
     const notes = getQuickNotes("Long (salchicha), carne de res, lechuga, ripio, queso costeño, queso mozzarella y salsas (tártara, piña, tomate)");
     expect(notes).toContain("Sin piña");
-  });
-
-  it("includes 'Sin jamón' and 'Sin tocineta' when present", () => {
-    const notes = getQuickNotes("Doble carne de res, jamón, tocineta, ripio, lechuga, queso mozzarella, salsas (tártara, tomate, mostaza) y papas a la francesa");
-    expect(notes).toContain("Sin jamón");
-    expect(notes).toContain("Sin tocineta");
   });
 
   it("orders notes: salsas first, then ingredients, then 'Para llevar'", () => {

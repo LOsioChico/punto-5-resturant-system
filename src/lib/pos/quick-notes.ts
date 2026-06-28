@@ -12,12 +12,6 @@
 /** Common ingredients to detect and offer "Sin X" for. */
 const INGREDIENT_NOTES: { match: RegExp; note: string }[] = [
   { match: /lechuga/i, note: "Sin lechuga" },
-  { match: /ripio/i, note: "Sin ripio" },
-  { match: /jamón/i, note: "Sin jamón" },
-  { match: /tocineta/i, note: "Sin tocineta" },
-  { match: /queso costeño/i, note: "Sin queso costeño" },
-  { match: /queso mozzarella/i, note: "Sin queso mozzarella" },
-  { match: /papa a la francesa|papas a la francesa/i, note: "Sin papas" },
 ];
 
 /**
