@@ -59,15 +59,6 @@ export function isOnColombiaDate(
 }
 
 /**
- * Check if the current Colombia time is at or past the 6am logout threshold.
- * Returns true if it's 6:00 AM or later in Colombia (waiter should be logged out).
- */
-export function isPastLogoutTime(now: Date = new Date()): boolean {
-  const zoned = toZonedTime(now, COLOMBIA_TZ);
-  return zoned.getHours() >= WAITER_LOGOUT_HOUR;
-}
-
-/**
  * Get the next 6am Colombia time as a UTC Date.
  * Used to set a timer for auto-logout.
  * If it's currently before 6am, returns today's 6am.

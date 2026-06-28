@@ -10,7 +10,6 @@
  */
 
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { nextLogoutTime } from "@/lib/timezone";
 import type { Waiter, AuthRole } from "@/lib/types";
 
 /** Prefix + minimum padding for waiter PINs (Supabase requires 6-char min). */
@@ -193,13 +192,4 @@ export async function getCurrentWaiter(): Promise<Waiter | null> {
     .single();
 
   return (waiter as Waiter) ?? null;
-}
-
-/**
- * Calculate milliseconds until the next 6am Colombia logout.
- * Used to set a setTimeout for auto-logout.
- */
-export function msUntilLogout(): number {
-  const logout = nextLogoutTime();
-  return logout.getTime() - Date.now();
 }
