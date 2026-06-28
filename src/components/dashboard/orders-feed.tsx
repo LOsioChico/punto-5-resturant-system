@@ -94,14 +94,8 @@ export function OrdersFeed({
               {/* Row 2 — waiter + status */}
               <div className="mt-1.5 flex items-center justify-between">
                 <span className="flex items-center gap-1 truncate text-xs text-stone-500">
-                  {order.delivery_name ? (
-                    <span className="font-medium text-yellow-400">{order.delivery_name}</span>
-                  ) : (
-                    <>
-                      <User className="size-3 shrink-0 text-stone-600" />
-                      {order.waiter_name}
-                    </>
-                  )}
+                  <User className="size-3 shrink-0 text-stone-600" />
+                  {order.waiter_name}
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-2 text-xs text-stone-500">
                   <span className={cn("size-2 rounded-full", statusDot[order.status])} />
