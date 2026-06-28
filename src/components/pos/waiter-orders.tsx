@@ -1,9 +1,9 @@
 "use client";
 
-import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName } from "@/lib/utils";
+import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine } from "lucide-react";
+import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike } from "lucide-react";
 
 const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; label: string }> = {
   nueva: { icon: <Clock className="size-5" />, ring: "bg-red-500", label: "Nueva" },
@@ -57,32 +57,34 @@ export function WaiterOrders({
             const isActive = order.status !== "servida";
             const canEdit = order.status === "nueva" || order.status === "en_cocina";
             const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
+            const isDelivery = isDeliveryTable(order.table_number);
 
             return (
               <li
                 key={order.id}
                 className={
                   isActive
-                    ? "overflow-hidden rounded-xl border border-white/10 bg-stone-900"
+                    ? isDelivery
+                      ? "overflow-hidden rounded-xl border border-yellow-500/20 bg-stone-900"
+                      : "overflow-hidden rounded-xl border border-white/10 bg-stone-900"
                     : "overflow-hidden rounded-xl border border-white/5 bg-stone-900/50"
                 }
               >
                 {/* Top row — table + status + time + edit */}
                 <div className="flex items-center justify-between px-5 py-4">
                   <div className="flex items-center gap-3">
-                    <span className="flex size-11 items-center justify-center rounded-lg bg-stone-950 text-base font-bold text-stone-200">
-                      {tableShortName(order.table_number)}
+                    <span className={
+                      isDelivery
+                        ? "flex size-11 items-center justify-center rounded-lg bg-yellow-500/10 text-yellow-400"
+                        : "flex size-11 items-center justify-center rounded-lg bg-stone-950 text-base font-bold text-stone-200"
+                    }>
+                      {isDelivery ? <Bike className="size-5" /> : tableShortName(order.table_number)}
                     </span>
                     <div>
                       <div className="flex items-center gap-2">
                         <p className="text-base font-semibold text-stone-100">
                           {tableLabel(order.table_number)}
                         </p>
-                        {order.delivery_name && (
-                          <span className="text-xs font-medium text-yellow-400">
-                            · {order.delivery_name}
-                          </span>
-                        )}
                         {wasModified && (
                           <span className="flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
                             <PencilLine className="size-2.5" />
@@ -90,9 +92,20 @@ export function WaiterOrders({
                           </span>
                         )}
                       </div>
-                      <p className="text-sm text-stone-500">
-                        {formatTime(order.created_at)} · {timeAgo(order.created_at)}
-                      </p>
+                      {order.delivery_name ? (
+                        <p className="text-sm font-medium text-yellow-400">
+                          {order.delivery_name}
+                        </p>
+                      ) : (
+                        <p className="text-sm text-stone-500">
+                          {formatTime(order.created_at)} · {timeAgo(order.created_at)}
+                        </p>
+                      )}
+                      {order.delivery_name && (
+                        <p className="text-xs text-stone-500">
+                          {formatTime(order.created_at)} · {timeAgo(order.created_at)}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
