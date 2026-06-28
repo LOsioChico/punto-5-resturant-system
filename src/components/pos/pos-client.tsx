@@ -49,6 +49,7 @@ export function PosClient() {
   const [sending, setSending] = useState(false);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [editInitialCart, setEditInitialCart] = useState<CartItem[] | null>(null);
+  const [additionalOrderId, setAdditionalOrderId] = useState<string | null>(null);
 
   // All orders (for table status + waiter history) — updated in realtime
   const [orders, setOrders] = useState<Order[]>([]);
@@ -383,6 +384,24 @@ export function PosClient() {
     setActiveTab("history");
   }, []);
 
+  // Start adding an additional to a served order
+  const startAdditional = useCallback((order: Order) => {
+    setAdditionalOrderId(order.id);
+    setSelectedTable(order.table_number);
+    setDeliveryName(order.delivery_name ?? "");
+    setCart([]);
+    setActiveTab("new");
+  }, []);
+
+  // Cancel additional — go back to history
+  const cancelAdditional = useCallback(() => {
+    setAdditionalOrderId(null);
+    setCart([]);
+    setSelectedTable(null);
+    setDeliveryName("");
+    setActiveTab("history");
+  }, []);
+
   const setNotes = useCallback((dishId: string, unitIndex: number, value: string) => {
     setCart((prev) =>
       prev.map((i) =>
@@ -468,6 +487,85 @@ export function PosClient() {
     setDeliveryName("");
     setSending(false);
   }, [supabase, waiterName, waiterId, authId, selectedTable, cart, deliveryName, toast]);
+
+  // Send additional items to a served order
+  const sendAdditional = useCallback(async () => {
+    if (!waiterName || !waiterId || !supabase || !additionalOrderId || cart.length === 0) return;
+    setSending(true);
+
+    const original = orders.find((o) => o.id === additionalOrderId);
+    if (!original) {
+      toast("No se encontró el pedido original", "error");
+      setSending(false);
+      return;
+    }
+
+    // Next additional round number
+    const nextRound = original.items.reduce((max, i) => {
+      return i.additional_number && i.additional_number > max ? i.additional_number : max;
+    }, 0) + 1;
+
+    // Insert additional items
+    const { error: itemsErr } = await supabase.from("order_items").insert(
+      cart.map((item) => ({
+        order_id: additionalOrderId,
+        dish_id: item.dish_id,
+        dish_name: item.dish_name,
+        price: item.price,
+        quantity: item.quantity,
+        notes: item.notes.some((n) => n.trim()) ? item.notes : null,
+        is_additional: true,
+        additional_number: nextRound,
+      })),
+    );
+
+    if (itemsErr) {
+      toast("Error al guardar el adicional", "error");
+      setSending(false);
+      return;
+    }
+
+    // Recalculate total (original items + new additional items)
+    const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const newTotal = original.total + additionalTotal;
+
+    // Move order back to "lista" so kitchen knows there's pending work
+    const { error: orderErr } = await supabase
+      .from("orders")
+      .update({ status: "lista", total: newTotal })
+      .eq("id", additionalOrderId);
+
+    if (orderErr) {
+      toast("Error al actualizar el pedido", "error");
+      setSending(false);
+      return;
+    }
+
+    // Log audit event
+    await supabase.from("order_events").insert({
+      order_id: additionalOrderId,
+      event_type: "additional_added",
+      actor_type: "waiter",
+      actor_name: waiterName,
+      actor_id: authId,
+      from_status: "servida",
+      to_status: "lista",
+      metadata: {
+        additional_number: nextRound,
+        item_count: cart.length,
+        additional_total: additionalTotal,
+        new_total: newTotal,
+        added_items: cart.map((i) => ({ name: i.dish_name, qty: i.quantity })),
+      },
+    });
+
+    toast(`Adicional #${nextRound} enviado a cocina — ${tableLabel(original.table_number)}`, "success");
+    setCart([]);
+    setAdditionalOrderId(null);
+    setSelectedTable(null);
+    setSending(false);
+    setActiveTab("history");
+  }, [supabase, waiterName, waiterId, authId, additionalOrderId, cart, orders, toast]);
 
   // Save edits to an existing order — diff items instead of delete+reinsert
   const saveEditedOrder = useCallback(async () => {
@@ -794,18 +892,24 @@ export function PosClient() {
       {/* Tabs */}
       <PosTabs
         active={activeTab}
-        onChange={setActiveTab}
+        onChange={(tab) => {
+          // Don't allow switching tabs while adding an additional
+          if (additionalOrderId && tab !== "new") return;
+          setActiveTab(tab);
+        }}
         historyCount={myActiveOrders.length}
       />
 
       {activeTab === "new" ? (
         <>
-          {/* Table selector */}
-          <TableSelector
-            selected={selectedTable}
-            onSelect={setSelectedTable}
-            tableStatuses={tableStatuses}
-          />
+          {/* Table selector — hidden when adding an additional (table is locked) */}
+          {!additionalOrderId && (
+            <TableSelector
+              selected={selectedTable}
+              onSelect={setSelectedTable}
+              tableStatuses={tableStatuses}
+            />
+          )}
 
           {/* Category pills — horizontal */}
           <CategoryList
@@ -842,6 +946,9 @@ export function PosClient() {
               editHasChanges={editHasChanges}
               onSaveEdit={saveEditedOrder}
               onCancelEdit={cancelEdit}
+              additionalOrderId={additionalOrderId}
+              onSendAdditional={sendAdditional}
+              onCancelAdditional={cancelAdditional}
             />
           </div>
         </>
@@ -850,6 +957,7 @@ export function PosClient() {
           orders={orders}
           waiterName={waiterName}
           onEdit={editOrder}
+          onAddAdditional={startAdditional}
         />
       )}
     </div>

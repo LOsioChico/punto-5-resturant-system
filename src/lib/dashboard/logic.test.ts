@@ -16,8 +16,13 @@ import {
   sortOrders,
   countPrints,
   parseEventMetadata,
+  hasAdditionals,
+  maxAdditionalNumber,
+  getAdditionalItems,
+  getOriginalItems,
+  additionalSubtotal,
 } from "./logic";
-import type { Order, OrderEvent } from "@/lib/types";
+import type { Order, OrderEvent, OrderItem } from "@/lib/types";
 
 // Helpers
 function makeOrder(overrides: Partial<Order> = {}): Order {
@@ -36,6 +41,22 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     updated_by: null,
     updated_at: null,
     updated_by_type: null,
+    ...overrides,
+  };
+}
+
+function makeItem(overrides: Partial<OrderItem> = {}): OrderItem {
+  return {
+    id: "item-1",
+    order_id: "order-1",
+    dish_id: "dish-1",
+    dish_name: "Hamburguesa",
+    category_name: "Hamburguesas",
+    price: 15000,
+    quantity: 1,
+    notes: null,
+    is_additional: false,
+    additional_number: null,
     ...overrides,
   };
 }
@@ -606,5 +627,151 @@ describe("parseEventMetadata", () => {
     expect(result.detailLines[0].type).toBe("add");
     expect(result.detailLines[1].type).toBe("mod");
     expect(result.detailLines[2].type).toBe("del");
+  });
+});
+
+// ============================================================
+// Additional helpers
+// ============================================================
+describe("hasAdditionals", () => {
+  it("returns false when no items are additional", () => {
+    const order = makeOrder({
+      items: [makeItem(), makeItem({ id: "item-2", is_additional: false })],
+    });
+    expect(hasAdditionals(order)).toBe(false);
+  });
+
+  it("returns true when at least one item is additional", () => {
+    const order = makeOrder({
+      items: [makeItem(), makeItem({ id: "item-2", is_additional: true, additional_number: 1 })],
+    });
+    expect(hasAdditionals(order)).toBe(true);
+  });
+
+  it("returns false for empty items", () => {
+    expect(hasAdditionals(makeOrder())).toBe(false);
+  });
+});
+
+describe("maxAdditionalNumber", () => {
+  it("returns 0 when no adicionals", () => {
+    const order = makeOrder({
+      items: [makeItem(), makeItem({ id: "item-2" })],
+    });
+    expect(maxAdditionalNumber(order)).toBe(0);
+  });
+
+  it("returns the highest additional_number", () => {
+    const order = makeOrder({
+      items: [
+        makeItem(),
+        makeItem({ id: "item-2", is_additional: true, additional_number: 1 }),
+        makeItem({ id: "item-3", is_additional: true, additional_number: 3 }),
+        makeItem({ id: "item-4", is_additional: true, additional_number: 2 }),
+      ],
+    });
+    expect(maxAdditionalNumber(order)).toBe(3);
+  });
+});
+
+describe("getAdditionalItems", () => {
+  it("returns only additional items when no round specified", () => {
+    const order = makeOrder({
+      items: [
+        makeItem(),
+        makeItem({ id: "item-2", is_additional: true, additional_number: 1 }),
+        makeItem({ id: "item-3", is_additional: true, additional_number: 2 }),
+      ],
+    });
+    const result = getAdditionalItems(order);
+    expect(result).toHaveLength(2);
+    expect(result[0].id).toBe("item-2");
+    expect(result[1].id).toBe("item-3");
+  });
+
+  it("returns only items for the specified round", () => {
+    const order = makeOrder({
+      items: [
+        makeItem(),
+        makeItem({ id: "item-2", is_additional: true, additional_number: 1 }),
+        makeItem({ id: "item-3", is_additional: true, additional_number: 2 }),
+        makeItem({ id: "item-4", is_additional: true, additional_number: 1 }),
+      ],
+    });
+    const result = getAdditionalItems(order, 1);
+    expect(result).toHaveLength(2);
+    expect(result.every((i) => i.additional_number === 1)).toBe(true);
+  });
+});
+
+describe("getOriginalItems", () => {
+  it("returns only non-additional items", () => {
+    const order = makeOrder({
+      items: [
+        makeItem(),
+        makeItem({ id: "item-2", is_additional: true, additional_number: 1 }),
+        makeItem({ id: "item-3" }),
+      ],
+    });
+    const result = getOriginalItems(order);
+    expect(result).toHaveLength(2);
+    expect(result.every((i) => !i.is_additional)).toBe(true);
+  });
+});
+
+describe("additionalSubtotal", () => {
+  it("calculates subtotal of all additional items", () => {
+    const order = makeOrder({
+      items: [
+        makeItem({ price: 15000, quantity: 2 }),
+        makeItem({ id: "item-2", price: 8000, quantity: 1, is_additional: true, additional_number: 1 }),
+        makeItem({ id: "item-3", price: 5000, quantity: 2, is_additional: true, additional_number: 2 }),
+      ],
+    });
+    // 8000*1 + 5000*2 = 18000
+    expect(additionalSubtotal(order)).toBe(18000);
+  });
+
+  it("calculates subtotal for a specific round", () => {
+    const order = makeOrder({
+      items: [
+        makeItem({ id: "item-2", price: 8000, quantity: 1, is_additional: true, additional_number: 1 }),
+        makeItem({ id: "item-3", price: 5000, quantity: 2, is_additional: true, additional_number: 2 }),
+      ],
+    });
+    expect(additionalSubtotal(order, 2)).toBe(10000);
+  });
+
+  it("returns 0 when no adicionals", () => {
+    const order = makeOrder({
+      items: [makeItem({ price: 15000, quantity: 2 })],
+    });
+    expect(additionalSubtotal(order)).toBe(0);
+  });
+});
+
+describe("sortOrders with adicionals", () => {
+  it("prioritizes active orders with adicionals over active orders without", () => {
+    const normal = makeOrder({ id: "normal", status: "lista", created_at: "2026-01-01T10:00:00Z" });
+    const withAdd = makeOrder({
+      id: "with-add",
+      status: "lista",
+      created_at: "2026-01-01T09:00:00Z", // earlier than normal
+      items: [makeItem({ is_additional: true, additional_number: 1 })],
+    });
+    const sorted = sortOrders([normal, withAdd]);
+    expect(sorted[0].id).toBe("with-add");
+  });
+
+  it("does not prioritize served orders with adicionals", () => {
+    const served = makeOrder({
+      id: "served",
+      status: "servida",
+      created_at: "2026-01-01T10:00:00Z",
+      items: [makeItem({ is_additional: true, additional_number: 1 })],
+    });
+    const active = makeOrder({ id: "active", status: "lista", created_at: "2026-01-01T09:00:00Z" });
+    const sorted = sortOrders([served, active]);
+    expect(sorted[0].id).toBe("active");
   });
 });

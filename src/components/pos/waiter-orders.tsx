@@ -3,7 +3,7 @@
 import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike } from "lucide-react";
+import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike, Plus } from "lucide-react";
 
 const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; label: string }> = {
   nueva: { icon: <Clock className="size-5" />, ring: "bg-red-500", label: "Nueva" },
@@ -17,10 +17,12 @@ export function WaiterOrders({
   orders,
   waiterName,
   onEdit,
+  onAddAdditional,
 }: {
   orders: Order[];
   waiterName: string;
   onEdit: (order: Order) => void;
+  onAddAdditional: (order: Order) => void;
 }) {
   const myOrders = orders
     .filter((o) => o.waiter_name === waiterName)
@@ -56,8 +58,10 @@ export function WaiterOrders({
             const config = statusConfig[order.status];
             const isActive = order.status !== "servida";
             const canEdit = order.status === "nueva" || order.status === "en_cocina";
+            const canAddAdditional = order.status === "servida";
             const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
             const isDelivery = isDeliveryTable(order.table_number);
+            const hasAdditionals = order.items.some((i) => i.is_additional);
 
             return (
               <li
@@ -124,6 +128,15 @@ export function WaiterOrders({
                         <PencilLine className="size-4" />
                       </button>
                     )}
+                    {canAddAdditional && (
+                      <button
+                        onClick={() => onAddAdditional(order)}
+                        className="ml-1 flex size-8 items-center justify-center rounded-lg bg-stone-800 text-stone-400 transition-colors hover:bg-yellow-500 hover:text-stone-950"
+                        title="Agregar adicional"
+                      >
+                        <Plus className="size-4" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -132,15 +145,21 @@ export function WaiterOrders({
                   <ul className="space-y-3">
                     {order.items.map((item) => {
                       const units = splitPerUnit(item);
+                      const isAdd = item.is_additional;
                       return (
-                        <li key={item.id}>
+                        <li key={item.id} className={isAdd ? "rounded-lg bg-stone-800/40 px-3 py-2 -mx-1" : ""}>
+                          {isAdd && (
+                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                              Adicional #{item.additional_number}
+                            </p>
+                          )}
                           {units ? (
                             // Split per unit when any unit has a note
                             <div className="space-y-1.5">
                               {units.map((u, idx) => (
                                 <div key={idx}>
                                   <div className="flex items-center justify-between text-base">
-                                    <span className="flex items-center gap-2.5 text-stone-300">
+                                    <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
                                       <span className="font-bold text-stone-400 tabular-nums">1x</span>
                                       <span>
                                         {item.category_name && (
@@ -164,7 +183,7 @@ export function WaiterOrders({
                           ) : (
                             // Grouped when no notes
                             <div className="flex items-center justify-between text-base">
-                              <span className="flex items-center gap-2.5 text-stone-300">
+                              <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
                                 <span className="font-bold text-stone-400 tabular-nums">
                                   {item.quantity}x
                                 </span>

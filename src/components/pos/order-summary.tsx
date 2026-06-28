@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn, formatCOP, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
+import { Minus, Plus, Trash2, Pencil, Send, PencilLine, PlusCircle } from "lucide-react";
 import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
 import { getQuickNotes } from "@/lib/pos/quick-notes";
 
@@ -25,6 +25,9 @@ export function OrderSummary({
   editHasChanges,
   onSaveEdit,
   onCancelEdit,
+  additionalOrderId,
+  onSendAdditional,
+  onCancelAdditional,
 }: {
   tableNumber: number | null;
   deliveryName: string;
@@ -42,6 +45,9 @@ export function OrderSummary({
   editHasChanges: boolean;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
+  additionalOrderId: string | null;
+  onSendAdditional: () => void;
+  onCancelAdditional: () => void;
 }) {
   // Track which item's notes are being edited
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
@@ -56,6 +62,7 @@ export function OrderSummary({
   const desechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
   const grandTotal = total + desechables;
   const isEditing = editingOrderId !== null;
+  const isAdditional = additionalOrderId !== null;
 
   // Close notes editor when clicking outside of it.
   // Uses 'click' (not 'mousedown') so button onClick handlers (like +/- counters)
@@ -106,6 +113,12 @@ export function OrderSummary({
                 Editando pedido
               </span>
             )}
+            {isAdditional && (
+              <span className="mb-0.5 flex items-center gap-1.5 text-xs font-medium text-blue-400">
+                <PlusCircle className="size-3" />
+                Adicional al pedido
+              </span>
+            )}
             {tableNumber !== null ? (
               <h2 className="text-base font-bold text-stone-100">{tableLabel(tableNumber)}</h2>
             ) : (
@@ -115,7 +128,7 @@ export function OrderSummary({
               {itemCount} {itemCount === 1 ? "plato" : "platos"}
             </p>
           </div>
-          {items.length > 0 && !isEditing && (
+          {items.length > 0 && !isEditing && !isAdditional && (
             <button
               onClick={() => {
                 if (confirmClear) {
@@ -408,6 +421,26 @@ export function OrderSummary({
               disabled={items.length === 0 || sending || !editHasChanges}
             >
               {sending ? "Guardando..." : items.length === 0 ? "Sin platos" : "Guardar cambios"}
+            </Button>
+          </div>
+        ) : isAdditional ? (
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              className="flex-1"
+              size="lg"
+              onClick={onCancelAdditional}
+              disabled={sending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              className="flex-1"
+              size="lg"
+              onClick={onSendAdditional}
+              disabled={items.length === 0 || sending}
+            >
+              {sending ? "Enviando..." : items.length === 0 ? "Sin platos" : "Enviar adicional"}
             </Button>
           </div>
         ) : (

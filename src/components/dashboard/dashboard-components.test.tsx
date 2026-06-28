@@ -17,6 +17,8 @@ function makeItem(overrides: Partial<OrderItem> = {}): OrderItem {
     price: 15000,
     quantity: 1,
     notes: null,
+    is_additional: false,
+    additional_number: null,
     ...overrides,
   };
 }

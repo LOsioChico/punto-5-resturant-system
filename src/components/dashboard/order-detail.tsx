@@ -16,6 +16,7 @@ import {
   User,
   PencilLine,
   Bike,
+  PlusCircle,
 } from "lucide-react";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -33,6 +34,7 @@ const EVENT_LABELS: Record<string, string> = {
   printed: "Impresión de comanda",
   updated: "Actualización",
   cancelled: "Cancelación",
+  additional_added: "Adicional agregado",
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -56,6 +58,7 @@ export function OrderDetail({
   onAdvanceStatus,
   onPrint,
   onSetDeliveryFee,
+  onAddAdditional,
   disabled = false,
 }: {
   order: Order | null;
@@ -63,10 +66,12 @@ export function OrderDetail({
   onAdvanceStatus: (id: string) => void;
   onPrint: (id: string) => void;
   onSetDeliveryFee: (id: string, fee: number) => void;
+  onAddAdditional: (order: Order) => void;
   disabled?: boolean;
 }) {
   const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
   const [editingFee, setEditingFee] = useState(false);
+  const [printAdditional, setPrintAdditional] = useState<number | undefined>(undefined);
 
   if (!order) {
     return (
@@ -190,7 +195,10 @@ export function OrderDetail({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => onPrint(order.id)}
+                onClick={() => {
+                  setPrintAdditional(undefined);
+                  onPrint(order.id);
+                }}
                 disabled={disabled}
               >
                 <Printer className="size-3.5" />
@@ -198,7 +206,49 @@ export function OrderDetail({
               </Button>
             </div>
           </div>
-          <CommandPreview order={order} />
+          <CommandPreview order={order} additionalOnly={printAdditional} />
+
+          {/* Additional print buttons — show if order has adicionals */}
+          {order.items.some((i) => i.is_additional) && (
+            <div className="mt-3 space-y-2">
+              <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
+                Imprimir adicional
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {/* Print full order (with adicionals highlighted) */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPrintAdditional(undefined);
+                    onPrint(order.id);
+                  }}
+                  disabled={disabled}
+                >
+                  <Printer className="size-3.5" />
+                  Comanda completa
+                </Button>
+                {/* Print each additional round separately */}
+                {Array.from(
+                  new Set(order.items.filter((i) => i.is_additional).map((i) => i.additional_number)),
+                ).map((round) => (
+                  <Button
+                    key={round}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setPrintAdditional(round ?? undefined);
+                      onPrint(order.id);
+                    }}
+                    disabled={disabled}
+                  >
+                    <Printer className="size-3.5" />
+                    Adicional #{round}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Items */}
@@ -209,41 +259,57 @@ export function OrderDetail({
           <ul className="overflow-hidden rounded-xl bg-stone-900">
             {order.items.map((item, idx) => {
               const units = splitPerUnit(item);
+              const isAdd = item.is_additional;
+              const addBadge = isAdd && idx === 0 || isAdd && !order.items[idx - 1]?.is_additional;
               return units ? (
                 // Split per unit when any unit has a note
-                units.map((u, unitIdx) => (
-                  <li
-                    key={`${item.id}-${unitIdx}`}
-                    className={idx > 0 || unitIdx > 0 ? "flex items-center gap-3 p-3.5 border-t border-white/5" : "flex items-center gap-3 p-3.5"}
-                  >
-                    <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-800 text-sm font-bold text-stone-200 tabular-nums">
-                      1
-                    </span>
-                    <div className="min-w-0 flex-1">
-                      <span className="block text-sm text-stone-100">
-                        {item.dish_name}
+                <div key={item.id}>
+                  {addBadge && (
+                    <div className="flex items-center gap-2 border-t border-white/5 bg-stone-800/30 px-3.5 py-1.5">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                        Adicional #{item.additional_number}
                       </span>
-                      {u.note && (
-                        <span className="block truncate text-xs text-amber-400/80">
-                          → {u.note}
-                        </span>
-                      )}
                     </div>
-                    <span className="text-sm font-medium text-stone-400">
-                      {formatCOP(item.price)}
-                    </span>
-                  </li>
-                ))
+                  )}
+                  {units.map((u, unitIdx) => (
+                    <li
+                      key={`${item.id}-${unitIdx}`}
+                      className={`flex items-center gap-3 p-3.5 ${idx > 0 || unitIdx > 0 ? "border-t border-white/5" : ""} ${isAdd ? "bg-stone-800/20" : ""}`}
+                    >
+                      <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums ${isAdd ? "bg-stone-800 text-stone-400" : "bg-stone-800 text-stone-200"}`}>
+                        1
+                      </span>
+                      <div className="min-w-0 flex-1">
+                        <span className={`block text-sm ${isAdd ? "text-stone-400" : "text-stone-100"}`}>
+                          {item.dish_name}
+                        </span>
+                        {u.note && (
+                          <span className="block truncate text-xs text-amber-400/80">
+                            → {u.note}
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-sm font-medium text-stone-400">
+                        {formatCOP(item.price)}
+                      </span>
+                    </li>
+                  ))}
+                </div>
               ) : (
                 <li
                   key={item.id}
-                  className={idx > 0 ? "flex items-center gap-3 p-3.5 border-t border-white/5" : "flex items-center gap-3 p-3.5"}
+                  className={`flex items-center gap-3 p-3.5 ${idx > 0 ? "border-t border-white/5" : ""} ${isAdd ? "bg-stone-800/20" : ""}`}
                 >
-                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-stone-800 text-sm font-bold text-stone-200 tabular-nums">
+                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums ${isAdd ? "bg-stone-800 text-stone-400" : "bg-stone-800 text-stone-200"}`}>
                     {item.quantity}
                   </span>
                   <div className="min-w-0 flex-1">
-                    <span className="block text-sm text-stone-100">
+                    {addBadge && (
+                      <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                        Adicional #{item.additional_number}
+                      </span>
+                    )}
+                    <span className={`block text-sm ${isAdd ? "text-stone-400" : "text-stone-100"}`}>
                       {item.dish_name}
                     </span>
                   </div>
@@ -380,7 +446,9 @@ export function OrderDetail({
                               ? "size-2.5 shrink-0 rounded-full bg-blue-400 ring-4 ring-blue-400/10"
                               : event.event_type === "updated"
                                 ? "size-2.5 shrink-0 rounded-full bg-amber-500 ring-4 ring-amber-500/10"
-                                : "size-2.5 shrink-0 rounded-full bg-stone-500 ring-4 ring-stone-500/10"
+                                : event.event_type === "additional_added"
+                                  ? "size-2.5 shrink-0 rounded-full bg-blue-500 ring-4 ring-blue-500/10"
+                                  : "size-2.5 shrink-0 rounded-full bg-stone-500 ring-4 ring-stone-500/10"
                         }
                       />
                       {idx < events.length - 1 && (
@@ -455,7 +523,7 @@ export function OrderDetail({
       </div>
 
       {/* Action bar */}
-      {nextStatus && action.label && (
+      {nextStatus && action.label ? (
         <div className="bg-stone-900/50 p-4">
           <Button
             className="w-full transition-all active:scale-[0.98]"
@@ -467,7 +535,20 @@ export function OrderDetail({
             {action.label}
           </Button>
         </div>
-      )}
+      ) : order.status === "servida" ? (
+        <div className="bg-stone-900/50 p-4">
+          <Button
+            variant="outline"
+            className="w-full transition-all active:scale-[0.98]"
+            size="lg"
+            onClick={() => onAddAdditional(order)}
+            disabled={disabled}
+          >
+            <PlusCircle className="size-4" />
+            Agregar adicional
+          </Button>
+        </div>
+      ) : null}
     </div>
   );
 }

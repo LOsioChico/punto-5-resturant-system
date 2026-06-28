@@ -2,7 +2,7 @@
  * Pure functions extracted from dashboard components for testability.
  */
 
-import type { Order, OrderStatus } from "@/lib/types";
+import type { Order, OrderItem, OrderStatus } from "@/lib/types";
 import { startOfTodayColombia, startOfYesterdayColombia, isOnColombiaDate } from "@/lib/timezone";
 
 export const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -118,12 +118,50 @@ export function getTableStatuses(orders: Order[]): Map<number, OrderStatus> {
   return map;
 }
 
-/** Sort orders: active first, then by created_at descending. */
+/** Check if an order has additional items. */
+export function hasAdditionals(order: Order): boolean {
+  return order.items.some((i) => i.is_additional);
+}
+
+/** Get the highest additional_number on an order (0 if none). */
+export function maxAdditionalNumber(order: Order): number {
+  return order.items.reduce((max, i) => {
+    if (i.additional_number && i.additional_number > max) return i.additional_number;
+    return max;
+  }, 0);
+}
+
+/** Get only the additional items for a specific round number. */
+export function getAdditionalItems(order: Order, round?: number): OrderItem[] {
+  return order.items.filter((i) => {
+    if (!i.is_additional) return false;
+    if (round !== undefined && i.additional_number !== round) return false;
+    return true;
+  });
+}
+
+/** Get the original (non-additional) items. */
+export function getOriginalItems(order: Order): OrderItem[] {
+  return order.items.filter((i) => !i.is_additional);
+}
+
+/** Calculate the subtotal for additional items only. */
+export function additionalSubtotal(order: Order, round?: number): number {
+  return getAdditionalItems(order, round).reduce((sum, i) => sum + i.price * i.quantity, 0);
+}
+
+/** Sort orders: active with adicionals first, then active, then served. */
 export function sortOrders(orders: Order[]): Order[] {
   return [...orders].sort((a, b) => {
     const aActive = a.status !== "servida" ? 0 : 1;
     const bActive = b.status !== "servida" ? 0 : 1;
     if (aActive !== bActive) return aActive - bActive;
+    // Among active orders, prioritize those with adicionals
+    if (aActive === 0) {
+      const aAdd = hasAdditionals(a) ? 0 : 1;
+      const bAdd = hasAdditionals(b) ? 0 : 1;
+      if (aAdd !== bAdd) return aAdd - bAdd;
+    }
     return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
   });
 }

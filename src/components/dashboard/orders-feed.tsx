@@ -3,7 +3,7 @@
 import { cn, timeAgo, formatTime, tableLabel, isDeliveryTable } from "@/lib/utils";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Clock, PencilLine, User, Bike } from "lucide-react";
+import { Clock, PencilLine, User, Bike, PlusCircle } from "lucide-react";
 
 const statusDot: Record<OrderStatus, string> = {
   nueva: "bg-red-500",
@@ -46,6 +46,7 @@ export function OrdersFeed({
         const isNew = order.status === "nueva";
         const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
         const isDelivery = isDeliveryTable(order.table_number);
+        const hasAdditionals = order.items.some((i) => i.is_additional);
 
         return (
           <li key={order.id}>
@@ -55,11 +56,13 @@ export function OrdersFeed({
                 "w-full rounded-lg px-3.5 py-3 text-left transition-all active:scale-[0.99]",
                 isSelected
                   ? "bg-stone-800 ring-1 ring-inset ring-yellow-500/40"
-                  : isNew
-                    ? "bg-red-500/5 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/10"
-                    : isDelivery
-                      ? "bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/15 hover:bg-yellow-500/10"
-                      : "bg-stone-900 hover:bg-stone-800/60",
+                  : hasAdditionals && order.status !== "servida"
+                    ? "bg-blue-500/5 ring-1 ring-inset ring-blue-500/20 hover:bg-blue-500/10"
+                    : isNew
+                      ? "bg-red-500/5 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/10"
+                      : isDelivery
+                        ? "bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/15 hover:bg-yellow-500/10"
+                        : "bg-stone-900 hover:bg-stone-800/60",
               )}
             >
               {/* Row 1 — table + time */}
@@ -72,6 +75,12 @@ export function OrdersFeed({
                   {isNew && (
                     <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-400">
                       Nuevo
+                    </span>
+                  )}
+                  {hasAdditionals && order.status !== "servida" && (
+                    <span className="flex items-center gap-0.5 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
+                      <PlusCircle className="size-2.5" />
+                      Adicional
                     </span>
                   )}
                   {wasModified && (

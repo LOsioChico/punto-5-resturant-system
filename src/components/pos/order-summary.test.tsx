@@ -34,6 +34,9 @@ const defaultProps = {
   editHasChanges: false,
   onSaveEdit: vi.fn(),
   onCancelEdit: vi.fn(),
+  additionalOrderId: null as string | null,
+  onSendAdditional: vi.fn(),
+  onCancelAdditional: vi.fn(),
 };
 
 function renderSummary(overrides: Partial<typeof defaultProps> = {}) {
@@ -49,6 +52,8 @@ function renderSummary(overrides: Partial<typeof defaultProps> = {}) {
   props.onSetAllNotes.mockClear();
   props.onSaveEdit.mockClear();
   props.onCancelEdit.mockClear();
+  props.onSendAdditional.mockClear();
+  props.onCancelAdditional.mockClear();
   return render(<OrderSummary {...props} />);
 }
 

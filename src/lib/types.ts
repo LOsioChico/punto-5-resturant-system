@@ -26,6 +26,8 @@ export interface OrderItem {
   price: number;
   quantity: number;
   notes: string[] | null;
+  is_additional: boolean;
+  additional_number: number | null;
 }
 
 export type OrderStatus = "nueva" | "en_cocina" | "lista" | "servida";
@@ -37,7 +39,8 @@ export type EventType =
   | "status_changed"
   | "printed"
   | "updated"
-  | "cancelled";
+  | "cancelled"
+  | "additional_added";
 
 export interface Order {
   id: string;

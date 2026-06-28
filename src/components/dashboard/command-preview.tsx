@@ -8,10 +8,15 @@ import type { Order } from "@/lib/types";
  * Items are grouped by category so kitchen stations can prep efficiently.
  * This is the layout that will eventually be sent to a printer.
  */
-export function CommandPreview({ order }: { order: Order }) {
+export function CommandPreview({ order, additionalOnly }: { order: Order; additionalOnly?: number }) {
+  // Filter items: if additionalOnly is set, show only that round; otherwise show all
+  const items = additionalOnly !== undefined
+    ? order.items.filter((i) => i.is_additional && i.additional_number === additionalOnly)
+    : order.items;
+
   // Group items by category_name
-  const grouped = new Map<string, typeof order.items>();
-  for (const item of order.items) {
+  const grouped = new Map<string, typeof items>();
+  for (const item of items) {
     const cat = item.category_name ?? "Sin categoría";
     const list = grouped.get(cat) ?? [];
     list.push(item);
@@ -19,10 +24,10 @@ export function CommandPreview({ order }: { order: Order }) {
   }
 
   const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
-  const itemCount = order.items.reduce((sum, i) => sum + i.quantity, 0);
+  const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = isDeliveryTable(order.table_number);
   const desechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
-  const subtotal = order.items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+  const subtotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
   return (
     <div className="mx-auto max-w-xs">
@@ -37,7 +42,9 @@ export function CommandPreview({ order }: { order: Order }) {
         {/* Header */}
         <div className="text-center">
           <p className="text-lg font-bold tracking-wider text-black">PUNTO 5</p>
-          <p className="text-xs text-stone-600">Comanda de cocina</p>
+          <p className="text-xs text-stone-600">
+            {additionalOnly !== undefined ? "ADICIONAL #" + additionalOnly : "Comanda de cocina"}
+          </p>
         </div>
 
         <div className="my-2 border-t border-dashed border-stone-300" />
@@ -116,28 +123,46 @@ export function CommandPreview({ order }: { order: Order }) {
         <div className="my-2 border-t border-dashed border-stone-300" />
 
         {/* Total */}
-        {isDelivery && (
+        {additionalOnly !== undefined ? (
+          // Additional-only print: show just the additional subtotal
           <>
-            <div className="flex items-center justify-between text-xs text-stone-600">
-              <span>Subtotal</span>
-              <span>{formatCOP(subtotal)}</span>
-            </div>
-            <div className="flex items-center justify-between text-xs text-stone-600">
-              <span>Desechables ({itemCount})</span>
-              <span>{formatCOP(desechables)}</span>
-            </div>
-            {order.delivery_fee > 0 && (
+            {isDelivery && (
               <div className="flex items-center justify-between text-xs text-stone-600">
-                <span>Domicilio</span>
-                <span>{formatCOP(order.delivery_fee)}</span>
+                <span>Desechables ({itemCount})</span>
+                <span>{formatCOP(desechables)}</span>
               </div>
             )}
+            <div className="flex items-center justify-between font-bold text-black">
+              <span>TOTAL ADICIONAL</span>
+              <span className="text-base">{formatCOP(subtotal + desechables)}</span>
+            </div>
+          </>
+        ) : (
+          <>
+            {isDelivery && (
+              <>
+                <div className="flex items-center justify-between text-xs text-stone-600">
+                  <span>Subtotal</span>
+                  <span>{formatCOP(subtotal)}</span>
+                </div>
+                <div className="flex items-center justify-between text-xs text-stone-600">
+                  <span>Desechables ({itemCount})</span>
+                  <span>{formatCOP(desechables)}</span>
+                </div>
+                {order.delivery_fee > 0 && (
+                  <div className="flex items-center justify-between text-xs text-stone-600">
+                    <span>Domicilio</span>
+                    <span>{formatCOP(order.delivery_fee)}</span>
+                  </div>
+                )}
+              </>
+            )}
+            <div className="flex items-center justify-between font-bold text-black">
+              <span>TOTAL</span>
+              <span className="text-base">{formatCOP(order.total)}</span>
+            </div>
           </>
         )}
-        <div className="flex items-center justify-between font-bold text-black">
-          <span>TOTAL</span>
-          <span className="text-base">{formatCOP(order.total)}</span>
-        </div>
 
         <div className="my-2 border-t border-dashed border-stone-300" />
         <p className="text-center text-xs text-stone-600">

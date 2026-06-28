@@ -7,11 +7,12 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
-import { filterByDate } from "@/lib/dashboard/logic";
+import { filterByDate, sortOrders } from "@/lib/dashboard/logic";
 import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
+import { AddAdditionalModal } from "./add-additional-modal";
 import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
@@ -49,6 +50,7 @@ export function DashboardClient() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [waiterFilterOpen, setWaiterFilterOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [additionalOrder, setAdditionalOrder] = useState<Order | null>(null);
   const [undoData, setUndoData] = useState<{
     orderId: string;
     fromStatus: OrderStatus;
@@ -438,6 +440,69 @@ export function DashboardClient() {
     [supabase, adminId, adminName],
   );
 
+  // Add additional items to a served order from the dashboard
+  const sendAdditional = useCallback(
+    async (
+      orderId: string,
+      items: { dish_id: string; dish_name: string; price: number; quantity: number }[],
+    ) => {
+      if (!supabase || items.length === 0) return;
+      const original = orders.find((o) => o.id === orderId);
+      if (!original) return;
+
+      // Next additional round number
+      const nextRound = original.items.reduce((max, i) => {
+        return i.additional_number && i.additional_number > max ? i.additional_number : max;
+      }, 0) + 1;
+
+      // Insert additional items
+      const { error: itemsErr } = await supabase.from("order_items").insert(
+        items.map((item) => ({
+          order_id: orderId,
+          dish_id: item.dish_id,
+          dish_name: item.dish_name,
+          price: item.price,
+          quantity: item.quantity,
+          is_additional: true,
+          additional_number: nextRound,
+        })),
+      );
+
+      if (itemsErr) return;
+
+      // Recalculate total
+      const additionalTotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
+      const newTotal = original.total + additionalTotal;
+
+      // Move order back to "lista"
+      await supabase
+        .from("orders")
+        .update({ status: "lista", total: newTotal })
+        .eq("id", orderId);
+
+      // Log audit event
+      await supabase.from("order_events").insert({
+        order_id: orderId,
+        event_type: "additional_added",
+        actor_type: "admin",
+        actor_name: adminName,
+        actor_id: adminId,
+        from_status: original.status,
+        to_status: "lista",
+        metadata: {
+          additional_number: nextRound,
+          item_count: items.length,
+          additional_total: additionalTotal,
+          new_total: newTotal,
+          added_items: items.map((i) => ({ name: i.dish_name, qty: i.quantity })),
+        },
+      });
+
+      setAdditionalOrder(null);
+    },
+    [supabase, orders, adminId, adminName],
+  );
+
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
   const displayError = configError ?? error;
 
@@ -451,7 +516,7 @@ export function DashboardClient() {
     let result = filteredByDate;
     if (statusFilter) result = result.filter((o) => o.status === statusFilter);
     if (waiterFilter) result = result.filter((o) => o.waiter_name === waiterFilter);
-    return result;
+    return sortOrders(result);
   }, [filteredByDate, statusFilter, waiterFilter]);
 
   // Unique waiter names from visible (date-filtered) orders
@@ -804,10 +869,21 @@ export function DashboardClient() {
             onAdvanceStatus={advanceStatus}
             onPrint={printOrder}
             onSetDeliveryFee={setDeliveryFee}
+            onAddAdditional={(order) => setAdditionalOrder(order)}
             disabled={!isOnline}
           />
         </div>
       </div>
+
+      {additionalOrder && (
+        <AddAdditionalModal
+          order={additionalOrder}
+          onClose={() => setAdditionalOrder(null)}
+          onSend={async (items) => {
+            await sendAdditional(additionalOrder.id, items);
+          }}
+        />
+      )}
     </div>
   );
 }

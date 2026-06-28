@@ -14,6 +14,8 @@ function makeItem(overrides: Partial<OrderItem> = {}): OrderItem {
     price: 15000,
     quantity: 2,
     notes: null,
+    is_additional: false,
+    additional_number: null,
     ...overrides,
   };
 }
@@ -61,7 +63,7 @@ const noop = () => {};
 // ============================================================
 describe("OrderDetail — empty state", () => {
   it("shows empty state when no order selected", () => {
-    render(<OrderDetail order={null} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={null} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Selecciona un pedido")).toBeInTheDocument();
   });
 });
@@ -71,20 +73,20 @@ describe("OrderDetail — empty state", () => {
 // ============================================================
 describe("OrderDetail — header", () => {
   it("shows table number", () => {
-    render(<OrderDetail order={makeOrder({ table_number: 7 })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ table_number: 7 })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     // "Mesa 7" appears in both the header <h2> and the CommandPreview;
     // target the header heading specifically.
     expect(screen.getByRole("heading", { name: "Mesa 7" })).toBeInTheDocument();
   });
 
   it("shows waiter name", () => {
-    render(<OrderDetail order={makeOrder({ waiter_name: "Carlos" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ waiter_name: "Carlos" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     // "Carlos" appears in the header and in the CommandPreview.
     expect(screen.getAllByText("Carlos").length).toBeGreaterThan(0);
   });
 
   it("shows status label", () => {
-    render(<OrderDetail order={makeOrder({ status: "en_cocina" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ status: "en_cocina" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     // "En cocina" appears in the header badge and in the progress steps.
     expect(screen.getAllByText("En cocina").length).toBeGreaterThan(0);
   });
@@ -94,12 +96,12 @@ describe("OrderDetail — header", () => {
       updated_by: "Juan",
       updated_at: new Date().toISOString(),
       updated_by_type: "waiter",
-    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText(/Modificado por Juan/)).toBeInTheDocument();
   });
 
   it("does not show 'Modificado por' badge when not modified", () => {
-    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.queryByText(/Modificado por/)).not.toBeInTheDocument();
   });
 
@@ -108,7 +110,7 @@ describe("OrderDetail — header", () => {
       updated_by: "admin",
       updated_at: new Date().toISOString(),
       updated_by_type: "admin",
-    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.queryByText(/Modificado por/)).not.toBeInTheDocument();
   });
 });
@@ -118,7 +120,7 @@ describe("OrderDetail — header", () => {
 // ============================================================
 describe("OrderDetail — progress steps", () => {
   it("shows all 4 status labels in progress", () => {
-    render(<OrderDetail order={makeOrder({ status: "nueva" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ status: "nueva" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getAllByText("Nueva").length).toBeGreaterThan(0);
     expect(screen.getAllByText("En cocina").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Lista").length).toBeGreaterThan(0);
@@ -131,35 +133,35 @@ describe("OrderDetail — progress steps", () => {
 // ============================================================
 describe("OrderDetail — action button", () => {
   it("shows 'Enviar a cocina' for nueva status", () => {
-    render(<OrderDetail order={makeOrder({ status: "nueva" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ status: "nueva" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByRole("button", { name: /Enviar a cocina/ })).toBeInTheDocument();
   });
 
   it("shows 'Marcar como lista' for en_cocina status", () => {
-    render(<OrderDetail order={makeOrder({ status: "en_cocina" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ status: "en_cocina" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByRole("button", { name: /Marcar como lista/ })).toBeInTheDocument();
   });
 
   it("shows 'Marcar como servida' for lista status", () => {
-    render(<OrderDetail order={makeOrder({ status: "lista" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ status: "lista" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByRole("button", { name: /Marcar como servida/ })).toBeInTheDocument();
   });
 
   it("does not show action button for servida status", () => {
-    render(<OrderDetail order={makeOrder({ status: "servida" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ status: "servida" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.queryByRole("button", { name: /Enviar|Marcar/ })).not.toBeInTheDocument();
   });
 
   it("calls onAdvanceStatus when action button clicked", async () => {
     const user = userEvent.setup();
     const onAdvanceStatus = vi.fn();
-    render(<OrderDetail order={makeOrder({ id: "test-id", status: "nueva" })} events={[]} onAdvanceStatus={onAdvanceStatus} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ id: "test-id", status: "nueva" })} events={[]} onAdvanceStatus={onAdvanceStatus} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     await user.click(screen.getByRole("button", { name: /Enviar a cocina/ }));
     expect(onAdvanceStatus).toHaveBeenCalledWith("test-id");
   });
 
   it("disables action button when disabled prop is true", () => {
-    render(<OrderDetail order={makeOrder({ status: "nueva" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} disabled />);
+    render(<OrderDetail order={makeOrder({ status: "nueva" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} disabled />);
     expect(screen.getByRole("button", { name: /Enviar a cocina/ })).toBeDisabled();
   });
 });
@@ -169,20 +171,20 @@ describe("OrderDetail — action button", () => {
 // ============================================================
 describe("OrderDetail — print", () => {
   it("shows print button", () => {
-    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByRole("button", { name: /Imprimir/ })).toBeInTheDocument();
   });
 
   it("calls onPrint when print button clicked", async () => {
     const user = userEvent.setup();
     const onPrint = vi.fn();
-    render(<OrderDetail order={makeOrder({ id: "print-id" })} events={[]} onAdvanceStatus={noop} onPrint={onPrint} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ id: "print-id" })} events={[]} onAdvanceStatus={noop} onPrint={onPrint} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     await user.click(screen.getByRole("button", { name: /Imprimir/ }));
     expect(onPrint).toHaveBeenCalledWith("print-id");
   });
 
   it("disables print button when disabled prop is true", () => {
-    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} disabled />);
+    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} disabled />);
     expect(screen.getByRole("button", { name: /Imprimir/ })).toBeDisabled();
   });
 
@@ -191,18 +193,18 @@ describe("OrderDetail — print", () => {
       makeEvent({ id: "e1", event_type: "printed" }),
       makeEvent({ id: "e2", event_type: "printed" }),
     ];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText(/2 impresiones/)).toBeInTheDocument();
   });
 
   it("shows singular 'impresión' for 1 print event", () => {
     const events = [makeEvent({ event_type: "printed" })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText(/1 impresión/)).toBeInTheDocument();
   });
 
   it("does not show print count when no print events", () => {
-    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.queryByText(/impresión/)).not.toBeInTheDocument();
   });
 });
@@ -214,7 +216,7 @@ describe("OrderDetail — items", () => {
   it("renders item names", () => {
     render(<OrderDetail order={makeOrder({
       items: [makeItem({ dish_name: "Hamburguesa Doble" })],
-    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     // The dish name appears in both the items list and the CommandPreview.
     expect(screen.getAllByText("Hamburguesa Doble").length).toBeGreaterThan(0);
   });
@@ -222,14 +224,14 @@ describe("OrderDetail — items", () => {
   it("renders item quantities", () => {
     render(<OrderDetail order={makeOrder({
       items: [makeItem({ quantity: 3 })],
-    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("3")).toBeInTheDocument();
   });
 
   it("shows notes with arrow prefix", () => {
     render(<OrderDetail order={makeOrder({
       items: [makeItem({ notes: ["Sin cebolla"] })],
-    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     // Notes with arrow prefix appear in both the items list and the CommandPreview.
     expect(screen.getAllByText("→ Sin cebolla").length).toBeGreaterThan(0);
   });
@@ -237,12 +239,12 @@ describe("OrderDetail — items", () => {
   it("does not show notes when null", () => {
     render(<OrderDetail order={makeOrder({
       items: [makeItem({ notes: null })],
-    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.queryByText(/→/)).not.toBeInTheDocument();
   });
 
   it("shows total", () => {
-    render(<OrderDetail order={makeOrder({ total: 45000 })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder({ total: 45000 })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Total")).toBeInTheDocument();
   });
 });
@@ -252,7 +254,7 @@ describe("OrderDetail — items", () => {
 // ============================================================
 describe("OrderDetail — history", () => {
   it("shows 'Sin eventos registrados' when no events", () => {
-    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Sin eventos registrados")).toBeInTheDocument();
   });
 
@@ -261,37 +263,37 @@ describe("OrderDetail — history", () => {
       makeEvent({ id: "e1" }),
       makeEvent({ id: "e2" }),
     ];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText(/Historial \(2\)/)).toBeInTheDocument();
   });
 
   it("shows 'Pedido creado' for created event", () => {
     const events = [makeEvent({ event_type: "created" })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Pedido creado")).toBeInTheDocument();
   });
 
   it("shows 'Cambio de estado' for status_changed event", () => {
     const events = [makeEvent({ event_type: "status_changed" })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Cambio de estado")).toBeInTheDocument();
   });
 
   it("shows 'Impresión de comanda' for printed event", () => {
     const events = [makeEvent({ event_type: "printed" })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Impresión de comanda")).toBeInTheDocument();
   });
 
   it("shows 'Actualización' for updated event", () => {
     const events = [makeEvent({ event_type: "updated" })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Actualización")).toBeInTheDocument();
   });
 
   it("shows actor name", () => {
     const events = [makeEvent({ actor_name: "Maria" })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("Maria")).toBeInTheDocument();
   });
 
@@ -301,7 +303,7 @@ describe("OrderDetail — history", () => {
       from_status: "nueva",
       to_status: "en_cocina",
     })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     // Status labels appear in the header, progress steps, and the transition line.
     expect(screen.getAllByText(/Nueva/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/En cocina/).length).toBeGreaterThan(0);
@@ -312,7 +314,7 @@ describe("OrderDetail — history", () => {
       event_type: "updated",
       metadata: { added: 2, updated: 1, removed: 1 },
     })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText("+2 agregados")).toBeInTheDocument();
     expect(screen.getByText("1 modificado")).toBeInTheDocument();
     expect(screen.getByText("-1 eliminado")).toBeInTheDocument();
@@ -326,7 +328,7 @@ describe("OrderDetail — history", () => {
         added_items: [{ name: "Papas Fritas", qty: 2 }],
       },
     })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText(/Papas Fritas \(2x\)/)).toBeInTheDocument();
   });
 
@@ -338,7 +340,7 @@ describe("OrderDetail — history", () => {
         updated_items: [{ name: "Burger", qty: 3, old_qty: 1, notes: null, old_notes: null }],
       },
     })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText(/Burger/)).toBeInTheDocument();
     expect(screen.getByText(/1x → 3x/)).toBeInTheDocument();
   });
@@ -351,7 +353,7 @@ describe("OrderDetail — history", () => {
         removed_items: [{ name: "Refresco", qty: 1 }],
       },
     })];
-    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.getByText(/Refresco \(1x\)/)).toBeInTheDocument();
   });
 });
