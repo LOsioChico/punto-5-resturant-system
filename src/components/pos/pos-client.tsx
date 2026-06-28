@@ -39,6 +39,7 @@ export function PosClient() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
 
   const [activeTab, setActiveTab] = useState<PosTab>("new");
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
@@ -740,7 +741,7 @@ export function PosClient() {
                   <button
                     onClick={() => {
                       setMenuOpen(false);
-                      handleLogout();
+                      setConfirmSignOut(true);
                     }}
                     className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
                   >
@@ -755,6 +756,40 @@ export function PosClient() {
           </div>
         </div>
       </div>
+
+      {/* Sign out confirmation modal */}
+      {confirmSignOut && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-stone-800 bg-stone-950 p-6 shadow-2xl">
+            <div className="mb-4 flex flex-col items-center gap-3 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10">
+                <LogOut className="size-6 text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-stone-100">¿Cerrar sesión?</h3>
+              <p className="text-sm text-stone-500">
+                Los pedidos enviados a cocina no se verán afectados.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmSignOut(false)}
+                className="flex-1 rounded-lg border border-stone-800 px-4 py-2.5 text-sm font-medium text-stone-300 transition-colors hover:bg-stone-900"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setConfirmSignOut(false);
+                  await handleLogout();
+                }}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-400"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Tabs */}
       <PosTabs

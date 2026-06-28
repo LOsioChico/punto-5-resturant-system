@@ -12,7 +12,7 @@ import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -46,6 +46,9 @@ export function DashboardClient() {
   const [waiterFilter, setWaiterFilter] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all">("today");
   const [isOnline, setIsOnline] = useState(true);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [waiterFilterOpen, setWaiterFilterOpen] = useState(false);
+  const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [undoData, setUndoData] = useState<{
     orderId: string;
     fromStatus: OrderStatus;
@@ -584,27 +587,92 @@ export function DashboardClient() {
         </div>
         <div className="flex items-center gap-4">
           <ActiveWaiters waiters={waiters} />
-          <button
-            onClick={() => router.push("/dashboard/waiters")}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-300"
-            title="Gestión de meseros"
-          >
-            <UserCog className="size-4" />
-            <span className="hidden sm:inline">Meseros</span>
-          </button>
-          <button
-            onClick={async () => {
-              await signOut();
-              router.replace("/login/admin");
-            }}
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-300"
-            title="Cerrar sesión"
-          >
-            <LogOut className="size-4" />
-            <span className="hidden sm:inline">Salir</span>
-          </button>
+          {/* Admin menu dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen(!menuOpen)}
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-300 transition-colors hover:bg-stone-800 hover:text-stone-100"
+            >
+              <UserCircle className="size-5 text-stone-500" />
+              <span className="hidden max-w-[160px] truncate sm:inline">{adminName}</span>
+              <ChevronDown className={`size-4 transition-transform ${menuOpen ? "rotate-180" : ""}`} />
+            </button>
+            {menuOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+                <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-lg border border-white/10 bg-stone-950 shadow-xl">
+                  {/* Manage waiters */}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      router.push("/dashboard/waiters");
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
+                  >
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-500">
+                      <UserCog className="size-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-stone-200">Gestión de meseros</p>
+                      <p className="text-xs text-stone-500">Crear, activar, desactivar</p>
+                    </div>
+                  </button>
+                  {/* Divider */}
+                  <div className="h-px bg-white/5" />
+                  {/* Sign out */}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setConfirmSignOut(true);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
+                  >
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-500">
+                      <LogOut className="size-5" />
+                    </div>
+                    <p className="text-sm text-stone-300">Cerrar sesión</p>
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* Sign out confirmation modal */}
+      {confirmSignOut && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-sm rounded-xl border border-stone-800 bg-stone-950 p-6 shadow-2xl">
+            <div className="mb-4 flex flex-col items-center gap-3 text-center">
+              <div className="flex size-12 items-center justify-center rounded-full bg-red-500/10">
+                <LogOut className="size-6 text-red-400" />
+              </div>
+              <h3 className="text-lg font-semibold text-stone-100">¿Cerrar sesión?</h3>
+              <p className="text-sm text-stone-500">
+                Tendrás que volver a iniciar sesión para acceder al panel.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setConfirmSignOut(false)}
+                className="flex-1 rounded-lg border border-stone-800 px-4 py-2.5 text-sm font-medium text-stone-300 transition-colors hover:bg-stone-900"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  setConfirmSignOut(false);
+                  await signOut();
+                  router.replace("/login/admin");
+                }}
+                className="flex-1 rounded-lg bg-red-500 px-4 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-red-400"
+              >
+                Cerrar sesión
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* KPI row — click to filter by status */}
       <div className="flex gap-3 px-6 py-4">
@@ -662,23 +730,51 @@ export function DashboardClient() {
                 </button>
               ))}
             </div>
-            {/* Waiter filter pills */}
+            {/* Waiter filter dropdown */}
             {visibleWaiters.length > 1 && (
               <div className="mt-2 flex items-center gap-1.5">
                 <Users className="size-3.5 shrink-0 text-stone-600" />
-                {visibleWaiters.map((name) => (
+                <div className="relative flex-1">
                   <button
-                    key={name}
-                    onClick={() => setWaiterFilter(waiterFilter === name ? null : name)}
-                    className={`rounded-md px-2 py-1 text-xs transition-colors ${
-                      waiterFilter === name
+                    onClick={() => setWaiterFilterOpen(!waiterFilterOpen)}
+                    className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-xs transition-colors ${
+                      waiterFilter
                         ? "bg-stone-800 font-medium text-stone-200"
                         : "text-stone-500 hover:bg-stone-800/50 hover:text-stone-300"
                     }`}
                   >
-                    {name}
+                    <span className="truncate">
+                      {waiterFilter ?? "Todos los meseros"}
+                    </span>
+                    <ChevronDown className={`size-3 shrink-0 transition-transform ${waiterFilterOpen ? "rotate-180" : ""}`} />
                   </button>
-                ))}
+                  {waiterFilterOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setWaiterFilterOpen(false)} />
+                      <div className="absolute left-0 top-7 z-50 max-h-60 w-full overflow-y-auto rounded-lg border border-white/10 bg-stone-950 py-1 shadow-xl">
+                        <button
+                          onClick={() => { setWaiterFilter(null); setWaiterFilterOpen(false); }}
+                          className={`flex w-full items-center px-3 py-2 text-left text-xs transition-colors hover:bg-stone-900 ${
+                            !waiterFilter ? "font-medium text-stone-200" : "text-stone-500"
+                          }`}
+                        >
+                          Todos los meseros
+                        </button>
+                        {visibleWaiters.map((name) => (
+                          <button
+                            key={name}
+                            onClick={() => { setWaiterFilter(waiterFilter === name ? null : name); setWaiterFilterOpen(false); }}
+                            className={`flex w-full items-center px-3 py-2 text-left text-xs transition-colors hover:bg-stone-900 ${
+                              waiterFilter === name ? "font-medium text-stone-200" : "text-stone-500"
+                            }`}
+                          >
+                            {name}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             )}
             {(statusFilter || waiterFilter) && (
