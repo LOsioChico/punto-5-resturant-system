@@ -24,7 +24,7 @@ jobs:
       - name: Fetch previous backup from backups branch
         run: |
           git fetch origin backups --depth=1 || true
-          git show origin/backups:data.sql.gz > prev_data.sql.gz 2>/dev/null || echo "No previous backup"
+          git show origin/backups:data.sql.gz > prev_data.sql.gz 2>/dev/null && echo "Found previous backup" || echo "No previous backup"
 
       - name: Dump current database
         env:
@@ -33,16 +33,20 @@ jobs:
           supabase db dump --linked --file schema.sql
           supabase db dump --linked --data-only --use-copy --file data.sql
 
-      - name: Compress
-        run: |
-          gzip schema.sql
-          gzip data.sql
-
-      - name: Check if data changed
+      - name: Check if data changed (compare uncompressed content)
         id: changed
         run: |
+          # Hash the current data dump
+          CURRENT_HASH=$(md5sum data.sql | awk '{print $1}')
+          echo "Current data hash: $CURRENT_HASH"
+          
           if [ -f prev_data.sql.gz ]; then
-            if cmp -s prev_data.sql.gz data.sql.gz; then
+            # Decompress previous and hash it
+            gunzip -c prev_data.sql.gz > prev_data.sql
+            PREV_HASH=$(md5sum prev_data.sql | awk '{print $1}')
+            echo "Previous data hash: $PREV_HASH"
+            
+            if [ "$CURRENT_HASH" = "$PREV_HASH" ]; then
               echo "changed=false" >> "$GITHUB_OUTPUT"
               echo "No changes since last backup — skipping."
             else
@@ -53,6 +57,12 @@ jobs:
             echo "changed=true" >> "$GITHUB_OUTPUT"
             echo "No previous backup — will backup."
           fi
+
+      - name: Compress
+        if: steps.changed.outputs.changed == 'true'
+        run: |
+          gzip schema.sql
+          gzip data.sql
 
       - name: Upload artifacts (90 day retention)
         if: steps.changed.outputs.changed == 'true'
