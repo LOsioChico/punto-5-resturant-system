@@ -296,6 +296,7 @@ export function PosClient() {
           dish_id: dish.id,
           dish_name: dish.name,
           category_name: categoryName,
+          description: dish.description,
           price: dish.price,
           quantity: 1,
           notes: [""],
@@ -342,10 +343,13 @@ export function PosClient() {
         const notes = i.notes ?? [];
         // Ensure notes array length matches quantity
         const syncedNotes = Array.from({ length: i.quantity }, (_, idx) => notes[idx] ?? "");
+        // Find the dish description from the dishes list
+        const dish = dishes.find((d) => d.id === i.dish_id);
         return {
           dish_id: i.dish_id,
           dish_name: i.dish_name,
           category_name: i.category_name ?? "",
+          description: dish?.description ?? "",
           price: i.price,
           quantity: i.quantity,
           notes: syncedNotes,
@@ -357,7 +361,7 @@ export function PosClient() {
       setCart(initialCart);
       setActiveTab("new");
     },
-    [],
+    [dishes],
   );
 
   // Cancel editing — go back to history without saving

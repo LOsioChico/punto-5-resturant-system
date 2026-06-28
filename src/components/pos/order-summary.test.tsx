@@ -8,6 +8,7 @@ function makeItem(overrides: Partial<CartItem> = {}): CartItem {
     dish_id: "dish-1",
     dish_name: "Hamburguesa",
     category_name: "Hamburguesas",
+    description: "Carne de res, lechuga, ripio, queso mozzarella y salsas (tártara, tomate, mostaza)",
     price: 15000,
     quantity: 2,
     notes: [],
@@ -124,9 +125,11 @@ describe("OrderSummary — notes", () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: [], quantity: 1 })] });
     await user.click(screen.getByText("Nota"));
-    // Quick note buttons should appear
+    // Quick note buttons should appear — based on dish description
     expect(screen.getByText("Sin salsas")).toBeInTheDocument();
-    expect(screen.getByText("Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("Sin lechuga")).toBeInTheDocument();
+    expect(screen.getByText("Sin tártara")).toBeInTheDocument();
+    expect(screen.getByText("Para llevar")).toBeInTheDocument();
   });
 
   it("calls onSetNotes when quick note is clicked", async () => {
@@ -134,18 +137,18 @@ describe("OrderSummary — notes", () => {
     const onSetNotes = vi.fn();
     renderSummary({ items: [makeItem({ dish_id: "d1", notes: [], quantity: 1 })], onSetNotes });
     await user.click(screen.getByText("Nota"));
-    await user.click(screen.getByText("Sin cebolla"));
-    expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "Sin cebolla");
+    await user.click(screen.getByText("Sin lechuga"));
+    expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "Sin lechuga");
   });
 
   it("toggles off a quick note that is already active", async () => {
     const user = userEvent.setup();
     const onSetNotes = vi.fn();
-    renderSummary({ items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla"] })], onSetNotes });
+    renderSummary({ items: [makeItem({ dish_id: "d1", notes: ["Sin lechuga"] })], onSetNotes });
     // The notes display button shows the existing note text; click it to open the editor.
-    await user.click(screen.getByText("→ Sin cebolla"));
-    // Now the quick-note chips are visible; click the active "Sin cebolla" chip to toggle it off.
-    await user.click(screen.getByText("Sin cebolla"));
+    await user.click(screen.getByText("→ Sin lechuga"));
+    // Now the quick-note chips are visible; click the active "Sin lechuga" chip to toggle it off.
+    await user.click(screen.getByText("Sin lechuga"));
     expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "");
   });
 

@@ -18,6 +18,7 @@ function item(
     dish_id,
     dish_name,
     category_name: "Test",
+    description: "",
     price,
     quantity,
     notes,

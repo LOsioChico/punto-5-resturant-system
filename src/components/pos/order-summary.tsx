@@ -5,16 +5,7 @@ import { cn, formatCOP } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
 import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
-
-const QUICK_NOTES = [
-  "Sin salsas",
-  "Sin tomate",
-  "Sin mostaza",
-  "Sin tártara",
-  "Sin piña",
-  "Sin cebolla",
-  "Para llevar",
-];
+import { getQuickNotes } from "@/lib/pos/quick-notes";
 
 /** Right panel — order summary. Always visible while ordering. */
 export function OrderSummary({
@@ -198,9 +189,13 @@ export function OrderSummary({
                 {/* Notes — one input per unit */}
                 {editingNotes === item.dish_id ? (
                   <div ref={notesEditorRef} className="mt-3 space-y-2">
-                    {/* Quick notes — apply to the focused unit */}
+                    {/* Quick notes — generated from dish description */}
+                    {(() => {
+                      const quickNotes = getQuickNotes(item.description);
+                      if (quickNotes.length <= 1) return null; // Only "Para llevar", skip
+                      return (
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
-                      {QUICK_NOTES.map((note) => {
+                      {quickNotes.map((note) => {
                         // Highlight only if the focused unit has this note
                         const unitIdx = editingNotesUnit ?? 0;
                         const currentUnitNotes = item.notes[unitIdx] ?? "";
@@ -225,6 +220,8 @@ export function OrderSummary({
                         );
                       })}
                     </div>
+                      );
+                    })()}
                     {/* One input per unit */}
                     {item.notes.map((note, unitIdx) => (
                       <input

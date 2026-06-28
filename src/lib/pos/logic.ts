@@ -6,6 +6,7 @@ export interface CartItem {
   dish_id: string;
   dish_name: string;
   category_name: string;
+  description: string;
   price: number;
   quantity: number;
   notes: string[];
