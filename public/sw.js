@@ -1,7 +1,7 @@
 // Simple service worker for PWA — matches the Next.js team's recommended approach.
 // https://nextjs.org/docs/app/guides/progressive-web-apps
 
-const CACHE_NAME = "punto5-v3";
+const CACHE_NAME = "punto5-v4";
 const OFFLINE_URL = "/~offline";
 const DASHBOARD_URL = "/dashboard";
 const NOTIFICATIONS_STORE = "notifications";
@@ -15,6 +15,15 @@ self.addEventListener("install", (event) => {
       cache.addAll([OFFLINE_URL, DASHBOARD_URL]).catch(() => cache.add(OFFLINE_URL)),
     ),
   );
+  // Activate immediately instead of waiting for all tabs to close
+  self.skipWaiting();
+});
+
+// Allow the page to trigger skipWaiting via postMessage
+self.addEventListener("message", (event) => {
+  if (event.data && event.data.type === "SKIP_WAITING") {
+    self.skipWaiting();
+  }
 });
 
 // Clean up old caches on activate.
@@ -26,7 +35,8 @@ self.addEventListener("activate", (event) => {
         Promise.all(
           keys.filter((k) => k !== CACHE_NAME).map((k) => caches.delete(k)),
         ),
-      ),
+      )
+      .then(() => self.clients.claim()),
   );
 });
 
@@ -128,7 +138,11 @@ self.addEventListener("notificationclick", (event) => {
   );
 });
 
-// --- Serve cached assets when offline, fall back to cached pages for navigations. ---
+// --- Fetch strategy ---
+// Navigations: network-first (so new HTML is always fetched).
+// Static assets (JS/CSS/images): stale-while-revalidate — serve from cache
+// immediately for speed, but fetch a fresh copy in the background so the
+// next load gets the updated bundle.
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
@@ -155,19 +169,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // For other requests, try cache first, then network.
+  // For other requests, use stale-while-revalidate:
+  // 1. Serve from cache immediately (fast)
+  // 2. Fetch from network in background and update cache (fresh next time)
+  const cached = caches.match(request);
+  const networkFetch = fetch(request).then((response) => {
+    if (response.ok && new URL(request.url).origin === self.location.origin) {
+      const copy = response.clone();
+      caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+    }
+    return response;
+  });
+
   event.respondWith(
-    caches.match(request).then(
-      (cached) =>
-        cached ||
-        fetch(request).then((response) => {
-          // Cache successful same-origin responses.
-          if (response.ok && new URL(request.url).origin === self.location.origin) {
-            const copy = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          }
-          return response;
-        }),
-    ),
+    cached.then((cachedResponse) => cachedResponse || networkFetch).catch(() => networkFetch),
   );
 });
