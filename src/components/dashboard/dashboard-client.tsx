@@ -8,7 +8,7 @@ import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, TrendingUp, Calendar, X, Users, WifiOff } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -483,9 +483,6 @@ export function DashboardClient() {
     lista: filteredByDate.filter((o) => o.status === "lista").length,
     servida: filteredByDate.filter((o) => o.status === "servida").length,
   };
-  const totalRevenue = filteredByDate
-    .filter((o) => o.status === "servida")
-    .reduce((sum, o) => sum + o.total, 0);
 
   const kpiCards: {
     status: OrderStatus;
@@ -605,26 +602,6 @@ export function DashboardClient() {
             </button>
           );
         })}
-
-        {/* Revenue — not clickable, just display */}
-        {totalRevenue > 0 && (
-          <div className="flex flex-1 items-center gap-3.5 rounded-xl bg-yellow-500/10 px-4 py-3">
-            <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-yellow-500/15 text-yellow-500">
-              <TrendingUp className="size-5" />
-            </div>
-            <div className="min-w-0">
-              <p className="text-2xl font-bold leading-none text-yellow-500">
-                {new Intl.NumberFormat("es-CO", {
-                  style: "currency",
-                  currency: "COP",
-                  minimumFractionDigits: 0,
-                  maximumFractionDigits: 0,
-                }).format(totalRevenue)}
-              </p>
-              <p className="mt-1 text-xs text-stone-500">Ventas del día</p>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Main 2-column layout */}
