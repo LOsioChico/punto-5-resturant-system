@@ -1,14 +1,16 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
-import { WaiterStart } from "./waiter-start";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
 import { DishGrid } from "./dish-grid";
@@ -18,32 +20,19 @@ import { WaiterOrders } from "./waiter-orders";
 import { PosTabs, type PosTab } from "./pos-tabs";
 import { Bell, BellOff, ChevronDown, LogOut } from "lucide-react";
 
-const WAITER_KEY = "punto5:waiter-name";
-
 export function PosClient() {
   const supabase = useMemo(() => createSupabaseClient(), []);
+  const router = useRouter();
   const { toast } = useToast();
+  const { waiter, user, loading: authLoading } = useAuth();
+  const waiterName = waiter?.name ?? null;
+  const waiterId = waiter?.id ?? null;
+  const authId = user?.id ?? null;
   const configError = !supabase
     ? "Faltan las variables de entorno de Supabase. Copia .env.example a .env.local y complétalas."
     : null;
 
-  const [waiterName, setWaiterName] = useState<string | null>(null);
-  // useSyncExternalStore gives us a hydration-safe "is client" flag
-  // without calling setState synchronously in an effect.
-  const hydrated = useSyncExternalStore(
-    () => () => {},
-    () => true,   // client
-    () => false,  // server
-  );
   const presenceChannelRef = useRef<ReturnType<NonNullable<ReturnType<typeof createSupabaseClient>>["channel"]> | null>(null);
-
-  // Read localStorage after hydration to avoid SSR mismatch
-  useEffect(() => {
-    if (!hydrated) return;
-    const stored = localStorage.getItem(WAITER_KEY);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- reading from localStorage on mount, only runs once
-    if (stored) setWaiterName(stored);
-  }, [hydrated]);
   const { permission, subscribed, subscribe, unsubscribe } = usePushSubscription(waiterName);
   const [categories, setCategories] = useState<Category[]>([]);
   const [dishes, setDishes] = useState<Dish[]>([]);
@@ -256,22 +245,16 @@ export function PosClient() {
     };
   }, [supabase, waiterName]);
 
-  const handleStart = useCallback((name: string) => {
-    localStorage.setItem(WAITER_KEY, name);
-    setWaiterName(name);
-  }, []);
-
-  // Logout — explicitly untrack from presence before clearing state
+  // Logout — explicitly untrack from presence before signing out
   // so the dashboard removes the waiter immediately.
   const handleLogout = useCallback(async () => {
     const channel = presenceChannelRef.current;
     if (channel) {
-      // Send untrack and give it a moment to flush over WebSocket
       await channel.untrack();
     }
-    localStorage.removeItem(WAITER_KEY);
-    setWaiterName(null);
-  }, []);
+    await signOut();
+    router.replace("/login/waiter");
+  }, [router]);
 
   const filteredDishes = useMemo(
     () => dishes.filter((d) => d.category_id === selectedCategory),
@@ -437,6 +420,7 @@ export function PosClient() {
       .insert({
         table_number: selectedTable,
         waiter_name: waiterName,
+        waiter_id: waiterId,
         status: "nueva",
         total,
         delivery_name: isDeliveryTable(selectedTable) ? deliveryName.trim() : null,
@@ -473,6 +457,7 @@ export function PosClient() {
       event_type: "created",
       actor_type: "waiter",
       actor_name: waiterName,
+      actor_id: authId,
       to_status: "nueva",
       metadata: { table_number: selectedTable, item_count: cart.length, total },
     });
@@ -481,7 +466,7 @@ export function PosClient() {
     setCart([]);
     setDeliveryName("");
     setSending(false);
-  }, [supabase, waiterName, selectedTable, cart, deliveryName, toast]);
+  }, [supabase, waiterName, waiterId, authId, selectedTable, cart, deliveryName, toast]);
 
   // Save edits to an existing order — diff items instead of delete+reinsert
   const saveEditedOrder = useCallback(async () => {
@@ -586,6 +571,7 @@ export function PosClient() {
       event_type: "updated",
       actor_type: "waiter",
       actor_name: waiterName,
+      actor_id: authId,
       to_status: original?.status ?? null,
       metadata: {
         table_number: selectedTable,
@@ -639,7 +625,7 @@ export function PosClient() {
     setDeliveryName("");
     setSending(false);
     setActiveTab("history");
-  }, [supabase, waiterName, editingOrderId, cart, orders, selectedTable, deliveryName, toast]);
+  }, [supabase, waiterName, authId, editingOrderId, cart, orders, selectedTable, deliveryName, toast]);
 
   // --- Render ---
 
@@ -650,15 +636,6 @@ export function PosClient() {
   }, [editInitialCart, cart, editingOrderId]);
 
   const displayError = configError ?? error;
-
-  // Don't render anything until hydrated — avoids SSR/client mismatch
-  if (!hydrated) {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-stone-950 text-stone-500">
-        Cargando...
-      </div>
-    );
-  }
 
   if (displayError) {
     return (
@@ -672,8 +649,13 @@ export function PosClient() {
     );
   }
 
-  if (!waiterName) {
-    return <WaiterStart onStart={handleStart} />;
+  // AuthGuard handles redirect, but show loading while auth resolves
+  if (authLoading || !waiterName) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center text-stone-500">
+        Cargando...
+      </div>
+    );
   }
 
   if (loading) {

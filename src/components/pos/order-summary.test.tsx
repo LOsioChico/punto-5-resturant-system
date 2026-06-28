@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { OrderSummary, type CartItem } from "./order-summary";
+import { OrderSummary } from "./order-summary";
+import { type CartItem } from "@/lib/pos/logic";
 
 function makeItem(overrides: Partial<CartItem> = {}): CartItem {
   return {
@@ -18,6 +19,8 @@ function makeItem(overrides: Partial<CartItem> = {}): CartItem {
 
 const defaultProps = {
   tableNumber: 5 as number | null,
+  deliveryName: "",
+  onDeliveryNameChange: vi.fn(),
   items: [] as CartItem[],
   onInc: vi.fn(),
   onDec: vi.fn(),
@@ -38,6 +41,7 @@ function renderSummary(overrides: Partial<typeof defaultProps> = {}) {
   // Reset mocks
   props.onInc.mockClear();
   props.onDec.mockClear();
+  props.onDeliveryNameChange.mockClear();
   props.onRemove.mockClear();
   props.onClear.mockClear();
   props.onSend.mockClear();

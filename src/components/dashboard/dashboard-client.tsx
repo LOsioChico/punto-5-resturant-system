@@ -2,13 +2,16 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { createSupabaseClient } from "@/lib/supabase/client";
+import { useAuth } from "@/lib/hooks/use-auth";
+import { signOut } from "@/lib/auth";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -22,6 +25,10 @@ const STATUS_LABELS: Record<OrderStatus, string> = {
 
 export function DashboardClient() {
   const supabase = useMemo(() => createSupabaseClient(), []);
+  const router = useRouter();
+  const { user, loading: authLoading } = useAuth();
+  const adminName = user?.email ?? "admin";
+  const adminId = user?.id ?? null;
   const configError = !supabase
     ? "Faltan las variables de entorno de Supabase. Copia .env.example a .env.local y complétalas."
     : null;
@@ -105,7 +112,7 @@ export function DashboardClient() {
       cacheOrders(ordersWithItems); // persist for offline use
       setLoading(false);
     })();
-  }, [supabase]);
+  }, [supabase, adminId, adminName]);
 
   // Keep IndexedDB cache in sync with orders state
   useEffect(() => {
@@ -196,7 +203,7 @@ export function DashboardClient() {
     return () => {
       supabase.removeChannel(orderChannel);
     };
-  }, [supabase]);
+  }, [supabase, adminId, adminName]);
 
   // Online/offline detection — just show a banner, don't auto-reload.
   // The admin can manually refresh the page when back online.
@@ -241,7 +248,7 @@ export function DashboardClient() {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [supabase]);
+  }, [supabase, adminId, adminName]);
 
   useEffect(() => {
     if (!supabase || !selectedId) {
@@ -297,7 +304,7 @@ export function DashboardClient() {
             ? {
                 ...o,
                 status: nextStatus,
-                updated_by: "admin",
+                updated_by: adminName,
                 updated_at: now,
                 updated_by_type: "admin",
               }
@@ -309,7 +316,7 @@ export function DashboardClient() {
         .from("orders")
         .update({
           status: nextStatus,
-          updated_by: "admin",
+          updated_by: adminName,
           updated_at: now,
           updated_by_type: "admin",
         })
@@ -327,7 +334,7 @@ export function DashboardClient() {
         order_id: id,
         event_type: "status_changed",
         actor_type: "admin",
-        actor_name: "admin",
+        actor_name: adminName, actor_id: adminId,
         from_status: fromStatus,
         to_status: nextStatus,
       });
@@ -336,7 +343,7 @@ export function DashboardClient() {
       setUndoData({ orderId: id, fromStatus, toStatus: nextStatus });
       setTimeout(() => setUndoData(null), 5000);
     },
-    [supabase, orders],
+    [supabase, orders, adminId, adminName],
   );
 
   // Admin sets the delivery fee for a delivery order
@@ -381,14 +388,14 @@ export function DashboardClient() {
     setOrders((prev) =>
       prev.map((o) =>
         o.id === orderId
-          ? { ...o, status: fromStatus, updated_at: now, updated_by: "admin", updated_by_type: "admin" }
+          ? { ...o, status: fromStatus, updated_at: now, updated_by: adminName, updated_by_type: "admin" }
           : o,
       ),
     );
 
     const { error: updateErr } = await supabase
       .from("orders")
-      .update({ status: fromStatus, updated_by: "admin", updated_at: now, updated_by_type: "admin" })
+      .update({ status: fromStatus, updated_by: adminName, updated_at: now, updated_by_type: "admin" })
       .eq("id", orderId);
 
     if (updateErr) {
@@ -404,13 +411,13 @@ export function DashboardClient() {
       order_id: orderId,
       event_type: "status_changed",
       actor_type: "admin",
-      actor_name: "admin",
+      actor_name: adminName, actor_id: adminId,
       from_status: toStatus,
       to_status: fromStatus,
     });
 
     setUndoData(null);
-  }, [supabase, undoData]);
+  }, [supabase, undoData, adminId, adminName]);
 
   const printOrder = useCallback(
     async (id: string) => {
@@ -419,12 +426,12 @@ export function DashboardClient() {
         order_id: id,
         event_type: "printed",
         actor_type: "admin",
-        actor_name: "admin",
+        actor_name: adminName, actor_id: adminId,
         metadata: { printed_at: new Date().toISOString() },
       });
       window.print();
     },
-    [supabase],
+    [supabase, adminId, adminName],
   );
 
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
@@ -466,6 +473,15 @@ export function DashboardClient() {
           Verifica que las variables de entorno de Supabase estén configuradas y
           que el esquema SQL haya sido ejecutado.
         </p>
+      </div>
+    );
+  }
+
+  // AuthGuard handles redirect, but show loading while auth resolves
+  if (authLoading) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center text-stone-500">
+        Cargando...
       </div>
     );
   }
@@ -574,7 +590,20 @@ export function DashboardClient() {
             </p>
           </div>
         </div>
-        <ActiveWaiters waiters={waiters} />
+        <div className="flex items-center gap-4">
+          <ActiveWaiters waiters={waiters} />
+          <button
+            onClick={async () => {
+              await signOut();
+              router.replace("/login/admin");
+            }}
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-stone-500 transition-colors hover:bg-stone-800 hover:text-stone-300"
+            title="Cerrar sesión"
+          >
+            <LogOut className="size-4" />
+            <span className="hidden sm:inline">Salir</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI row — click to filter by status */}

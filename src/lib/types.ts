@@ -43,6 +43,7 @@ export interface Order {
   id: string;
   table_number: number;
   waiter_name: string;
+  waiter_id: string | null;
   status: OrderStatus;
   total: number;
   notes: string | null;
@@ -63,6 +64,7 @@ export interface OrderEvent {
   event_type: EventType;
   actor_type: ActorType;
   actor_name: string;
+  actor_id: string | null;
   from_status: OrderStatus | null;
   to_status: OrderStatus | null;
   metadata: Record<string, unknown>;
@@ -74,3 +76,18 @@ export interface ActiveWaiter {
   name: string;
   joinedAt: string;
 }
+
+/** A waiter account (linked to Supabase Auth). */
+export interface Waiter {
+  id: string;
+  auth_id: string;
+  cedula: string;
+  name: string;
+  is_active: boolean;
+  pin_changed: boolean;
+  created_at: string;
+  created_by: string | null;
+}
+
+/** Auth user role. */
+export type AuthRole = "admin" | "waiter";

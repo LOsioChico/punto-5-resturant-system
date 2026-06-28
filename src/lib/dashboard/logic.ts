@@ -3,6 +3,7 @@
  */
 
 import type { Order, OrderStatus } from "@/lib/types";
+import { startOfTodayColombia, startOfYesterdayColombia, isOnColombiaDate } from "@/lib/timezone";
 
 export const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
 
@@ -53,21 +54,17 @@ export function isOrderActive(status: OrderStatus): boolean {
   return status !== "servida";
 }
 
-/** Filter orders by date (today, yesterday, or all). */
+/** Filter orders by date (today, yesterday, or all) in Colombia timezone. */
 export function filterByDate(
   orders: Order[],
   filter: "today" | "yesterday" | "all",
   now: Date = new Date(),
 ): Order[] {
   if (filter === "all") return orders;
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today.getTime() - 86_400_000);
-  const target = filter === "today" ? today : yesterday;
-  const nextDay = new Date(target.getTime() + 86_400_000);
-  return orders.filter((o) => {
-    const created = new Date(o.created_at);
-    return created >= target && created < nextDay;
-  });
+  const target = filter === "today"
+    ? startOfTodayColombia(now)
+    : startOfYesterdayColombia(now);
+  return orders.filter((o) => isOnColombiaDate(o.created_at, target));
 }
 
 /** Filter orders by status. */

@@ -1,6 +1,7 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
 import type { Order, OrderItem } from "./types";
+import { formatInColombia } from "./timezone";
 
 /** Merge Tailwind classes with conditional support. */
 export function cn(...inputs: ClassValue[]) {
@@ -25,13 +26,9 @@ export function formatCOP(value: number): string {
   }).format(value);
 }
 
-/** Format a timestamp as a short Spanish time string. */
+/** Format a timestamp as a short Spanish time string in Colombia timezone. */
 export function formatTime(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
-  return new Intl.DateTimeFormat("es-CO", {
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(d);
+  return formatInColombia(date, "HH:mm");
 }
 
 /** Human-readable elapsed time since a timestamp, in Spanish. */

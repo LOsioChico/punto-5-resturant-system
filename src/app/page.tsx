@@ -27,7 +27,7 @@ export default function HomePage() {
 
       <div className="grid w-full max-w-md gap-3 sm:grid-cols-2">
         <Link
-          href="/pos"
+          href="/login/waiter"
           className="group flex flex-col items-center gap-3 rounded-xl border border-stone-800 bg-stone-950 p-8 transition-all hover:border-yellow-500/50 hover:bg-stone-900/50 active:scale-[0.98]"
         >
           <div className="flex size-12 items-center justify-center rounded-xl bg-stone-900 transition-colors group-hover:bg-yellow-500/15">
@@ -40,7 +40,7 @@ export default function HomePage() {
         </Link>
 
         <Link
-          href="/dashboard"
+          href="/login/admin"
           className="group flex flex-col items-center gap-3 rounded-xl border border-stone-800 bg-stone-950 p-8 transition-all hover:border-yellow-500/50 hover:bg-stone-900/50 active:scale-[0.98]"
         >
           <div className="flex size-12 items-center justify-center rounded-xl bg-stone-900 transition-colors group-hover:bg-yellow-500/15">

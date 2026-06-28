@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
 import { ToastProvider } from "@/components/ui/toast";
+import { AuthProvider } from "@/lib/hooks/use-auth";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -76,8 +77,10 @@ export default function RootLayout({
     >
       <body className="h-full bg-stone-950 text-stone-100" suppressHydrationWarning>
         <ToastProvider>
-          <ServiceWorkerRegister />
-          {children}
+          <AuthProvider>
+            <ServiceWorkerRegister />
+            {children}
+          </AuthProvider>
         </ToastProvider>
       </body>
     </html>
