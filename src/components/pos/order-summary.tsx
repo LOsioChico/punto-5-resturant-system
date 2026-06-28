@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { cn, formatCOP, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
-import { Minus, Plus, Trash2, Pencil, Send, PencilLine, PlusCircle, Layers, SquareStack } from "lucide-react";
+import { Minus, Plus, Trash2, Pencil, Send, PencilLine, PlusCircle } from "lucide-react";
 import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
 import { getQuickNotes } from "@/lib/pos/quick-notes";
 
@@ -234,29 +234,27 @@ export function OrderSummary({
                   <div ref={notesEditorRef} className="mt-3 space-y-2">
                     {/* Mode toggle — only for multi-unit items */}
                     {item.quantity > 1 && (
-                      <div className="flex gap-1 rounded-lg bg-stone-800/60 p-1">
+                      <div className="flex w-fit gap-0.5 rounded-md bg-stone-800/80 p-0.5">
                         <button
                           onClick={() => setNotesMode("all")}
                           className={cn(
-                            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all",
+                            "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
                             notesMode === "all"
-                              ? "bg-stone-700 text-stone-100 shadow-sm"
+                              ? "bg-stone-600 text-stone-100"
                               : "text-stone-500 hover:text-stone-300",
                           )}
                         >
-                          <Layers className="size-3.5" />
                           Todas
                         </button>
                         <button
                           onClick={() => setNotesMode("perUnit")}
                           className={cn(
-                            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium transition-all",
+                            "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
                             notesMode === "perUnit"
-                              ? "bg-stone-700 text-stone-100 shadow-sm"
+                              ? "bg-stone-600 text-stone-100"
                               : "text-stone-500 hover:text-stone-300",
                           )}
                         >
-                          <SquareStack className="size-3.5" />
                           Por unidad
                         </button>
                       </div>
