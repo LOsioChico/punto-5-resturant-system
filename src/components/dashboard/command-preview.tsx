@@ -46,6 +46,12 @@ export function CommandPreview({ order }: { order: Order }) {
             {order.updated_at ? formatTime(order.updated_at) : formatTime(order.created_at)}
           </span>
         </div>
+        {/* Delivery customer name — shown prominently for delivery orders */}
+        {order.delivery_name && (
+          <div className="mt-1 rounded border border-stone-400 bg-stone-100 px-2 py-1 text-center">
+            <span className="text-sm font-bold text-black">{order.delivery_name}</span>
+          </div>
+        )}
         <div className="flex items-center justify-between text-xs text-stone-600">
           <span>{order.waiter_name}</span>
           <span>{itemCount} {itemCount === 1 ? "plato" : "platos"}</span>

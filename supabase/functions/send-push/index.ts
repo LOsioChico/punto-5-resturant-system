@@ -47,6 +47,7 @@ Deno.serve(async (req) => {
 
     const waiterName = record.waiter_name;
     const tableNumber = record.table_number;
+    const deliveryName = record.delivery_name;
     const newStatus = record.status;
     const statusMsg = STATUS_MESSAGES[newStatus] ?? newStatus;
 
@@ -72,7 +73,9 @@ Deno.serve(async (req) => {
       );
     }
 
-    const tableLabel = tableNumber === 18 ? "Domicilio" : `Mesa ${tableNumber}`;
+    const tableLabel = tableNumber === 18
+      ? (deliveryName ? `Domicilio - ${deliveryName}` : "Domicilio")
+      : `Mesa ${tableNumber}`;
     const payload = JSON.stringify({
       title: tableLabel,
       body: statusMsg.charAt(0).toUpperCase() + statusMsg.slice(1),

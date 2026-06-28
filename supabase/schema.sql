@@ -29,12 +29,13 @@ create index if not exists idx_dishes_category on dishes(category_id);
 -- Orders placed by waiters from the POS
 create table if not exists orders (
   id              uuid primary key default gen_random_uuid(),
-  table_number    int  not null,              -- table number
+  table_number    int  not null,              -- table number (1-17 = dining, 18 = delivery/to-go)
   waiter_name     text not null,              -- waiter name (no auth in POC)
   status          text not null default 'nueva'
     check (status in ('nueva','en_cocina','lista','servida')),
   total           int  not null default 0,    -- total in pesos
   notes           text,
+  delivery_name   text,                       -- customer name for delivery orders (table 18)
   created_at      timestamptz not null default now(),
   -- Audit tracking: who last touched this order
   updated_by      text,                        -- name of the last actor

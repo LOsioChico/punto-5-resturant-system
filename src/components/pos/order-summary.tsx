@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { cn, formatCOP, tableLabel } from "@/lib/utils";
+import { cn, formatCOP, tableLabel, isDeliveryTable } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine } from "lucide-react";
 import { toggleQuickNote, type CartItem } from "@/lib/pos/logic";
@@ -10,6 +10,8 @@ import { getQuickNotes } from "@/lib/pos/quick-notes";
 /** Right panel — order summary. Always visible while ordering. */
 export function OrderSummary({
   tableNumber,
+  deliveryName,
+  onDeliveryNameChange,
   items,
   onInc,
   onDec,
@@ -24,6 +26,8 @@ export function OrderSummary({
   onCancelEdit,
 }: {
   tableNumber: number | null;
+  deliveryName: string;
+  onDeliveryNameChange: (name: string) => void;
   items: CartItem[];
   onInc: (dishId: string) => void;
   onDec: (dishId: string) => void;
@@ -72,7 +76,9 @@ export function OrderSummary({
       ? "Agrega platos al pedido"
       : tableNumber === null
         ? "Selecciona una mesa"
-        : null;
+        : isDeliveryTable(tableNumber) && !deliveryName.trim()
+          ? "Ingresa el nombre del cliente"
+          : null;
 
   const showTooltip = () => {
     if (sendDisabledReason) {
@@ -84,28 +90,29 @@ export function OrderSummary({
   return (
     <aside className="flex w-80 shrink-0 flex-col border-l border-white/5 bg-stone-900">
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-white/5 px-4 py-3.5">
-        <div>
-          {isEditing && (
-            <span className="mb-0.5 flex items-center gap-1.5 text-xs font-medium text-amber-400">
-              <PencilLine className="size-3" />
-              Editando pedido
-            </span>
-          )}
-          {tableNumber !== null ? (
-            <h2 className="text-base font-bold text-stone-100">{tableLabel(tableNumber)}</h2>
-          ) : (
-            <h2 className="text-base font-bold text-stone-100">Sin mesa</h2>
-          )}
-          <p className="text-xs text-stone-500">
-            {itemCount} {itemCount === 1 ? "plato" : "platos"}
-          </p>
-        </div>
-        {items.length > 0 && !isEditing && (
-          <button
-            onClick={() => {
-              if (confirmClear) {
-                onClear();
+      <div className="border-b border-white/5 px-4 py-3.5">
+        <div className="flex items-center justify-between">
+          <div>
+            {isEditing && (
+              <span className="mb-0.5 flex items-center gap-1.5 text-xs font-medium text-amber-400">
+                <PencilLine className="size-3" />
+                Editando pedido
+              </span>
+            )}
+            {tableNumber !== null ? (
+              <h2 className="text-base font-bold text-stone-100">{tableLabel(tableNumber)}</h2>
+            ) : (
+              <h2 className="text-base font-bold text-stone-100">Sin mesa</h2>
+            )}
+            <p className="text-xs text-stone-500">
+              {itemCount} {itemCount === 1 ? "plato" : "platos"}
+            </p>
+          </div>
+          {items.length > 0 && !isEditing && (
+            <button
+              onClick={() => {
+                if (confirmClear) {
+                  onClear();
                 setConfirmClear(false);
               } else {
                 setConfirmClear(true);
@@ -121,6 +128,17 @@ export function OrderSummary({
           >
             {confirmClear ? "¿Seguro?" : "Limpiar"}
           </button>
+        )}
+        </div>
+        {/* Delivery name input — shown when Domicilio (table 18) is selected */}
+        {tableNumber !== null && isDeliveryTable(tableNumber) && (
+          <input
+            type="text"
+            value={deliveryName}
+            onChange={(e) => onDeliveryNameChange(e.target.value)}
+            placeholder="Nombre del cliente *"
+            className="mt-3 w-full rounded-lg border border-yellow-500/30 bg-stone-950 px-3 py-2 text-sm text-stone-100 placeholder:text-yellow-500/50 focus:border-yellow-500/50 focus:outline-none"
+          />
         )}
       </div>
 

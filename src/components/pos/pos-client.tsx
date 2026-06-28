@@ -6,7 +6,7 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
 import { NotificationBell } from "@/components/ui/notification-bell";
 import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
-import { tableLabel } from "@/lib/utils";
+import { tableLabel, isDeliveryTable } from "@/lib/utils";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { WaiterStart } from "./waiter-start";
 import { TableSelector } from "./table-selector";
@@ -45,6 +45,7 @@ export function PosClient() {
 
   const [activeTab, setActiveTab] = useState<PosTab>("new");
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
+  const [deliveryName, setDeliveryName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sending, setSending] = useState(false);
@@ -358,6 +359,7 @@ export function PosClient() {
       });
       setEditingOrderId(order.id);
       setSelectedTable(order.table_number);
+      setDeliveryName(order.delivery_name ?? "");
       setEditInitialCart(initialCart);
       setCart(initialCart);
       setActiveTab("new");
@@ -371,6 +373,7 @@ export function PosClient() {
     setEditInitialCart(null);
     setCart([]);
     setSelectedTable(null);
+    setDeliveryName("");
     setActiveTab("history");
   }, []);
 
@@ -387,6 +390,11 @@ export function PosClient() {
   const sendOrder = useCallback(async () => {
     if (!waiterName || !supabase || selectedTable === null || cart.length === 0)
       return;
+    // Delivery orders require a customer name
+    if (isDeliveryTable(selectedTable) && !deliveryName.trim()) {
+      toast("Ingresa el nombre del cliente para el domicilio", "error");
+      return;
+    }
     setSending(true);
     const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0);
 
@@ -397,6 +405,7 @@ export function PosClient() {
         waiter_name: waiterName,
         status: "nueva",
         total,
+        delivery_name: isDeliveryTable(selectedTable) ? deliveryName.trim() : null,
       })
       .select("id")
       .single();
@@ -436,8 +445,9 @@ export function PosClient() {
 
     toast(`Pedido enviado a cocina — ${tableLabel(selectedTable)}`, "success");
     setCart([]);
+    setDeliveryName("");
     setSending(false);
-  }, [supabase, waiterName, selectedTable, cart, toast]);
+  }, [supabase, waiterName, selectedTable, cart, deliveryName, toast]);
 
   // Save edits to an existing order — diff items instead of delete+reinsert
   const saveEditedOrder = useCallback(async () => {
@@ -572,6 +582,7 @@ export function PosClient() {
       .from("orders")
       .update({
         total,
+        delivery_name: isDeliveryTable(selectedTable!) ? deliveryName.trim() : null,
         updated_by: waiterName,
         updated_at: new Date().toISOString(),
         updated_by_type: "waiter",
@@ -589,9 +600,10 @@ export function PosClient() {
     setEditingOrderId(null);
     setEditInitialCart(null);
     setSelectedTable(null);
+    setDeliveryName("");
     setSending(false);
     setActiveTab("history");
-  }, [supabase, waiterName, editingOrderId, cart, orders, selectedTable, toast]);
+  }, [supabase, waiterName, editingOrderId, cart, orders, selectedTable, deliveryName, toast]);
 
   // --- Render ---
 
@@ -762,6 +774,8 @@ export function PosClient() {
             />
             <OrderSummary
               tableNumber={selectedTable}
+              deliveryName={deliveryName}
+              onDeliveryNameChange={setDeliveryName}
               items={cart}
               onInc={incItem}
               onDec={decItem}

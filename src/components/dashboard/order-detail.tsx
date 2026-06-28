@@ -91,6 +91,11 @@ export function OrderDetail({
               <h2 className="text-xl font-bold text-stone-100">
                 {tableLabel(order.table_number)}
               </h2>
+              {order.delivery_name && (
+                <p className="mt-0.5 text-sm font-medium text-yellow-400">
+                  {order.delivery_name}
+                </p>
+              )}
               <div className="mt-0.5 flex items-center gap-2 text-xs text-stone-500">
                 <User className="size-3" />
                 <span>{order.waiter_name}</span>

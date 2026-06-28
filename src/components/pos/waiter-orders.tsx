@@ -78,6 +78,11 @@ export function WaiterOrders({
                         <p className="text-base font-semibold text-stone-100">
                           {tableLabel(order.table_number)}
                         </p>
+                        {order.delivery_name && (
+                          <span className="text-xs font-medium text-yellow-400">
+                            · {order.delivery_name}
+                          </span>
+                        )}
                         {wasModified && (
                           <span className="flex items-center gap-1 rounded bg-amber-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-400">
                             <PencilLine className="size-2.5" />
