@@ -285,7 +285,9 @@ export function PosClient() {
       const existing = prev.find((i) => i.dish_id === dish.id);
       if (existing) {
         return prev.map((i) =>
-          i.dish_id === dish.id ? { ...i, quantity: i.quantity + 1 } : i,
+          i.dish_id === dish.id
+            ? { ...i, quantity: i.quantity + 1, notes: [...i.notes, ""] }
+            : i,
         );
       }
       return [

@@ -181,7 +181,19 @@ export function OrderSummary({
 
                 {/* Notes — one input per unit */}
                 {editingNotes === item.dish_id ? (
-                  <div className="mt-3 space-y-2">
+                  <div
+                    className="mt-3 space-y-2"
+                    onBlur={(e) => {
+                      // Only close if focus leaves the entire notes container
+                      // (not moving to another input or quick-note button inside it)
+                      if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+                        setTimeout(() => {
+                          setEditingNotes(null);
+                          setEditingNotesUnit(null);
+                        }, 150);
+                      }
+                    }}
+                  >
                     {/* Quick notes — apply to the focused unit */}
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {QUICK_NOTES.map((note) => {
@@ -221,13 +233,6 @@ export function OrderSummary({
                             setEditingNotes(null);
                             setEditingNotesUnit(null);
                           }
-                        }}
-                        onBlur={() => {
-                          // Delay to allow quick-note buttons to fire before closing
-                          setTimeout(() => {
-                            setEditingNotes(null);
-                            setEditingNotesUnit(null);
-                          }, 150);
                         }}
                         placeholder={item.quantity > 1 ? `Nota unidad ${unitIdx + 1}...` : "Nota..."}
                         className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
