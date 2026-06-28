@@ -139,8 +139,8 @@ export function OrderSummary({
             type="text"
             value={deliveryName}
             onChange={(e) => onDeliveryNameChange(e.target.value)}
-            placeholder="Cómo identificar al cliente *"
-            className="mt-3 w-full rounded-lg border border-yellow-500/30 bg-stone-950 px-3 py-2 text-sm text-stone-100 placeholder:text-yellow-500/50 focus:border-yellow-500/50 focus:outline-none"
+            placeholder="Cómo identificar al cliente..."
+            className="mt-3 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
           />
         )}
       </div>
