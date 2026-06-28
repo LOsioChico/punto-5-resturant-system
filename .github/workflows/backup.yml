@@ -23,18 +23,12 @@ jobs:
           git fetch origin backups --depth=1 || true
           git show origin/backups:data.sql.gz > prev_data.sql.gz 2>/dev/null && echo "Found previous backup" || echo "No previous backup"
 
-      - name: Install pg_dump 17 (matches Supabase Postgres version)
-        run: |
-          sudo sh -c 'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
-          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg
-          sudo apt-get update -qq
-          sudo apt-get install -y -qq postgresql-client-17
-
-      - name: Dump data
+      - name: Dump data (pg_dump 17 via Docker, no install needed)
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          /usr/lib/postgresql/17/bin/pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --column-inserts -f data.sql
+          docker run --rm -v "$PWD:/work" -w /work postgres:17-slim \
+            pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --column-inserts -f data.sql
 
       - name: Check if data changed (normalized)
         id: changed
