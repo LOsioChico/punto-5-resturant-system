@@ -1,0 +1,54 @@
+name: Database Backup
+
+on:
+  schedule:
+    # Every 6 hours: 03:00, 09:00, 15:00, 21:00 UTC
+    - cron: "0 3,9,15,21 * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Supabase CLI
+        run: npm install -g supabase
+
+      - name: Dump schema
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        run: |
+          supabase db dump --linked --file schema.sql
+          supabase db dump --linked --data-only --use-copy --file data.sql
+
+      - name: Compress
+        run: |
+          gzip schema.sql
+          gzip data.sql
+
+      - name: Upload artifacts (90 day retention)
+        uses: actions/upload-artifact@v4
+        with:
+          name: backup-${{ github.run_id }}
+          path: |
+            schema.sql.gz
+            data.sql.gz
+          retention-days: 90
+
+      - name: Also commit to backups branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan backups
+          git rm -rf .
+          cp schema.sql.gz data.sql.gz .
+          git add schema.sql.gz data.sql.gz
+          git commit -m "Backup $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          git push origin backups --force
