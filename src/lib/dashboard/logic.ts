@@ -162,8 +162,11 @@ export function parseEventMetadata(metadata: Record<string, unknown>): {
   for (const item of meta.updated_items ?? []) {
     const parts: string[] = [];
     if (item.qty !== item.old_qty) parts.push(`${item.old_qty}x → ${item.qty}x`);
-    if ((item.notes ?? "") !== (item.old_notes ?? "")) {
-      parts.push(item.notes ? `nota: "${item.notes}"` : "sin nota");
+    // Compare notes arrays — normalize to strings for comparison
+    const newNotesStr = Array.isArray(item.notes) ? item.notes.join("; ") : (item.notes ?? "");
+    const oldNotesStr = Array.isArray(item.old_notes) ? item.old_notes.join("; ") : (item.old_notes ?? "");
+    if (newNotesStr !== oldNotesStr) {
+      parts.push(newNotesStr ? `nota: "${newNotesStr}"` : "sin nota");
     }
     detailLines.push({
       text: `${item.name}${parts.length > 0 ? ` — ${parts.join(", ")}` : ""}`,

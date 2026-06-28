@@ -228,7 +228,7 @@ describe("OrderDetail — items", () => {
 
   it("shows notes with arrow prefix", () => {
     render(<OrderDetail order={makeOrder({
-      items: [makeItem({ notes: "Sin cebolla" })],
+      items: [makeItem({ notes: ["Sin cebolla"] })],
     })} events={[]} onAdvanceStatus={noop} onPrint={noop} />);
     // Notes with arrow prefix appear in both the items list and the CommandPreview.
     expect(screen.getAllByText("→ Sin cebolla").length).toBeGreaterThan(0);

@@ -296,7 +296,7 @@ export function PosClient() {
           category_name: categoryName,
           price: dish.price,
           quantity: 1,
-          notes: "",
+          notes: [""],
         },
       ];
     });
@@ -305,7 +305,9 @@ export function PosClient() {
   const incItem = useCallback((dishId: string) => {
     setCart((prev) =>
       prev.map((i) =>
-        i.dish_id === dishId ? { ...i, quantity: i.quantity + 1 } : i,
+        i.dish_id === dishId
+          ? { ...i, quantity: i.quantity + 1, notes: [...i.notes, ""] }
+          : i,
       ),
     );
   }, []);
@@ -314,7 +316,9 @@ export function PosClient() {
     setCart((prev) =>
       prev
         .map((i) =>
-          i.dish_id === dishId ? { ...i, quantity: i.quantity - 1 } : i,
+          i.dish_id === dishId
+            ? { ...i, quantity: i.quantity - 1, notes: i.notes.slice(0, -1) }
+            : i,
         )
         .filter((i) => i.quantity > 0),
     );
@@ -332,14 +336,19 @@ export function PosClient() {
   // Load an existing order into the cart for editing
   const editOrder = useCallback(
     (order: Order) => {
-      const initialCart: CartItem[] = order.items.map((i) => ({
-        dish_id: i.dish_id,
-        dish_name: i.dish_name,
-        category_name: i.category_name ?? "",
-        price: i.price,
-        quantity: i.quantity,
-        notes: i.notes ?? "",
-      }));
+      const initialCart: CartItem[] = order.items.map((i) => {
+        const notes = i.notes ?? [];
+        // Ensure notes array length matches quantity
+        const syncedNotes = Array.from({ length: i.quantity }, (_, idx) => notes[idx] ?? "");
+        return {
+          dish_id: i.dish_id,
+          dish_name: i.dish_name,
+          category_name: i.category_name ?? "",
+          price: i.price,
+          quantity: i.quantity,
+          notes: syncedNotes,
+        };
+      });
       setEditingOrderId(order.id);
       setSelectedTable(order.table_number);
       setEditInitialCart(initialCart);
@@ -358,9 +367,13 @@ export function PosClient() {
     setActiveTab("history");
   }, []);
 
-  const setNotes = useCallback((dishId: string, notes: string) => {
+  const setNotes = useCallback((dishId: string, unitIndex: number, value: string) => {
     setCart((prev) =>
-      prev.map((i) => (i.dish_id === dishId ? { ...i, notes } : i)),
+      prev.map((i) =>
+        i.dish_id === dishId
+          ? { ...i, notes: i.notes.map((n, idx) => (idx === unitIndex ? value : n)) }
+          : i,
+      ),
     );
   }, []);
 
@@ -394,7 +407,7 @@ export function PosClient() {
         dish_name: item.dish_name,
         price: item.price,
         quantity: item.quantity,
-        notes: item.notes || null,
+        notes: item.notes.some((n) => n.trim()) ? item.notes : null,
       })),
     );
 
@@ -433,7 +446,7 @@ export function PosClient() {
     const newByDish = new Map(cart.map((i) => [i.dish_id, i]));
 
     const toInsert: CartItem[] = [];
-    const toUpdate: { id: string; quantity: number; notes: string | null }[] = [];
+    const toUpdate: { id: string; quantity: number; notes: string[] | null }[] = [];
     const toDelete: string[] = [];
 
     for (const newItem of cart) {
@@ -441,13 +454,22 @@ export function PosClient() {
       if (!old) {
         // New item — insert
         toInsert.push(newItem);
-      } else if (old.quantity !== newItem.quantity || (old.notes ?? "") !== newItem.notes) {
-        // Changed item — update
-        toUpdate.push({
-          id: old.id,
-          quantity: newItem.quantity,
-          notes: newItem.notes || null,
-        });
+      } else {
+        // Compare notes arrays (normalize for trailing empty strings)
+        const oldNotes = (old.notes ?? []).map((n: string) => n.trim());
+        const newNotes = newItem.notes.map((n) => n.trim());
+        while (oldNotes.length > 0 && oldNotes[oldNotes.length - 1] === "") oldNotes.pop();
+        while (newNotes.length > 0 && newNotes[newNotes.length - 1] === "") newNotes.pop();
+        const notesChanged = oldNotes.length !== newNotes.length || oldNotes.some((v, i) => v !== newNotes[i]);
+
+        if (old.quantity !== newItem.quantity || notesChanged) {
+          // Changed item — update
+          toUpdate.push({
+            id: old.id,
+            quantity: newItem.quantity,
+            notes: newItem.notes.some((n) => n.trim()) ? newItem.notes : null,
+          });
+        }
       }
     }
 
@@ -495,7 +517,7 @@ export function PosClient() {
           dish_name: item.dish_name,
           price: item.price,
           quantity: item.quantity,
-          notes: item.notes || null,
+          notes: item.notes.some((n) => n.trim()) ? item.notes : null,
         })),
       );
       if (insErr) {

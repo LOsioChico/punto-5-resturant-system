@@ -8,10 +8,10 @@ export interface CartItem {
   category_name: string;
   price: number;
   quantity: number;
-  notes: string;
+  notes: string[];
 }
 
-/** Toggle a quick note on/off within the notes string (comma-separated). */
+/** Toggle a quick note on/off for a specific unit's notes string (comma-separated within a unit). */
 export function toggleQuickNote(current: string, note: string): string {
   const parts = current
     .split(",")
@@ -27,6 +27,60 @@ export function toggleQuickNote(current: string, note: string): string {
 }
 
 /**
+ * Set the note for a specific unit index within a cart item's notes array.
+ * Returns a new notes array with the updated value.
+ */
+export function setUnitNote(notes: string[], index: number, value: string): string[] {
+  const result = [...notes];
+  result[index] = value;
+  return result;
+}
+
+/**
+ * Resize the notes array to match the quantity.
+ * When quantity increases, pad with empty strings.
+ * When quantity decreases, truncate.
+ */
+export function syncNotesWithQuantity(notes: string[], quantity: number): string[] {
+  if (notes.length === quantity) return notes;
+  if (notes.length < quantity) {
+    return [...notes, ...Array(quantity - notes.length).fill("")];
+  }
+  return notes.slice(0, quantity);
+}
+
+/**
+ * Check if a notes array has any non-empty entries.
+ */
+export function hasNotes(notes: string[] | null | undefined): boolean {
+  if (!notes || notes.length === 0) return false;
+  return notes.some((n) => n.trim().length > 0);
+}
+
+/**
+ * Normalize notes for comparison: trim each entry, drop trailing empty entries.
+ */
+function normalizeNotes(notes: string[] | null | undefined): string[] {
+  if (!notes) return [];
+  const trimmed = notes.map((n) => n.trim());
+  // Drop trailing empty strings (they don't change meaning)
+  while (trimmed.length > 0 && trimmed[trimmed.length - 1] === "") {
+    trimmed.pop();
+  }
+  return trimmed;
+}
+
+/**
+ * Compare two notes arrays for equality (ignoring trailing empty strings).
+ */
+function notesEqual(a: string[] | null | undefined, b: string[] | null | undefined): boolean {
+  const na = normalizeNotes(a);
+  const nb = normalizeNotes(b);
+  if (na.length !== nb.length) return false;
+  return na.every((v, i) => v === nb[i]);
+}
+
+/**
  * Compute the diff between old order items and new cart items.
  * Returns what to insert, update, and delete.
  */
@@ -35,7 +89,7 @@ export function diffOrderItems(
   newItems: CartItem[],
 ): {
   toInsert: CartItem[];
-  toUpdate: { id: string; quantity: number; notes: string | null }[];
+  toUpdate: { id: string; quantity: number; notes: string[] | null }[];
   toDelete: string[];
 } {
   // Build maps by dish_id for diffing — need the old item IDs
@@ -43,7 +97,7 @@ export function diffOrderItems(
   const newByDish = new Map(newItems.map((i) => [i.dish_id, i]));
 
   const toInsert: CartItem[] = [];
-  const toUpdate: { id: string; quantity: number; notes: string | null }[] = [];
+  const toUpdate: { id: string; quantity: number; notes: string[] | null }[] = [];
   const toDelete: string[] = [];
 
   for (const newItem of newItems) {
@@ -52,12 +106,12 @@ export function diffOrderItems(
       toInsert.push(newItem);
     } else if (
       old.quantity !== newItem.quantity ||
-      (old.notes ?? "") !== newItem.notes
+      !notesEqual(old.notes, newItem.notes)
     ) {
       toUpdate.push({
         id: old.dish_id, // In real app this is the order_item id; for testing we use dish_id
         quantity: newItem.quantity,
-        notes: newItem.notes || null,
+        notes: hasNotes(newItem.notes) ? newItem.notes : null,
       });
     }
   }
@@ -83,7 +137,7 @@ export function hasCartChanged(
   for (const item of current) {
     const old = initialMap.get(item.dish_id);
     if (!old) return true;
-    if (old.quantity !== item.quantity || (old.notes ?? "") !== (item.notes ?? "")) return true;
+    if (old.quantity !== item.quantity || !notesEqual(old.notes, item.notes)) return true;
   }
   return false;
 }

@@ -203,9 +203,13 @@ export function OrderDetail({
                   <span className="block text-sm text-stone-100">
                     {item.dish_name}
                   </span>
-                  {item.notes && (
-                    <span className="block truncate text-xs text-amber-400/80">
-                      → {item.notes}
+                  {item.notes && item.notes.some((n) => n.trim()) && (
+                    <span className="block text-xs text-amber-400/80">
+                      {item.notes.map((n, unitIdx) => (
+                        <span key={unitIdx} className="block truncate">
+                          {n.trim() ? `→ ${n}` : null}
+                        </span>
+                      )).filter(Boolean)}
                     </span>
                   )}
                 </div>
@@ -261,8 +265,11 @@ export function OrderDetail({
                 for (const item of meta.updated_items ?? []) {
                   const parts: string[] = [];
                   if (item.qty !== item.old_qty) parts.push(`${item.old_qty}x → ${item.qty}x`);
-                  if ((item.notes ?? "") !== (item.old_notes ?? "")) {
-                    parts.push(item.notes ? `nota: "${item.notes}"` : "sin nota");
+                  // Compare notes arrays — normalize to strings for comparison
+                  const newNotesStr = Array.isArray(item.notes) ? item.notes.join("; ") : (item.notes ?? "");
+                  const oldNotesStr = Array.isArray(item.old_notes) ? item.old_notes.join("; ") : (item.old_notes ?? "");
+                  if (newNotesStr !== oldNotesStr) {
+                    parts.push(newNotesStr ? `nota: "${newNotesStr}"` : "sin nota");
                   }
                   detailLines.push({
                     text: `${item.name}${parts.length > 0 ? ` — ${parts.join(", ")}` : ""}`,

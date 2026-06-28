@@ -39,14 +39,16 @@ export function OrderSummary({
   onRemove: (dishId: string) => void;
   onClear: () => void;
   onSend: () => void;
-  onSetNotes: (dishId: string, notes: string) => void;
+  onSetNotes: (dishId: string, unitIndex: number, value: string) => void;
   sending: boolean;
   editingOrderId: string | null;
   editHasChanges: boolean;
   onSaveEdit: () => void;
   onCancelEdit: () => void;
 }) {
+  // Track which item + unit is being edited: `${dishId}:${unitIndex}` or null
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
+  const [editingNotesUnit, setEditingNotesUnit] = useState<number | null>(null);
   const [tooltip, setTooltip] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
@@ -177,23 +179,27 @@ export function OrderSummary({
                   </button>
                 </div>
 
-                {/* Notes */}
+                {/* Notes — one input per unit */}
                 {editingNotes === item.dish_id ? (
-                  <div className="mt-3">
+                  <div className="mt-3 space-y-2">
+                    {/* Quick notes — apply to the focused unit */}
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {QUICK_NOTES.map((note) => {
-                        const active = item.notes
-                          .split(",")
-                          .map((p) => p.trim())
-                          .includes(note);
+                        // Check if any unit has this note active
+                        const activeInAny = item.notes.some((n) =>
+                          n.split(",").map((p) => p.trim()).includes(note),
+                        );
                         return (
                           <button
                             key={note}
-                            onClick={() =>
-                              onSetNotes(item.dish_id, toggleQuickNote(item.notes, note))
-                            }
+                            onClick={() => {
+                              // Apply to the unit currently being edited (or unit 0)
+                              const unitIdx = editingNotesUnit ?? 0;
+                              const current = item.notes[unitIdx] ?? "";
+                              onSetNotes(item.dish_id, unitIdx, toggleQuickNote(current, note));
+                            }}
                             className={
-                              active
+                              activeInAny
                                 ? "rounded-lg bg-yellow-500/15 px-2.5 py-1.5 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-500/30"
                                 : "rounded-lg bg-stone-800 px-2.5 py-1.5 text-xs text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
                             }
@@ -203,29 +209,50 @@ export function OrderSummary({
                         );
                       })}
                     </div>
-                    <input
-                      value={item.notes}
-                      onChange={(e) => onSetNotes(item.dish_id, e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          setEditingNotes(null);
-                        }
-                      }}
-                      onBlur={() => setEditingNotes(null)}
-                      placeholder="Nota personalizada..."
-                      className="mt-2 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2.5 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
-                    />
+                    {/* One input per unit */}
+                    {item.notes.map((note, unitIdx) => (
+                      <input
+                        key={unitIdx}
+                        value={note}
+                        onChange={(e) => onSetNotes(item.dish_id, unitIdx, e.target.value)}
+                        onFocus={() => setEditingNotesUnit(unitIdx)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            setEditingNotes(null);
+                            setEditingNotesUnit(null);
+                          }
+                        }}
+                        onBlur={() => {
+                          // Delay to allow quick-note buttons to fire before closing
+                          setTimeout(() => {
+                            setEditingNotes(null);
+                            setEditingNotesUnit(null);
+                          }, 150);
+                        }}
+                        placeholder={item.quantity > 1 ? `Nota unidad ${unitIdx + 1}...` : "Nota..."}
+                        className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
+                      />
+                    ))}
                   </div>
                 ) : (
                   <button
-                    onClick={() => setEditingNotes(item.dish_id)}
+                    onClick={() => {
+                      setEditingNotes(item.dish_id);
+                      setEditingNotesUnit(0);
+                    }}
                     className="mt-3 flex items-center gap-1.5 text-sm text-stone-600 transition-colors hover:text-stone-300"
                   >
                     <Pencil className="size-3.5" />
-                    {item.notes ? (
-                      <span className="text-stone-400">{item.notes}</span>
+                    {item.notes.some((n) => n.trim()) ? (
+                      <div className="flex flex-col items-start gap-0.5">
+                        {item.notes.map((n, idx) => (
+                          <span key={idx} className="text-stone-400">
+                            {n.trim() ? `→ ${n}` : null}
+                          </span>
+                        )).filter(Boolean)}
+                      </div>
                     ) : (
-                      <span>Nota</span>
+                      <span>Nota{item.quantity > 1 ? ` (${item.quantity} unidades)` : ""}</span>
                     )}
                   </button>
                 )}

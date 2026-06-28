@@ -121,7 +121,7 @@ describe("WaiterOrders", () => {
   it("shows item notes", () => {
     const orders = [makeOrder({
       waiter_name: "Juan",
-      items: [makeItem({ notes: "Sin cebolla" })],
+      items: [makeItem({ notes: ["Sin cebolla"] })],
     })];
     render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} />);
     expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();

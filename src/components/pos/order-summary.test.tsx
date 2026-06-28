@@ -10,7 +10,7 @@ function makeItem(overrides: Partial<CartItem> = {}): CartItem {
     category_name: "Hamburguesas",
     price: 15000,
     quantity: 2,
-    notes: "",
+    notes: [],
     ...overrides,
   };
 }
@@ -111,18 +111,18 @@ describe("OrderSummary — with items", () => {
 // ============================================================
 describe("OrderSummary — notes", () => {
   it("shows 'Nota' button when no notes", () => {
-    renderSummary({ items: [makeItem({ notes: "" })] });
+    renderSummary({ items: [makeItem({ notes: [], quantity: 1 })] });
     expect(screen.getByText("Nota")).toBeInTheDocument();
   });
 
   it("shows existing notes text", () => {
-    renderSummary({ items: [makeItem({ notes: "Sin cebolla" })] });
-    expect(screen.getByText("Sin cebolla")).toBeInTheDocument();
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla"] })] });
+    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
   });
 
   it("opens notes editor on click", async () => {
     const user = userEvent.setup();
-    renderSummary({ items: [makeItem({ notes: "" })] });
+    renderSummary({ items: [makeItem({ notes: [], quantity: 1 })] });
     await user.click(screen.getByText("Nota"));
     // Quick note buttons should appear
     expect(screen.getByText("Sin salsas")).toBeInTheDocument();
@@ -132,29 +132,29 @@ describe("OrderSummary — notes", () => {
   it("calls onSetNotes when quick note is clicked", async () => {
     const user = userEvent.setup();
     const onSetNotes = vi.fn();
-    renderSummary({ items: [makeItem({ dish_id: "d1", notes: "" })], onSetNotes });
+    renderSummary({ items: [makeItem({ dish_id: "d1", notes: [], quantity: 1 })], onSetNotes });
     await user.click(screen.getByText("Nota"));
     await user.click(screen.getByText("Sin cebolla"));
-    expect(onSetNotes).toHaveBeenCalledWith("d1", "Sin cebolla");
+    expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "Sin cebolla");
   });
 
   it("toggles off a quick note that is already active", async () => {
     const user = userEvent.setup();
     const onSetNotes = vi.fn();
-    renderSummary({ items: [makeItem({ dish_id: "d1", notes: "Sin cebolla" })], onSetNotes });
+    renderSummary({ items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla"] })], onSetNotes });
     // The notes display button shows the existing note text; click it to open the editor.
-    await user.click(screen.getByText("Sin cebolla"));
+    await user.click(screen.getByText("→ Sin cebolla"));
     // Now the quick-note chips are visible; click the active "Sin cebolla" chip to toggle it off.
     await user.click(screen.getByText("Sin cebolla"));
-    expect(onSetNotes).toHaveBeenCalledWith("d1", "");
+    expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "");
   });
 
   it("closes notes editor on Enter key", async () => {
     const user = userEvent.setup();
-    renderSummary({ items: [makeItem({ notes: "" })] });
+    renderSummary({ items: [makeItem({ notes: [""], quantity: 1 })] });
     await user.click(screen.getByText("Nota"));
     // Type something and press Enter
-    const input = screen.getByPlaceholderText("Nota personalizada...");
+    const input = screen.getByPlaceholderText("Nota...");
     await user.type(input, "Extra queso{Enter}");
     // Quick notes should be hidden after Enter
     expect(screen.queryByText("Sin salsas")).not.toBeInTheDocument();

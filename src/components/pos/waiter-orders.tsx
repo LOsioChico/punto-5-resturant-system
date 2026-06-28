@@ -130,10 +130,14 @@ export function WaiterOrders({
                             {formatCOP(item.price * item.quantity)}
                           </span>
                         </div>
-                        {item.notes && (
-                          <p className="ml-7 mt-1 text-sm text-amber-400/80">
-                            → {item.notes}
-                          </p>
+                        {item.notes && item.notes.some((n) => n.trim()) && (
+                          <div className="ml-7 mt-1 space-y-0.5">
+                            {item.notes.map((n, unitIdx) => (
+                              <p key={unitIdx} className="text-sm text-amber-400/80">
+                                {n.trim() ? `→ ${n}` : null}
+                              </p>
+                            )).filter(Boolean)}
+                          </div>
                         )}
                       </li>
                     ))}

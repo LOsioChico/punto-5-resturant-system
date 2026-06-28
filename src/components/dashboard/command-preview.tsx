@@ -66,25 +66,44 @@ export function CommandPreview({ order }: { order: Order }) {
               {category}
             </p>
             <ul className="space-y-2">
-              {items.map((item) => (
-                <li key={item.id} className="text-black">
-                  {/* Dish line — big quantity + name */}
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-base font-bold tabular-nums text-black">
-                      {item.quantity}x
-                    </span>
-                    <span className="text-sm font-semibold text-black">
-                      {item.dish_name}
-                    </span>
-                  </div>
-                  {/* Notes */}
-                  {item.notes && (
-                    <p className="mt-0.5 ml-6 text-xs italic text-stone-600">
-                      → {item.notes}
-                    </p>
-                  )}
-                </li>
-              ))}
+              {items.map((item) => {
+                // Split per unit — each unit gets its own line with its note
+                const notes = item.notes ?? [];
+                const hasAnyNote = notes.some((n) => n.trim());
+                const units = Array.from({ length: item.quantity }, (_, i) => ({
+                  unitNote: notes[i]?.trim() ?? "",
+                }));
+                return (
+                  <li key={item.id} className="text-black">
+                    {hasAnyNote ? (
+                      // Split per unit when any unit has a note
+                      units.map((u, idx) => (
+                        <div key={idx} className={idx > 0 ? "mt-1" : ""}>
+                          <div className="flex items-baseline gap-2">
+                            <span className="text-base font-bold tabular-nums text-black">1x</span>
+                            <span className="text-sm font-semibold text-black">{item.dish_name}</span>
+                          </div>
+                          {u.unitNote && (
+                            <p className="mt-0.5 ml-6 text-xs italic text-stone-600">
+                              → {u.unitNote}
+                            </p>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      // Grouped when no notes
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-base font-bold tabular-nums text-black">
+                          {item.quantity}x
+                        </span>
+                        <span className="text-sm font-semibold text-black">
+                          {item.dish_name}
+                        </span>
+                      </div>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           </div>
         ))}

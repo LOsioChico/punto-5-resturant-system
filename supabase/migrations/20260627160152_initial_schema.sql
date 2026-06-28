@@ -53,7 +53,7 @@ create table if not exists order_items (
   dish_name     text not null,               -- snapshot of dish name at order time
   price         int  not null,               -- snapshot of price at order time
   quantity      int  not null default 1,
-  notes         text                          -- per-item instructions (e.g. "sin cebolla", "extra picante")
+  notes         text                          -- per-item instructions (migrated to jsonb in later migration)
 );
 
 create index if not exists idx_order_items_order on order_items(order_id);

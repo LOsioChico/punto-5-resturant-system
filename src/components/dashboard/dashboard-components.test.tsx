@@ -73,7 +73,7 @@ describe("CommandPreview", () => {
 
   it("renders notes when present", () => {
     render(<CommandPreview order={makeOrder({
-      items: [makeItem({ notes: "Sin cebolla" })],
+      items: [makeItem({ notes: ["Sin cebolla"] })],
     })} />);
     expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
   });

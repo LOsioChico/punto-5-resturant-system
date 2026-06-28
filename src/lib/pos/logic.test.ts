@@ -11,7 +11,7 @@ function item(
   dish_id: string,
   dish_name: string,
   quantity: number,
-  notes = "",
+  notes: string[] = [],
   price = 10000,
 ): CartItem {
   return {
@@ -117,28 +117,28 @@ describe("diffOrderItems", () => {
   });
 
   it("detects notes changes to update", () => {
-    const old = [item("1", "Burger", 2, "Sin cebolla")];
-    const current = [item("1", "Burger", 2, "Sin tomate")];
+    const old = [item("1", "Burger", 2, ["Sin cebolla"])];
+    const current = [item("1", "Burger", 2, ["Sin tomate"])];
     const diff = diffOrderItems(old, current);
     expect(diff.toUpdate).toHaveLength(1);
-    expect(diff.toUpdate[0].notes).toBe("Sin tomate");
+    expect(diff.toUpdate[0].notes).toEqual(["Sin tomate"]);
   });
 
-  it("does not update when notes are the same (one null, one empty)", () => {
-    const old = [item("1", "Burger", 2, "")];
-    const current = [item("1", "Burger", 2, "")];
+  it("does not update when notes are the same (both empty)", () => {
+    const old = [item("1", "Burger", 2, [])];
+    const current = [item("1", "Burger", 2, [])];
     const diff = diffOrderItems(old, current);
     expect(diff.toUpdate).toHaveLength(0);
   });
 
   it("handles combination of insert, update, and delete", () => {
     const old = [
-      item("1", "Burger", 2, "Sin cebolla"),
+      item("1", "Burger", 2, ["Sin cebolla"]),
       item("2", "Fries", 1),
       item("3", "Soda", 1),
     ];
     const current = [
-      item("1", "Burger", 3, "Sin cebolla"),
+      item("1", "Burger", 3, ["Sin cebolla"]),
       item("2", "Fries", 1),
       item("4", "Salad", 1),
     ];
@@ -173,7 +173,7 @@ describe("diffOrderItems", () => {
 // ============================================================
 describe("hasCartChanged", () => {
   it("returns false for identical carts", () => {
-    const items = [item("1", "Burger", 2, "Sin cebolla")];
+    const items = [item("1", "Burger", 2, ["Sin cebolla"])];
     expect(hasCartChanged(items, items)).toBe(false);
   });
 
@@ -184,8 +184,8 @@ describe("hasCartChanged", () => {
   });
 
   it("returns true when notes change", () => {
-    const initial = [item("1", "Burger", 2, "Sin cebolla")];
-    const current = [item("1", "Burger", 2, "Sin tomate")];
+    const initial = [item("1", "Burger", 2, ["Sin cebolla"])];
+    const current = [item("1", "Burger", 2, ["Sin tomate"])];
     expect(hasCartChanged(initial, current)).toBe(true);
   });
 
@@ -201,9 +201,9 @@ describe("hasCartChanged", () => {
     expect(hasCartChanged(initial, current)).toBe(true);
   });
 
-  it("returns false when notes are both empty (one empty string, one empty string)", () => {
-    const initial = [item("1", "Burger", 2, "")];
-    const current = [item("1", "Burger", 2, "")];
+  it("returns false when notes are both empty", () => {
+    const initial = [item("1", "Burger", 2, [])];
+    const current = [item("1", "Burger", 2, [])];
     expect(hasCartChanged(initial, current)).toBe(false);
   });
 

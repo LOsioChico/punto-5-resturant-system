@@ -25,7 +25,7 @@ export interface OrderItem {
   category_name: string | null;
   price: number;
   quantity: number;
-  notes: string | null;
+  notes: string[] | null;
 }
 
 export type OrderStatus = "nueva" | "en_cocina" | "lista" | "servida";
