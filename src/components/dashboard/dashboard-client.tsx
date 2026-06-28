@@ -28,7 +28,7 @@ export function DashboardClient() {
   const supabase = useMemo(() => createSupabaseClient(), []);
   const router = useRouter();
   const { user, loading: authLoading } = useAuth();
-  const adminName = user?.email ?? "admin";
+  const adminName = user?.user_metadata?.full_name ?? user?.email ?? "admin";
   const adminId = user?.id ?? null;
   const configError = !supabase
     ? "Faltan las variables de entorno de Supabase. Copia .env.example a .env.local y complétalas."

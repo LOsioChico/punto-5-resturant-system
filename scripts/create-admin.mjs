@@ -3,7 +3,7 @@
  * Create the admin user with the role already set in app_metadata.
  *
  * Usage:
- *   node scripts/create-admin.mjs <email> <password>
+ *   node scripts/create-admin.mjs <email> <password> [name]
  *
  * Requires SUPABASE_SERVICE_ROLE_KEY in .env (not committed).
  * The service role key bypasses RLS and can set app_metadata.
@@ -43,9 +43,10 @@ if (!SUPABASE_URL || !SERVICE_KEY) {
 
 const email = process.argv[2];
 const password = process.argv[3];
+const name = process.argv[4];
 
 if (!email || !password) {
-  console.error("Usage: node scripts/create-admin.mjs <email> <password>");
+  console.error("Usage: node scripts/create-admin.mjs <email> <password> [name]");
   process.exit(1);
 }
 
@@ -59,17 +60,18 @@ async function main() {
   const found = existing?.users?.find((u) => u.email === email);
 
   if (found) {
-    // Update existing user: set role and password
-    console.log(`User ${email} already exists. Updating role and password...`);
+    // Update existing user: set role, password, and name
+    console.log(`User ${email} already exists. Updating role, password, and name...`);
     const { error } = await supabase.auth.admin.updateUserById(found.id, {
       password,
       app_metadata: { role: "admin" },
+      user_metadata: name ? { full_name: name } : undefined,
     });
     if (error) {
       console.error("Error updating user:", error.message);
       process.exit(1);
     }
-    console.log(`Admin user updated: ${email}`);
+    console.log(`Admin user updated: ${email}` + (name ? ` (name: ${name})` : ""));
   } else {
     // Create new admin user with role set at creation time
     const { data, error } = await supabase.auth.admin.createUser({
@@ -77,12 +79,13 @@ async function main() {
       password,
       email_confirm: true, // skip email confirmation
       app_metadata: { role: "admin" },
+      user_metadata: name ? { full_name: name } : undefined,
     });
     if (error) {
       console.error("Error creating user:", error.message);
       process.exit(1);
     }
-    console.log(`Admin user created: ${email} (id: ${data.user.id})`);
+    console.log(`Admin user created: ${email} (id: ${data.user.id})` + (name ? ` (name: ${name})` : ""));
   }
 
   console.log("\nNext step: disable public sign-ups in Supabase Dashboard:");
