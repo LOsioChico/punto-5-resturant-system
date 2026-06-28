@@ -7,6 +7,7 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
+import { filterByDate } from "@/lib/dashboard/logic";
 import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
@@ -437,18 +438,9 @@ export function DashboardClient() {
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
   const displayError = configError ?? error;
 
-  // Date filtering
+  // Date filtering (timezone-aware via filterByDate from logic.ts)
   const filteredByDate = useMemo(() => {
-    if (dateFilter === "all") return orders;
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const yesterday = new Date(today.getTime() - 86_400_000);
-    const target = dateFilter === "today" ? today : yesterday;
-    const nextDay = new Date(target.getTime() + 86_400_000);
-    return orders.filter((o) => {
-      const created = new Date(o.created_at);
-      return created >= target && created < nextDay;
-    });
+    return filterByDate(orders, dateFilter);
   }, [orders, dateFilter]);
 
   // Status + waiter filtering (applied on top of date filter)
