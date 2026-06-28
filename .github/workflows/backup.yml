@@ -27,7 +27,7 @@ jobs:
         env:
           SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --use-copy -f data.sql
+          pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --column-inserts -f data.sql
 
       - name: Check if data changed (normalized)
         id: changed
