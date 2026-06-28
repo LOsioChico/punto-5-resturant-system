@@ -35,15 +35,40 @@ export const INITIAL_PIN = "0000";
  */
 export async function signInAdmin(email: string, password: string) {
   const supabase = createSupabaseClient();
-  if (!supabase) throw new Error("Supabase not configured");
+  if (!supabase) throw new Error("Error de configuración. Contacta al administrador.");
 
   const { data, error } = await supabase.auth.signInWithPassword({
     email,
     password,
   });
 
-  if (error) throw error;
+  if (error) {
+    if (error.message.includes("Invalid login credentials")) {
+      throw new Error("Correo o contraseña incorrectos.");
+    }
+    throw new Error("Error al iniciar sesión. Intenta de nuevo.");
+  }
   return data;
+}
+
+/**
+ * Look up a waiter by cédula (without signing in).
+ * Used to validate the cédula before showing the PIN keypad.
+ * Returns the waiter's name and status, or null if not found.
+ */
+export async function lookupWaiterByCedula(
+  cedula: string,
+): Promise<{ name: string; is_active: boolean } | null> {
+  const supabase = createSupabaseClient();
+  if (!supabase) return null;
+
+  const { data } = await supabase
+    .from("waiters")
+    .select("name, is_active")
+    .eq("cedula", cedula)
+    .single();
+
+  return (data as { name: string; is_active: boolean } | null) ?? null;
 }
 
 /**
@@ -52,7 +77,7 @@ export async function signInAdmin(email: string, password: string) {
  */
 export async function signInWaiter(cedula: string, pin: string) {
   const supabase = createSupabaseClient();
-  if (!supabase) throw new Error("Supabase not configured");
+  if (!supabase) throw new Error("Error de configuración. Contacta al administrador.");
 
   const email = waiterEmail(cedula);
   const password = padPin(pin);
@@ -62,7 +87,13 @@ export async function signInWaiter(cedula: string, pin: string) {
     password,
   });
 
-  if (error) throw error;
+  if (error) {
+    // Supabase returns English errors — translate the common ones
+    if (error.message.includes("Invalid login credentials")) {
+      throw new Error("Cédula o PIN incorrecto.");
+    }
+    throw new Error("Error al iniciar sesión. Intenta de nuevo.");
+  }
 
   // Check if it's past 6am Colombia time — don't allow login
   if (isPastLogoutTime()) {
@@ -96,7 +127,7 @@ export async function signInWaiter(cedula: string, pin: string) {
  */
 export async function changeWaiterPin(newPin: string) {
   const supabase = createSupabaseClient();
-  if (!supabase) throw new Error("Supabase not configured");
+  if (!supabase) throw new Error("Error de configuración. Contacta al administrador.");
 
   if (!/^\d{4}$/.test(newPin)) {
     throw new Error("El PIN debe ser de 4 dígitos.");
@@ -110,7 +141,9 @@ export async function changeWaiterPin(newPin: string) {
     password: padPin(newPin),
   });
 
-  if (updateError) throw updateError;
+  if (updateError) {
+    throw new Error("Error al cambiar el PIN. Intenta de nuevo.");
+  }
 
   // Mark PIN as changed in waiters table
   const { error: dbError } = await supabase
@@ -118,7 +151,7 @@ export async function changeWaiterPin(newPin: string) {
     .update({ pin_changed: true })
     .eq("auth_id", userData.user.id);
 
-  if (dbError) throw dbError;
+  if (dbError) throw new Error("Error al guardar el cambio. Intenta de nuevo.");
 }
 
 /**

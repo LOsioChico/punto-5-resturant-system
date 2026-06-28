@@ -3,8 +3,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, Delete, Check } from "lucide-react";
-import { signInWaiter } from "@/lib/auth";
+import { ArrowLeft, Delete, Check, Loader2 } from "lucide-react";
+import { signInWaiter, lookupWaiterByCedula } from "@/lib/auth";
 import { useToast } from "@/components/ui/toast";
 
 export default function WaiterLoginPage() {
@@ -14,6 +14,7 @@ export default function WaiterLoginPage() {
   const [pin, setPin] = useState("");
   const [step, setStep] = useState<"cedula" | "pin">("cedula");
   const [loading, setLoading] = useState(false);
+  const [waiterName, setWaiterName] = useState("");
 
   useEffect(() => {
     (async () => {
@@ -23,10 +24,29 @@ export default function WaiterLoginPage() {
     })();
   }, [router]);
 
-  const handleCedulaSubmit = useCallback(() => {
-    if (!cedula) return;
-    setStep("pin");
-  }, [cedula]);
+  // Validate cédula before moving to PIN step
+  const handleCedulaSubmit = useCallback(async () => {
+    if (!cedula || loading) return;
+    setLoading(true);
+
+    try {
+      const waiter = await lookupWaiterByCedula(cedula);
+      if (!waiter) {
+        toast("Cédula no registrada", "error");
+        return;
+      }
+      if (!waiter.is_active) {
+        toast("Esta cuenta está desactivada. Contacta al administrador.", "error");
+        return;
+      }
+      setWaiterName(waiter.name);
+      setStep("pin");
+    } catch {
+      toast("Error al verificar la cédula. Intenta de nuevo.", "error");
+    } finally {
+      setLoading(false);
+    }
+  }, [cedula, loading, toast]);
 
   const handlePinSubmit = useCallback(async () => {
     if (pin.length !== 4 || loading) return;
@@ -78,19 +98,23 @@ export default function WaiterLoginPage() {
     }
   }, [pin, step, loading, handlePinSubmit]);
 
+  const handleBack = useCallback(() => {
+    if (step === "pin") {
+      setStep("cedula");
+      setPin("");
+      setWaiterName("");
+    } else {
+      router.push("/");
+    }
+  }, [step, router]);
+
   return (
     <main className="flex min-h-dvh flex-col items-center justify-center p-6">
       <div className="w-full max-w-xs">
         <button
-          onClick={() => {
-            if (step === "pin") {
-              setStep("cedula");
-              setPin("");
-            } else {
-              router.push("/");
-            }
-          }}
-          className="mb-6 flex items-center gap-2 text-sm text-stone-500 transition-colors hover:text-stone-300"
+          onClick={handleBack}
+          disabled={loading}
+          className="mb-6 flex items-center gap-2 text-sm text-stone-500 transition-colors hover:text-stone-300 disabled:opacity-50"
         >
           <ArrowLeft className="size-4" />
           {step === "pin" ? "Cambiar cédula" : "Volver"}
@@ -112,22 +136,27 @@ export default function WaiterLoginPage() {
           <>
             <p className="mb-6 text-center text-sm text-stone-400">Ingresa tu cédula</p>
             <div className="mb-6 flex h-16 items-center justify-center rounded-lg border border-stone-800 bg-stone-950">
-              <span className="text-2xl font-semibold tracking-widest text-stone-100">
-                {cedula || <span className="text-stone-700">—</span>}
-              </span>
+              {loading ? (
+                <Loader2 className="size-6 animate-spin text-stone-500" />
+              ) : (
+                <span className="text-2xl font-semibold tracking-widest text-stone-100">
+                  {cedula || <span className="text-stone-700">—</span>}
+                </span>
+              )}
             </div>
             <Keypad
               onPress={handleKeypadPress}
               onBackspace={handleBackspace}
               onClear={handleClear}
               onSubmit={handleCedulaSubmit}
-              submitDisabled={!cedula}
+              submitDisabled={!cedula || loading}
+              loading={loading}
             />
           </>
         ) : (
           <>
             <p className="mb-2 text-center text-sm text-stone-400">
-              Hola, ingresa tu PIN
+              Hola {waiterName}, ingresa tu PIN
             </p>
             <p className="mb-6 text-center text-xs text-stone-600">Cédula: {cedula}</p>
             <div className="mb-6 flex h-16 items-center justify-center gap-3 rounded-lg border border-stone-800 bg-stone-950">
@@ -200,7 +229,7 @@ function Keypad({
           disabled={submitDisabled || loading}
           className="flex h-16 items-center justify-center rounded-xl border border-yellow-500/30 bg-yellow-500/10 text-sm font-semibold text-yellow-500 transition-all hover:bg-yellow-500/20 active:scale-95 disabled:opacity-50"
         >
-          <Check className="size-5" />
+          {loading ? <Loader2 className="size-5 animate-spin" /> : <Check className="size-5" />}
         </button>
       ) : (
         <button
