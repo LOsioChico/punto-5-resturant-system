@@ -109,28 +109,33 @@ export default function WaiterLoginPage() {
   }, [step, router]);
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center p-6">
-      <div className="w-full max-w-xs">
+    <div className="flex min-h-dvh flex-col bg-stone-950">
+      {/* Top bar */}
+      <div className="flex items-center gap-3 border-b border-white/5 px-6 py-4">
         <button
           onClick={handleBack}
           disabled={loading}
-          className="mb-6 flex items-center gap-2 text-sm text-stone-500 transition-colors hover:text-stone-300 disabled:opacity-50"
+          className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-stone-300 transition-colors hover:bg-stone-900 hover:text-stone-100 disabled:opacity-50"
         >
           <ArrowLeft className="size-4" />
           {step === "pin" ? "Cambiar cédula" : "Volver"}
         </button>
+      </div>
 
-        <div className="mb-8 flex flex-col items-center gap-3">
-          <Image
-            src="/icon-192.png"
-            alt="Punto 5"
-            width={56}
-            height={56}
-            className="rounded-xl"
-            priority
-          />
-          <h1 className="text-2xl font-bold text-stone-100">Mesero</h1>
-        </div>
+      {/* Login form */}
+      <main className="flex flex-1 flex-col items-center justify-center p-6">
+        <div className="w-full max-w-xs">
+          <div className="mb-8 flex flex-col items-center gap-3">
+            <Image
+              src="/icon-192.png"
+              alt="Punto 5"
+              width={56}
+              height={56}
+              className="rounded-xl"
+              priority
+            />
+            <h1 className="text-2xl font-bold text-stone-100">Mesero</h1>
+          </div>
 
         {step === "cedula" ? (
           <>
@@ -178,7 +183,8 @@ export default function WaiterLoginPage() {
           </>
         )}
       </div>
-    </main>
+      </main>
+    </div>
   );
 }
 
