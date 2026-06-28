@@ -74,7 +74,7 @@ Deno.serve(async (req) => {
     }
 
     const tableLabel = tableNumber === 18
-      ? (deliveryName ? `Domicilio - ${deliveryName}` : "Domicilio")
+      ? (deliveryName ? `Domicilio - Para: ${deliveryName}` : "Domicilio")
       : `Mesa ${tableNumber}`;
     const payload = JSON.stringify({
       title: tableLabel,

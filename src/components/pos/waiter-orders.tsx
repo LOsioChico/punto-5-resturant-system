@@ -94,7 +94,7 @@ export function WaiterOrders({
                       </div>
                       {order.delivery_name ? (
                         <p className="text-sm font-medium text-yellow-400">
-                          {order.delivery_name}
+                          Para: {order.delivery_name}
                         </p>
                       ) : (
                         <p className="text-sm text-stone-500">

@@ -52,6 +52,7 @@ export function CommandPreview({ order }: { order: Order }) {
         {/* Delivery customer name — shown prominently for delivery orders */}
         {order.delivery_name && (
           <div className="mt-2 mb-2 rounded border border-stone-400 bg-stone-100 px-2 py-1.5 text-center">
+            <span className="text-xs text-stone-500">Para: </span>
             <span className="text-sm font-bold text-black">{order.delivery_name}</span>
           </div>
         )}

@@ -104,7 +104,7 @@ export function OrderDetail({
               </h2>
               {order.delivery_name && (
                 <p className="mt-0.5 text-sm font-medium text-yellow-400">
-                  {order.delivery_name}
+                  Para: {order.delivery_name}
                 </p>
               )}
               <div className="mt-0.5 flex items-center gap-2 text-xs text-stone-500">

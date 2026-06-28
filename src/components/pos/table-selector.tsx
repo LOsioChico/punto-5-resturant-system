@@ -91,15 +91,6 @@ export function TableSelector({
               )}
             >
               <span className="text-sm font-bold leading-tight">Domicilio</span>
-              {status && (
-                <span
-                  className={cn(
-                    "absolute right-2 top-2 size-2 rounded-full ring-2",
-                    isSelected ? "ring-yellow-500" : "ring-stone-900",
-                    statusDot[status],
-                  )}
-                />
-              )}
             </button>
           );
         })()}
