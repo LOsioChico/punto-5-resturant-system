@@ -77,32 +77,55 @@ npx supabase link --project-ref your-project-ref
 npx supabase db push
 ```
 
-This creates the tables (`categories`, `dishes`, `orders`, `order_items`, `order_events`, `push_subscriptions`), enables RLS, activates Realtime, and seeds the initial menu.
+This creates the tables (`categories`, `dishes`, `orders`, `order_items`, `order_events`, `push_subscriptions`, `waiters`), enables RLS, activates Realtime, and seeds the initial menu.
 
 Alternatively, you can run each migration file in `supabase/migrations/` manually via the Supabase SQL Editor in order.
 
-### 5. (Optional) Adjust the menu
+### 5. Disable public sign-ups
+
+In Supabase Dashboard → **Authentication → Sign In / Providers → Email**, turn OFF "Allow new users to sign up". This prevents anyone from creating accounts on their own. All accounts are created by the admin via scripts or the waiter management UI.
+
+### 6. Create the admin account
+
+```bash
+node scripts/create-admin.mjs your-email@example.com your-password
+```
+
+This creates the admin user with `app_metadata.role = 'admin'` already set — no manual SQL needed. Requires `SUPABASE_SERVICE_ROLE_KEY` in `.env`.
+
+### 7. Deploy the edge function
+
+```bash
+npx supabase functions deploy manage-waiters
+```
+
+This deploys the waiter management function (create/list/activate/deactivate waiters). `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` are auto-injected by Supabase.
+
+### 8. (Optional) Adjust the menu
 
 Main dish prices are placeholders. Edit the seed data in `supabase/migrations/20260627160152_initial_schema.sql` before applying, or update the records directly in Supabase (**Table Editor → dishes**).
 
-### 6. Run the dev server
+### 9. Run the dev server
 
 ```bash
 pnpm dev
 ```
 
 Open:
-- `http://localhost:3000/pos` — waiter view (tablet)
-- `http://localhost:3000/dashboard` — owner dashboard (laptop)
+- `http://localhost:3000/login/admin` — admin login
+- `http://localhost:3000/login/waiter` — waiter login (cédula + PIN)
+- `http://localhost:3000/dashboard` — owner dashboard (after admin login)
+- `http://localhost:3000/pos` — waiter view (after waiter login)
 
-### 7. Test the real-time flow
+### 10. Test the real-time flow
 
-1. Open `/pos` in one tab/window (simulates the tablet).
-2. Enter a waiter name.
-3. Select a table, add dishes to the order, and send to kitchen.
-4. Open `/dashboard` in another tab/window (simulates the owner's laptop).
-5. The order appears automatically on the dashboard. The waiter shows up under "Meseros activos".
-6. Advance the order status: Nueva → En cocina → Lista → Servida.
+1. Log in as admin at `/login/admin`.
+2. Go to Dashboard → "Meseros" → create a waiter (cedula + name, initial PIN is 0000).
+3. Open `/login/waiter` in another tab — enter the cédula, then PIN 0000.
+4. Change the PIN when prompted (first login requirement).
+5. Select a table, add dishes to the order, and send to kitchen.
+6. The order appears automatically on the dashboard. The waiter shows up under "Meseros activos".
+7. Advance the order status: Nueva → En cocina → Lista → Servida.
 
 ## Deploy to Vercel
 
