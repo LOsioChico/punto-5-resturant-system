@@ -10,7 +10,7 @@
  */
 
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { nextLogoutTime, isPastLogoutTime } from "@/lib/timezone";
+import { nextLogoutTime } from "@/lib/timezone";
 import type { Waiter, AuthRole } from "@/lib/types";
 
 /** Prefix + minimum padding for waiter PINs (Supabase requires 6-char min). */
@@ -95,12 +95,6 @@ export async function signInWaiter(cedula: string, pin: string) {
       throw new Error("Cédula o PIN incorrecto.");
     }
     throw new Error("Error al iniciar sesión. Intenta de nuevo.");
-  }
-
-  // Check if it's past 6am Colombia time — don't allow login
-  if (isPastLogoutTime()) {
-    await supabase.auth.signOut();
-    throw new Error("El turno ha terminado (después de las 6 AM). Vuelve mañana.");
   }
 
   // Fetch waiter profile to check if active and PIN needs changing
