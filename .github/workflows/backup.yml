@@ -33,17 +33,18 @@ jobs:
           supabase db dump --linked --file schema.sql
           supabase db dump --linked --data-only --use-copy --file data.sql
 
-      - name: Check if data changed (compare uncompressed content)
+      - name: Check if data changed (compare normalized content)
         id: changed
         run: |
-          # Hash the current data dump
-          CURRENT_HASH=$(md5sum data.sql | awk '{print $1}')
+          # Strip volatile restrict/unrestrict tokens that change every dump
+          grep -v '^-- \\restrict\|^-- \\unrestrict' data.sql > data_normalized.sql
+          CURRENT_HASH=$(md5sum data_normalized.sql | awk '{print $1}')
           echo "Current data hash: $CURRENT_HASH"
           
           if [ -f prev_data.sql.gz ]; then
-            # Decompress previous and hash it
             gunzip -c prev_data.sql.gz > prev_data.sql
-            PREV_HASH=$(md5sum prev_data.sql | awk '{print $1}')
+            grep -v '^-- \\restrict\|^-- \\unrestrict' prev_data.sql > prev_data_normalized.sql
+            PREV_HASH=$(md5sum prev_data_normalized.sql | awk '{print $1}')
             echo "Previous data hash: $PREV_HASH"
             
             if [ "$CURRENT_HASH" = "$PREV_HASH" ]; then
