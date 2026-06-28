@@ -79,19 +79,27 @@ describe("formatTime", () => {
     expect(result).toMatch(/\d{1,2}:\d{2}/);
   });
 
-  it("formats an ISO string", () => {
+  it("converts UTC to Colombia timezone (UTC-5)", () => {
+    // 14:30 UTC = 09:30 Colombia
     const result = formatTime("2024-01-01T14:30:00Z");
-    expect(result).toMatch(/\d{1,2}:\d{2}/);
+    expect(result).toBe("09:30");
   });
 
-  it("formats midnight", () => {
-    const date = new Date(2024, 0, 1, 0, 0);
-    const result = formatTime(date);
-    // Could be "00:00" or "12:00 AM" depending on locale
-    expect(result).toMatch(/\d{1,2}:00/);
+  it("handles midnight UTC correctly", () => {
+    // 00:00 UTC = 19:00 previous day Colombia (UTC-5)
+    const result = formatTime("2024-01-01T00:00:00Z");
+    expect(result).toBe("19:00");
   });
 
-  it("formats 23:59", () => {
+  it("handles 23:59 UTC correctly", () => {
+    // 23:59 UTC = 18:59 Colombia
+    const result = formatTime("2024-01-01T23:59:00Z");
+    expect(result).toBe("18:59");
+  });
+
+  it("formats 23:59 local as Colombia time", () => {
+    // This Date is constructed in local time, so the result depends on the
+    // test runner's timezone. Just verify it matches HH:mm format.
     const date = new Date(2024, 0, 1, 23, 59);
     const result = formatTime(date);
     expect(result).toMatch(/\d{1,2}:59/);

@@ -183,19 +183,24 @@ describe("isOrderActive", () => {
 // filterByDate
 // ============================================================
 describe("filterByDate", () => {
-  const now = new Date(2024, 5, 15, 14, 30); // June 15, 2024, 2:30 PM
+  // Use explicit UTC times so tests are timezone-independent.
+  // June 15, 2024 19:30 UTC = 14:30 Colombia (UTC-5)
+  const now = new Date("2024-06-15T19:30:00Z");
 
+  // 10:00 Colombia = 15:00 UTC on June 15
   const todayOrder = makeOrder({
     id: "today",
-    created_at: new Date(2024, 5, 15, 10, 0).toISOString(),
+    created_at: "2024-06-15T15:00:00Z",
   });
+  // 13:00 Colombia = 18:00 UTC on June 14
   const yesterdayOrder = makeOrder({
     id: "yesterday",
-    created_at: new Date(2024, 5, 14, 18, 0).toISOString(),
+    created_at: "2024-06-14T18:00:00Z",
   });
+  // 07:00 Colombia = 12:00 UTC on June 13
   const twoDaysAgoOrder = makeOrder({
     id: "two-days-ago",
-    created_at: new Date(2024, 5, 13, 12, 0).toISOString(),
+    created_at: "2024-06-13T12:00:00Z",
   });
   const orders = [todayOrder, yesterdayOrder, twoDaysAgoOrder];
 
@@ -221,28 +226,31 @@ describe("filterByDate", () => {
     expect(result.find((o) => o.id === "two-days-ago")).toBeUndefined();
   });
 
-  it("handles order at exactly midnight today", () => {
+  it("handles order at exactly midnight Colombia (05:00 UTC)", () => {
+    // 00:00 Colombia June 15 = 05:00 UTC June 15
     const midnightOrder = makeOrder({
       id: "midnight",
-      created_at: new Date(2024, 5, 15, 0, 0).toISOString(),
+      created_at: "2024-06-15T05:00:00Z",
     });
     const result = filterByDate([midnightOrder], "today", now);
     expect(result).toHaveLength(1);
   });
 
-  it("handles order at 23:59 today", () => {
+  it("handles order at 23:59 Colombia (04:59 UTC next day)", () => {
+    // 23:59 Colombia June 15 = 04:59 UTC June 16
     const lateOrder = makeOrder({
       id: "late",
-      created_at: new Date(2024, 5, 15, 23, 59).toISOString(),
+      created_at: "2024-06-16T04:59:00Z",
     });
     const result = filterByDate([lateOrder], "today", now);
     expect(result).toHaveLength(1);
   });
 
-  it("excludes order at exactly midnight of next day", () => {
+  it("excludes order at exactly midnight of next day Colombia", () => {
+    // 00:00 Colombia June 16 = 05:00 UTC June 16
     const nextDayMidnight = makeOrder({
       id: "next-midnight",
-      created_at: new Date(2024, 5, 16, 0, 0).toISOString(),
+      created_at: "2024-06-16T05:00:00Z",
     });
     const result = filterByDate([nextDayMidnight], "today", now);
     expect(result).toHaveLength(0);
