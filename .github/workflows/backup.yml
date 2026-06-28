@@ -2,8 +2,8 @@ name: Database Backup
 
 on:
   schedule:
-    # Every 6 hours: 03:00, 09:00, 15:00, 21:00 UTC
-    - cron: "0 3,9,15,21 * * *"
+    # Every hour
+    - cron: "0 * * * *"
   workflow_dispatch: {}
 
 permissions:
@@ -21,7 +21,12 @@ jobs:
       - name: Install Supabase CLI
         run: npm install -g supabase
 
-      - name: Dump schema
+      - name: Fetch previous backup from backups branch
+        run: |
+          git fetch origin backups --depth=1 || true
+          git show origin/backups:data.sql.gz > prev_data.sql.gz 2>/dev/null || echo "No previous backup"
+
+      - name: Dump current database
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
         run: |
@@ -33,7 +38,24 @@ jobs:
           gzip schema.sql
           gzip data.sql
 
+      - name: Check if data changed
+        id: changed
+        run: |
+          if [ -f prev_data.sql.gz ]; then
+            if cmp -s prev_data.sql.gz data.sql.gz; then
+              echo "changed=false" >> "$GITHUB_OUTPUT"
+              echo "No changes since last backup — skipping."
+            else
+              echo "changed=true" >> "$GITHUB_OUTPUT"
+              echo "Data changed — will backup."
+            fi
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "No previous backup — will backup."
+          fi
+
       - name: Upload artifacts (90 day retention)
+        if: steps.changed.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: backup-${{ github.run_id }}
@@ -42,7 +64,8 @@ jobs:
             data.sql.gz
           retention-days: 90
 
-      - name: Also commit to backups branch
+      - name: Commit to backups branch
+        if: steps.changed.outputs.changed == 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
