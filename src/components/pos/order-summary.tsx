@@ -254,7 +254,18 @@ export function OrderSummary({
                           Todas
                         </button>
                         <button
-                          onClick={() => setNotesMode("perUnit")}
+                          onClick={() => {
+                            // When switching to perUnit, if all units share the same note
+                            // (from "Todas" mode), keep it only on the first unit and clear the rest
+                            const allSame = item.notes.every((n) => n === item.notes[0]);
+                            if (allSame && item.notes[0]?.trim()) {
+                              onSetNotes(item.dish_id, 0, item.notes[0]);
+                              for (let i = 1; i < item.notes.length; i++) {
+                                onSetNotes(item.dish_id, i, "");
+                              }
+                            }
+                            setNotesMode("perUnit");
+                          }}
                           className={cn(
                             "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
                             notesMode === "perUnit"
