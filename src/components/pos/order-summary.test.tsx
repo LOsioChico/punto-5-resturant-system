@@ -285,6 +285,21 @@ describe("OrderSummary — notes", () => {
     expect(screen.getByText("→ Para llevar")).toBeInTheDocument();
     expect(screen.queryByText("→ Para llevar (1x)")).not.toBeInTheDocument();
   });
+
+  it("groups comma-separated tokens individually", () => {
+    // 4 units: "Para llevar, Sin cebolla" + "Para llevar" + "Sin cebolla" + empty
+    // → Para llevar appears in 2 units, Sin cebolla in 2 units
+    renderSummary({ items: [makeItem({ notes: ["Para llevar, Sin cebolla", "Para llevar", "Sin cebolla", ""], quantity: 4 })] });
+    expect(screen.getByText("→ Para llevar (2x)")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla (2x)")).toBeInTheDocument();
+  });
+
+  it("groups tokens from comma-separated notes across units", () => {
+    // 3 units: 2 with "Para llevar, Sin cebolla", 1 empty
+    renderSummary({ items: [makeItem({ notes: ["Para llevar, Sin cebolla", "Para llevar, Sin cebolla", ""], quantity: 3 })] });
+    expect(screen.getByText("→ Para llevar (2x)")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla (2x)")).toBeInTheDocument();
+  });
 });
 
 // ============================================================

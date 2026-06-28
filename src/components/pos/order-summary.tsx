@@ -384,13 +384,15 @@ export function OrderSummary({
                     {item.notes.some((n) => n.trim()) ? (
                       <div className="flex flex-col items-start gap-0.5">
                         {(() => {
-                          // Group identical notes and show with count
-                          const nonEmpty = item.notes.filter((n) => n.trim());
-                          const groups = new Map<string, number>();
-                          for (const n of nonEmpty) {
-                            groups.set(n, (groups.get(n) ?? 0) + 1);
+                          // Split comma-separated notes and group by individual token
+                          const tokens = new Map<string, number>();
+                          for (const n of item.notes) {
+                            if (!n.trim()) continue;
+                            for (const part of n.split(",").map((p) => p.trim()).filter(Boolean)) {
+                              tokens.set(part, (tokens.get(part) ?? 0) + 1);
+                            }
                           }
-                          return Array.from(groups.entries()).map(([note, count], idx) => (
+                          return Array.from(tokens.entries()).map(([note, count], idx) => (
                             <span key={idx} className="text-stone-400">
                               → {note}{count > 1 ? ` (${count}x)` : ""}
                             </span>
