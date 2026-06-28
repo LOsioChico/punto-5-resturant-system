@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Delete, ArrowLeft } from "lucide-react";
@@ -77,15 +77,17 @@ export default function ChangePinPage() {
       setConfirmPin("");
       setStep("new");
       setNewPin("");
+      submittedRef.current = false;
     } finally {
       setLoading(false);
     }
   }, [newPin, confirmPin, router, toast]);
 
   // Auto-submit when confirm PIN is 4 digits
+  const submittedRef = useRef(false);
   useEffect(() => {
-    if (step === "confirm" && confirmPin.length === 4 && !loading) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- async callback, setState happens after await
+    if (step === "confirm" && confirmPin.length === 4 && !loading && !submittedRef.current) {
+      submittedRef.current = true;
       handleChangePin();
     }
   }, [confirmPin, step, loading, handleChangePin]);

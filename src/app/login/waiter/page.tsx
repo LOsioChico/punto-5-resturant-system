@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Delete, Check, Loader2 } from "lucide-react";
@@ -64,6 +64,7 @@ export default function WaiterLoginPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Credenciales inválidas", "error");
       setPin("");
+      submittedRef.current = false;
     } finally {
       setLoading(false);
     }
@@ -91,9 +92,10 @@ export default function WaiterLoginPage() {
   }, [step]);
 
   // Auto-submit PIN when 4 digits entered
+  const submittedRef = useRef(false);
   useEffect(() => {
-    if (step === "pin" && pin.length === 4 && !loading) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- async callback, setState happens after await
+    if (step === "pin" && pin.length === 4 && !loading && !submittedRef.current) {
+      submittedRef.current = true;
       handlePinSubmit();
     }
   }, [pin, step, loading, handlePinSubmit]);
@@ -103,6 +105,7 @@ export default function WaiterLoginPage() {
       setStep("cedula");
       setPin("");
       setWaiterName("");
+      submittedRef.current = false;
     } else {
       router.push("/");
     }
