@@ -402,6 +402,16 @@ export function PosClient() {
     );
   }, []);
 
+  const setAllNotes = useCallback((dishId: string, value: string) => {
+    setCart((prev) =>
+      prev.map((i) =>
+        i.dish_id === dishId
+          ? { ...i, notes: Array.from({ length: i.quantity }, () => value) }
+          : i,
+      ),
+    );
+  }, []);
+
   const sendOrder = useCallback(async () => {
     if (!waiterName || !supabase || selectedTable === null || cart.length === 0)
       return;
@@ -801,6 +811,7 @@ export function PosClient() {
               onClear={clearCart}
               onSend={sendOrder}
               onSetNotes={setNotes}
+              onSetAllNotes={setAllNotes}
               sending={sending}
               editingOrderId={editingOrderId}
               editHasChanges={editHasChanges}

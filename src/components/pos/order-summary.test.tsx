@@ -25,6 +25,7 @@ const defaultProps = {
   onClear: vi.fn(),
   onSend: vi.fn(),
   onSetNotes: vi.fn(),
+  onSetAllNotes: vi.fn(),
   sending: false,
   editingOrderId: null as string | null,
   editHasChanges: false,
@@ -41,6 +42,7 @@ function renderSummary(overrides: Partial<typeof defaultProps> = {}) {
   props.onClear.mockClear();
   props.onSend.mockClear();
   props.onSetNotes.mockClear();
+  props.onSetAllNotes.mockClear();
   props.onSaveEdit.mockClear();
   props.onCancelEdit.mockClear();
   return render(<OrderSummary {...props} />);
@@ -144,7 +146,7 @@ describe("OrderSummary — notes", () => {
   it("toggles off a quick note that is already active", async () => {
     const user = userEvent.setup();
     const onSetNotes = vi.fn();
-    renderSummary({ items: [makeItem({ dish_id: "d1", notes: ["Sin lechuga"] })], onSetNotes });
+    renderSummary({ items: [makeItem({ dish_id: "d1", notes: ["Sin lechuga"], quantity: 1 })], onSetNotes });
     // The notes display button shows the existing note text; click it to open the editor.
     await user.click(screen.getByText("→ Sin lechuga"));
     // Now the quick-note chips are visible; click the active "Sin lechuga" chip to toggle it off.

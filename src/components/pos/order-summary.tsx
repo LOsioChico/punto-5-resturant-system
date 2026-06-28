@@ -19,6 +19,7 @@ export function OrderSummary({
   onClear,
   onSend,
   onSetNotes,
+  onSetAllNotes,
   sending,
   editingOrderId,
   editHasChanges,
@@ -35,6 +36,7 @@ export function OrderSummary({
   onClear: () => void;
   onSend: () => void;
   onSetNotes: (dishId: string, unitIndex: number, value: string) => void;
+  onSetAllNotes: (dishId: string, value: string) => void;
   sending: boolean;
   editingOrderId: string | null;
   editHasChanges: boolean;
@@ -44,6 +46,7 @@ export function OrderSummary({
   // Track which item's notes are being edited
   const [editingNotes, setEditingNotes] = useState<string | null>(null);
   const [editingNotesUnit, setEditingNotesUnit] = useState<number | null>(null);
+  const [notesMode, setNotesMode] = useState<"all" | "perUnit">("all");
   const [tooltip, setTooltip] = useState<string | null>(null);
   const [confirmClear, setConfirmClear] = useState(false);
   const notesEditorRef = useRef<HTMLDivElement | null>(null);
@@ -212,9 +215,36 @@ export function OrderSummary({
                   </button>
                 </div>
 
-                {/* Notes — one input per unit */}
+                {/* Notes editor */}
                 {editingNotes === item.dish_id ? (
                   <div ref={notesEditorRef} className="mt-3 space-y-2">
+                    {/* Mode toggle — only for multi-unit items */}
+                    {item.quantity > 1 && (
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => setNotesMode("all")}
+                          className={cn(
+                            "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                            notesMode === "all"
+                              ? "bg-yellow-500/15 text-yellow-400 ring-1 ring-inset ring-yellow-500/30"
+                              : "bg-stone-800 text-stone-400 hover:bg-stone-700",
+                          )}
+                        >
+                          Todas
+                        </button>
+                        <button
+                          onClick={() => setNotesMode("perUnit")}
+                          className={cn(
+                            "rounded-lg px-2.5 py-1 text-xs font-medium transition-colors",
+                            notesMode === "perUnit"
+                              ? "bg-yellow-500/15 text-yellow-400 ring-1 ring-inset ring-yellow-500/30"
+                              : "bg-stone-800 text-stone-400 hover:bg-stone-700",
+                          )}
+                        >
+                          Por unidad
+                        </button>
+                      </div>
+                    )}
                     {/* Quick notes — generated from dish description */}
                     {(() => {
                       const quickNotes = getQuickNotes(item.description);
@@ -222,18 +252,44 @@ export function OrderSummary({
                       return (
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {quickNotes.map((note) => {
-                        // Highlight only if the focused unit has this note
-                        const unitIdx = editingNotesUnit ?? 0;
-                        const currentUnitNotes = item.notes[unitIdx] ?? "";
-                        const active = currentUnitNotes
-                          .split(",")
-                          .map((p) => p.trim())
-                          .includes(note);
+                        // In "all" mode, highlight if any unit has the note
+                        // In "perUnit" mode, highlight only the focused unit
+                        const active = notesMode === "all" || item.quantity === 1
+                          ? item.notes.some((n) =>
+                              (n ?? "").split(",").map((p) => p.trim()).includes(note),
+                            )
+                          : (() => {
+                              const unitIdx = editingNotesUnit ?? 0;
+                              const currentUnitNotes = item.notes[unitIdx] ?? "";
+                              return currentUnitNotes
+                                .split(",")
+                                .map((p) => p.trim())
+                                .includes(note);
+                            })();
                         return (
                           <button
                             key={note}
                             onClick={() => {
-                              onSetNotes(item.dish_id, unitIdx, toggleQuickNote(currentUnitNotes, note));
+                              if (item.quantity === 1) {
+                                // Single unit — use onSetNotes directly
+                                const currentUnitNotes = item.notes[0] ?? "";
+                                onSetNotes(item.dish_id, 0, toggleQuickNote(currentUnitNotes, note));
+                              } else if (notesMode === "all") {
+                                // Toggle on all units
+                                const baseNote = item.notes[0] ?? "";
+                                const allHave = item.notes.every((n) =>
+                                  (n ?? "").split(",").map((p) => p.trim()).includes(note),
+                                );
+                                const parts = baseNote.split(",").map((p) => p.trim()).filter(Boolean);
+                                const newValue = allHave
+                                  ? parts.filter((p) => p !== note).join(", ")
+                                  : [...parts, note].join(", ");
+                                onSetAllNotes(item.dish_id, newValue);
+                              } else {
+                                const unitIdx = editingNotesUnit ?? 0;
+                                const currentUnitNotes = item.notes[unitIdx] ?? "";
+                                onSetNotes(item.dish_id, unitIdx, toggleQuickNote(currentUnitNotes, note));
+                              }
                             }}
                             className={
                               active
@@ -248,29 +304,47 @@ export function OrderSummary({
                     </div>
                       );
                     })()}
-                    {/* One input per unit */}
-                    {item.notes.map((note, unitIdx) => (
+                    {/* Single input (all units) or one input per unit */}
+                    {notesMode === "all" && item.quantity > 1 ? (
                       <input
-                        key={unitIdx}
-                        value={note}
-                        onChange={(e) => onSetNotes(item.dish_id, unitIdx, e.target.value)}
-                        onFocus={() => setEditingNotesUnit(unitIdx)}
+                        value={item.notes[0] ?? ""}
+                        onChange={(e) => onSetAllNotes(item.dish_id, e.target.value)}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             setEditingNotes(null);
                             setEditingNotesUnit(null);
                           }
                         }}
-                        placeholder={item.quantity > 1 ? `Nota unidad ${unitIdx + 1}...` : "Nota..."}
+                        placeholder="Nota para todas..."
                         className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
                       />
-                    ))}
+                    ) : (
+                      item.notes.map((note, unitIdx) => (
+                        <input
+                          key={unitIdx}
+                          value={note}
+                          onChange={(e) => onSetNotes(item.dish_id, unitIdx, e.target.value)}
+                          onFocus={() => setEditingNotesUnit(unitIdx)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") {
+                              setEditingNotes(null);
+                              setEditingNotesUnit(null);
+                            }
+                          }}
+                          placeholder={item.quantity > 1 ? `Nota unidad ${unitIdx + 1}...` : "Nota..."}
+                          className="w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
+                        />
+                      ))
+                    )}
                   </div>
                 ) : (
                   <button
                     onClick={() => {
                       setEditingNotes(item.dish_id);
                       setEditingNotesUnit(0);
+                      // Default to "all" mode if all units share the same note, else "perUnit"
+                      const allSame = item.notes.every((n) => n === item.notes[0]);
+                      setNotesMode(allSame ? "all" : "perUnit");
                     }}
                     className="mt-3 flex items-center gap-1.5 text-sm text-stone-600 transition-colors hover:text-stone-300"
                   >
