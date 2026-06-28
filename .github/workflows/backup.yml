@@ -12,28 +12,24 @@ permissions:
 jobs:
   backup:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 5
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-
-      - name: Install Supabase CLI
-        run: npm install -g supabase
 
       - name: Fetch previous backup from backups branch
         run: |
           git fetch origin backups --depth=1 || true
           git show origin/backups:data.sql.gz > prev_data.sql.gz 2>/dev/null && echo "Found previous backup" || echo "No previous backup"
 
-      - name: Dump current database
+      - name: Dump data (pg_dump directly, no CLI needed)
         env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          supabase db dump --linked --file schema.sql
-          supabase db dump --linked --data-only --use-copy --file data.sql
+          pg_dump "$SUPABASE_DB_URL" --data-only --no-owner --no-privileges --use-copy -f data.sql
 
-      - name: Check if data changed (compare normalized content)
+      - name: Check if data changed (normalized)
         id: changed
         run: |
           # Strip volatile restrict/unrestrict tokens that change every dump
@@ -61,31 +57,25 @@ jobs:
 
       - name: Compress
         if: steps.changed.outputs.changed == 'true'
-        run: |
-          gzip schema.sql
-          gzip data.sql
+        run: gzip data.sql
 
-      - name: Upload artifacts (90 day retention)
+      - name: Upload artifact (90 day retention)
         if: steps.changed.outputs.changed == 'true'
         uses: actions/upload-artifact@v4
         with:
           name: backup-${{ github.run_id }}
-          path: |
-            schema.sql.gz
-            data.sql.gz
+          path: data.sql.gz
           retention-days: 90
 
       - name: Commit to backups branch
         if: steps.changed.outputs.changed == 'true'
         run: |
-          # Move dump files out of the working tree before cleaning
-          mv schema.sql.gz /tmp/schema.sql.gz
           mv data.sql.gz /tmp/data.sql.gz
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout --orphan backups
           git rm -rf . 2>/dev/null || true
-          mv /tmp/schema.sql.gz /tmp/data.sql.gz .
-          git add schema.sql.gz data.sql.gz
+          mv /tmp/data.sql.gz .
+          git add data.sql.gz
           git commit -m "Backup $(date -u +%Y-%m-%dT%H:%M:%SZ)"
           git push origin backups --force
