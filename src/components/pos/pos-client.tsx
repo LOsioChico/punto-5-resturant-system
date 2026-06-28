@@ -415,11 +415,12 @@ export function PosClient() {
 
   const setAllNotes = useCallback((dishId: string, value: string) => {
     setCart((prev) =>
-      prev.map((i) =>
-        i.dish_id === dishId
-          ? { ...i, notes: Array.from({ length: i.quantity }, () => value) }
-          : i,
-      ),
+      prev.map((i) => {
+        if (i.dish_id !== dishId) return i;
+        // Store the note only on the first unit, leave the rest empty
+        const notes = Array.from({ length: i.quantity }, (_, idx) => (idx === 0 ? value : ""));
+        return { ...i, notes };
+      }),
     );
   }, []);
 
