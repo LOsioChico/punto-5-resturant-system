@@ -26,14 +26,18 @@ function json(body: unknown, status = 200) {
   });
 }
 
-/** Verify the caller is an admin. */
+/** Verify the caller is an admin by checking their JWT. */
 async function verifyAdmin(authHeader: string | null) {
   if (!authHeader?.startsWith("Bearer ")) return null;
   const token = authHeader.slice(7);
 
-  // Create a client with the user's token to check their role
-  const userClient = createClient(SUPABASE_URL, token);
-  const { data: { user }, error } = await userClient.auth.getUser();
+  // Use the service role key to call getUser with the user's token.
+  // The second arg to createClient is the API key (service role),
+  // and auth.getUser(token) verifies the user's JWT.
+  const client = createClient(SUPABASE_URL, SERVICE_KEY, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const { data: { user }, error } = await client.auth.getUser(token);
   if (error || !user) return null;
 
   const role = user.app_metadata?.role;
