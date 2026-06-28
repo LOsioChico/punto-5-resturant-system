@@ -188,8 +188,8 @@ describe("OrderSummary — notes", () => {
   it("defaults to Todas mode when all units share the same note", async () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })] });
-    // Multiple "→ Sin cebolla" elements — click the first one
-    await user.click(screen.getAllByText("→ Sin cebolla")[0]);
+    // Display deduplicates — shows "→ Sin cebolla" only once
+    await user.click(screen.getByText("→ Sin cebolla"));
     // "Todas" should be the active mode (bg-stone-600)
     const todasBtn = screen.getByText("Todas");
     expect(todasBtn.className).toContain("bg-stone-600");
@@ -221,7 +221,8 @@ describe("OrderSummary — notes", () => {
       items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })],
       onSetNotes,
     });
-    await user.click(screen.getAllByText("→ Sin cebolla")[0]);
+    // Display deduplicates — shows "→ Sin cebolla" only once
+    await user.click(screen.getByText("→ Sin cebolla"));
     await user.click(screen.getByText("Por unidad"));
     // Should keep note on first unit, clear the rest
     expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "Sin cebolla");
@@ -258,6 +259,19 @@ describe("OrderSummary — notes", () => {
     // Should be in perUnit mode (notes are different)
     expect(screen.getByPlaceholderText("Nota unidad 1...")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Nota unidad 2...")).toBeInTheDocument();
+  });
+
+  it("deduplicates note display when all units have the same note (Todas)", () => {
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })] });
+    // Should show "→ Sin cebolla" only once, not 3 times
+    const notes = screen.getAllByText("→ Sin cebolla");
+    expect(notes).toHaveLength(1);
+  });
+
+  it("shows each note individually when units have different notes (Por unidad)", () => {
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
+    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("→ Para llevar")).toBeInTheDocument();
   });
 });
 

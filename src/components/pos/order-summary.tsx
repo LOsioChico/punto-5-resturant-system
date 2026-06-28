@@ -383,11 +383,19 @@ export function OrderSummary({
                     <Pencil className="size-3.5" />
                     {item.notes.some((n) => n.trim()) ? (
                       <div className="flex flex-col items-start gap-0.5">
-                        {item.notes.map((n, idx) => (
-                          <span key={idx} className="text-stone-400">
-                            {n.trim() ? `→ ${n}` : null}
-                          </span>
-                        )).filter(Boolean)}
+                        {(() => {
+                          // If all non-empty notes are the same, show once
+                          const nonEmpty = item.notes.filter((n) => n.trim());
+                          const allSame = nonEmpty.length > 0 && nonEmpty.every((n) => n === nonEmpty[0]);
+                          if (allSame) {
+                            return [<span key={0} className="text-stone-400">→ {nonEmpty[0]}</span>];
+                          }
+                          return item.notes.map((n, idx) => (
+                            <span key={idx} className="text-stone-400">
+                              {n.trim() ? `→ ${n}` : null}
+                            </span>
+                          )).filter(Boolean);
+                        })()}
                       </div>
                     ) : (
                       <span>Nota{item.quantity > 1 ? ` (${item.quantity} unidades)` : ""}</span>
