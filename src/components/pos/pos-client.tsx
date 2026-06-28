@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useToast } from "@/components/ui/toast";
@@ -29,6 +29,7 @@ export function PosClient() {
 
   const [waiterName, setWaiterName] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
+  const presenceChannelRef = useRef<ReturnType<NonNullable<ReturnType<typeof createSupabaseClient>>["channel"]> | null>(null);
 
   // Read localStorage after hydration to avoid SSR mismatch
   useEffect(() => {
@@ -201,6 +202,7 @@ export function PosClient() {
     const channel = supabase.channel("waiters", {
       config: { presence: { key: waiterName } },
     });
+    presenceChannelRef.current = channel;
 
     const track = () =>
       channel.track({
@@ -243,12 +245,25 @@ export function PosClient() {
       window.removeEventListener("beforeunload", handleUnload);
       channel.untrack();
       supabase.removeChannel(channel);
+      presenceChannelRef.current = null;
     };
   }, [supabase, waiterName]);
 
   const handleStart = useCallback((name: string) => {
     localStorage.setItem(WAITER_KEY, name);
     setWaiterName(name);
+  }, []);
+
+  // Logout — explicitly untrack from presence before clearing state
+  // so the dashboard removes the waiter immediately.
+  const handleLogout = useCallback(async () => {
+    const channel = presenceChannelRef.current;
+    if (channel) {
+      // Send untrack and give it a moment to flush over WebSocket
+      await channel.untrack();
+    }
+    localStorage.removeItem(WAITER_KEY);
+    setWaiterName(null);
   }, []);
 
   const filteredDishes = useMemo(
@@ -725,8 +740,7 @@ export function PosClient() {
                   <button
                     onClick={() => {
                       setMenuOpen(false);
-                      localStorage.removeItem(WAITER_KEY);
-                      setWaiterName(null);
+                      handleLogout();
                     }}
                     className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
                   >
