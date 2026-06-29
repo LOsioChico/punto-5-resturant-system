@@ -13,6 +13,7 @@ import { tableLabel, isDeliveryTable } from "@/lib/utils";
 import { isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
 import { createOrder, addAdditional, editOrder as saveOrderToDb, fetchOrderItems } from "@/lib/mutations";
 import { needsItemReload } from "@/lib/realtime";
+import { nowISO } from "@/lib/timezone";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -233,7 +234,7 @@ export function PosClient() {
     const track = () =>
       channel.track({
         name: waiterName,
-        joinedAt: new Date().toISOString(),
+        joinedAt: nowISO(),
       });
 
     channel.subscribe(async (status) => {
@@ -536,7 +537,7 @@ export function PosClient() {
               status: "adicional" as OrderStatus,
               total: newTotal,
               updated_by: waiterName,
-              updated_at: new Date().toISOString(),
+              updated_at: nowISO(),
               updated_by_type: "waiter",
               items: updatedItems,
             }

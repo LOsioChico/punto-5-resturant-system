@@ -19,6 +19,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { isDeliveryTable, DESECHABLES_PER_DISH } from "./utils";
 import { countParaLlevar, type CartItem } from "./pos/logic";
 import { nextStatus } from "./dashboard/logic";
+import { nowISO } from "./timezone";
 import type { Order, OrderStatus, ActorType, EventType } from "./types";
 
 // ─── Types ───────────────────────────────────────────────────
@@ -202,7 +203,7 @@ export async function addAdditional(
   });
 
   // 3. Update order LAST — fires realtime UPDATE
-  const now = new Date().toISOString();
+  const now = nowISO();
   const { error: orderErr } = await supabase
     .from("orders")
     .update({
@@ -336,7 +337,7 @@ export async function editOrder(
   });
 
   // 3. Update order LAST — fires realtime UPDATE
-  const now = new Date().toISOString();
+  const now = nowISO();
   const { error: orderErr } = await supabase
     .from("orders")
     .update({
@@ -367,7 +368,7 @@ export async function advanceOrderStatus(
   const toStatus = nextStatus(currentStatus);
   if (!toStatus) return { error: "No hay siguiente estado" };
 
-  const now = new Date().toISOString();
+  const now = nowISO();
 
   // 1. Log event BEFORE updating the order
   await logEvent(supabase, orderId, "status_changed", actor, {
@@ -403,7 +404,7 @@ export async function undoOrderStatus(
   },
 ): Promise<Result<{ now: string }>> {
   const { orderId, fromStatus, toStatus, actor } = params;
-  const now = new Date().toISOString();
+  const now = nowISO();
 
   // 1. Log event BEFORE updating the order
   await logEvent(supabase, orderId, "status_changed", actor, {
@@ -456,7 +457,7 @@ export async function setOrderDeliveryFee(
   });
 
   // 2. Update order LAST — fires realtime UPDATE
-  const now = new Date().toISOString();
+  const now = nowISO();
   const { error } = await supabase
     .from("orders")
     .update({
@@ -487,7 +488,7 @@ export async function logPrintEvent(
 
   await logEvent(supabase, orderId, "printed", actor, {
     metadata: {
-      printed_at: new Date().toISOString(),
+      printed_at: nowISO(),
       version: version?.type ?? "full",
       ...(version?.round !== undefined ? { additional_round: version.round } : {}),
     },

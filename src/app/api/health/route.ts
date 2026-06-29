@@ -8,6 +8,7 @@
  * Also useful as a general health check: returns DB status + timestamp.
  */
 import { NextResponse } from "next/server";
+import { nowISO } from "@/lib/timezone";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,7 +19,7 @@ export async function GET() {
 
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.json(
-      { status: "error", error: "Missing Supabase env vars", timestamp: new Date().toISOString() },
+      { status: "error", error: "Missing Supabase env vars", timestamp: nowISO() },
       { status: 500 },
     );
   }
@@ -39,7 +40,7 @@ export async function GET() {
 
     if (!res.ok) {
       return NextResponse.json(
-        { status: "error", error: `Supabase returned ${res.status}`, timestamp: new Date().toISOString() },
+        { status: "error", error: `Supabase returned ${res.status}`, timestamp: nowISO() },
         { status: 502 },
       );
     }
@@ -47,11 +48,11 @@ export async function GET() {
     return NextResponse.json({
       status: "ok",
       db: "connected",
-      timestamp: new Date().toISOString(),
+      timestamp: nowISO(),
     });
   } catch (err) {
     return NextResponse.json(
-      { status: "error", error: String(err), timestamp: new Date().toISOString() },
+      { status: "error", error: String(err), timestamp: nowISO() },
       { status: 502 },
     );
   }

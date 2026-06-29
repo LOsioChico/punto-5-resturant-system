@@ -6,6 +6,7 @@
  * device timezone.
  */
 
+import { formatISO } from "date-fns";
 import { formatInTimeZone, fromZonedTime, toZonedTime } from "date-fns-tz";
 import { es } from "date-fns/locale";
 
@@ -13,6 +14,15 @@ export const COLOMBIA_TZ = "America/Bogota";
 
 /** Auto-logout time for waiters: 6:00 AM Colombia time. */
 export const WAITER_LOGOUT_HOUR = 6;
+
+/**
+ * Get the current instant as an ISO 8601 UTC string.
+ * Use this instead of `new Date().toISOString()` everywhere —
+ * `new Date()` should only appear in this file.
+ */
+export function nowISO(): string {
+  return formatISO(new Date());
+}
 
 /**
  * Get the current time in Colombia timezone.

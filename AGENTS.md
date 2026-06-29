@@ -74,11 +74,13 @@ This rule exists because a migration with `DELETE FROM orders WHERE waiter_id IS
 ### Dates and Timezones
 
 - **Always use `date-fns` and `date-fns-tz`** for date operations. Never use raw `new Date()` arithmetic (`.getTime()`, `Date.now() - ...`).
+- **`new Date()` should only appear in `src/lib/timezone.ts`** — all other code uses helpers from that module.
 - **Colombia timezone is UTC-5** (`America/Bogota`). All display formatting goes through `src/lib/timezone.ts` helpers (`formatInColombia`, `nowInColombia`, `startOfTodayColombia`).
-- DB timestamps are stored in UTC (`new Date().toISOString()` is fine for generating these).
+- DB timestamps: use `nowISO()` from `timezone.ts` (uses date-fns `formatISO`) instead of `new Date().toISOString()`.
 - For display: use `formatTime()` (from `utils.ts`) which calls `formatInColombia` with `HH:mm`.
 - For elapsed time: use `timeAgo()` (from `utils.ts`) which uses `date-fns` `differenceInSeconds`/`differenceInMinutes`/`differenceInHours`.
 - For date comparisons/sorting: use `compareDesc` from `date-fns`.
+- Test files are exempt — `new Date().toISOString()` in test fixtures is fine.
 
 ### Mutations (DB writes)
 
