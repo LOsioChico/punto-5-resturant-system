@@ -580,10 +580,19 @@ export function PosClient() {
     const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
     const newTotal = original.total + additionalTotal;
 
-    // Move order to "adicional" so kitchen knows there's pending work
+    // Move order to "adicional" so kitchen knows there's pending work.
+    // Set updated_by_type=waiter + updated_at so the realtime subscription
+    // on both POS and dashboard reloads the order's items.
+    const now = new Date().toISOString();
     const { error: orderErr } = await supabase
       .from("orders")
-      .update({ status: "adicional", total: newTotal })
+      .update({
+        status: "adicional",
+        total: newTotal,
+        updated_by: waiterName,
+        updated_at: now,
+        updated_by_type: "waiter",
+      })
       .eq("id", additionalOrderId);
 
     if (orderErr) {
@@ -593,7 +602,7 @@ export function PosClient() {
     }
 
     // Log audit event
-    await supabase.from("order_events").insert({
+    const { error: eventErr } = await supabase.from("order_events").insert({
       order_id: additionalOrderId,
       event_type: "additional_added",
       actor_type: "waiter",
@@ -610,6 +619,9 @@ export function PosClient() {
         added_items: cart.map((i) => ({ name: i.dish_name, qty: i.quantity, notes: i.notes })),
       },
     });
+    if (eventErr) {
+      console.error("Failed to log additional_added event:", eventErr);
+    }
 
     toast(`Adicional #${nextRound} enviado a cocina — ${tableLabel(original.table_number)}`, "success");
     setCart([]);
