@@ -458,7 +458,7 @@ export async function logPrintEvent(
     version?: { type: "full" | "additional"; round?: number };
     actor: Actor;
   },
-): Promise<Result<{}>> {
+): Promise<Result<void>> {
   const { orderId, version, actor } = params;
 
   const { error } = await supabase.from("order_events").insert({
@@ -476,5 +476,5 @@ export async function logPrintEvent(
 
   if (error) return { error: "Error al registrar la impresión" };
 
-  return { data: {} };
+  return { data: undefined };
 }
