@@ -91,17 +91,39 @@ describe("OrderDetail — header", () => {
     expect(screen.getAllByText("En cocina").length).toBeGreaterThan(0);
   });
 
-  it("shows 'Modificado por' badge when modified by waiter", () => {
+  it("shows 'Modificado por' badge when order has 'updated' event", () => {
+    const events = [makeEvent({ event_type: "updated", actor_name: "Juan" })];
     render(<OrderDetail order={makeOrder({
       updated_by: "Juan",
       updated_at: new Date().toISOString(),
       updated_by_type: "waiter",
-    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    })} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
     expect(screen.getByText(/Modificado por Juan/)).toBeInTheDocument();
+  });
+
+  it("does not show 'Modificado por' badge when updated event exists but updated_at is null", () => {
+    const events = [makeEvent({ event_type: "updated", actor_name: "Juan" })];
+    render(<OrderDetail order={makeOrder({
+      updated_by: "Juan",
+      updated_at: null,
+      updated_by_type: "waiter",
+    })} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    expect(screen.queryByText(/Modificado por/)).not.toBeInTheDocument();
   });
 
   it("does not show 'Modificado por' badge when not modified", () => {
     render(<OrderDetail order={makeOrder()} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    expect(screen.queryByText(/Modificado por/)).not.toBeInTheDocument();
+  });
+
+  it("does not show 'Modificado por' badge for additional_added event", () => {
+    const events = [makeEvent({ event_type: "additional_added", actor_name: "Juan" })];
+    render(<OrderDetail order={makeOrder({
+      updated_by: "Juan",
+      updated_at: new Date().toISOString(),
+      updated_by_type: "waiter",
+      status: "adicional",
+    })} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
     expect(screen.queryByText(/Modificado por/)).not.toBeInTheDocument();
   });
 

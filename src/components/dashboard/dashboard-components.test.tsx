@@ -237,6 +237,16 @@ describe("OrdersFeed", () => {
     expect(screen.getByText("Modificado")).toBeInTheDocument();
   });
 
+  it("does not show 'Modificado' badge for additional order", () => {
+    const orders = [makeOrder({
+      status: "adicional",
+      updated_by_type: "waiter",
+      updated_at: new Date().toISOString(),
+    })];
+    render(<OrdersFeed orders={orders} selectedId={null} onSelect={() => {}} />);
+    expect(screen.queryByText("Modificado")).not.toBeInTheDocument();
+  });
+
   it("does not show 'Modificado' badge for unmodified order", () => {
     const orders = [makeOrder()];
     render(<OrdersFeed orders={orders} selectedId={null} onSelect={() => {}} />);

@@ -61,7 +61,7 @@ export function WaiterOrders({
             const isActive = order.status !== "servida";
             const canEdit = order.status === "nueva" || order.status === "en_cocina";
             const canAddAdditional = order.status === "lista" || order.status === "servida" || order.status === "adicional";
-            const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
+            const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null && order.status !== "adicional";
             const isDelivery = isDeliveryTable(order.table_number);
             const hasAdditionals = order.items.some((i) => i.is_additional);
 

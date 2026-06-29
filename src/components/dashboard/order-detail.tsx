@@ -90,7 +90,9 @@ export function OrderDetail({
   const action = NEXT_ACTION[order.status];
   const printCount = events.filter((e) => e.event_type === "printed").length;
   const colors = STATUS_COLORS[order.status];
-  const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
+  // "Modificado" badge: only show when the order has an "updated" event
+  // (from saveEditedOrder), not when additionals were added.
+  const wasModified = events.some((e) => e.event_type === "updated");
 
   return (
     <div className="flex h-full flex-col">
@@ -132,10 +134,10 @@ export function OrderDetail({
                 {STATUS_LABELS[order.status]}
               </span>
             </div>
-            {wasModified && (
+            {wasModified && order.updated_at && (
               <span className="flex items-center gap-1 rounded-lg bg-amber-500/10 px-2.5 py-1 text-xs font-medium text-amber-400">
                 <PencilLine className="size-3" />
-                Modificado por {order.updated_by} · {timeAgo(order.updated_at!)}
+                Modificado por {order.updated_by} · {timeAgo(order.updated_at)}
               </span>
             )}
           </div>

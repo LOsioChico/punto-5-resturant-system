@@ -46,7 +46,7 @@ export function OrdersFeed({
       {orders.map((order) => {
         const isSelected = selectedId === order.id;
         const isNew = order.status === "nueva";
-        const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
+        const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null && order.status !== "adicional";
         const isDelivery = isDeliveryTable(order.table_number);
         const hasAdditionals = order.items.some((i) => i.is_additional);
 
