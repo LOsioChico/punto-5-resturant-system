@@ -52,6 +52,19 @@ export function PosClient() {
   const [editInitialCart, setEditInitialCart] = useState<CartItem[] | null>(null);
   const [additionalOrderId, setAdditionalOrderId] = useState<string | null>(null);
 
+  // When switching to a delivery table, fill empty notes with "Para llevar"
+  useEffect(() => {
+    if (selectedTable === null || !isDeliveryTable(selectedTable)) return;
+    setCart((prev) => {
+      const hasEmpty = prev.some((i) => i.notes.some((n) => !n.trim()));
+      if (!hasEmpty) return prev;
+      return prev.map((i) => ({
+        ...i,
+        notes: i.notes.map((n) => (n.trim() ? n : "Para llevar")),
+      }));
+    });
+  }, [selectedTable]);
+
   // All orders (for table status + waiter history) — updated in realtime
   const [orders, setOrders] = useState<Order[]>([]);
 
@@ -290,13 +303,15 @@ export function PosClient() {
     // Look up category name for this dish
     const category = categories.find((c) => c.id === dish.category_id);
     const categoryName = category?.name ?? "";
+    // Delivery orders default to "Para llevar" on every unit
+    const defaultNote = selectedTable !== null && isDeliveryTable(selectedTable) ? "Para llevar" : "";
 
     setCart((prev) => {
       const existing = prev.find((i) => i.dish_id === dish.id);
       if (existing) {
         return prev.map((i) =>
           i.dish_id === dish.id
-            ? { ...i, quantity: i.quantity + 1, notes: [...i.notes, ""] }
+            ? { ...i, quantity: i.quantity + 1, notes: [...i.notes, defaultNote] }
             : i,
         );
       }
@@ -309,21 +324,22 @@ export function PosClient() {
           description: dish.description,
           price: dish.price,
           quantity: 1,
-          notes: [""],
+          notes: [defaultNote],
         },
       ];
     });
-  }, [categories]);
+  }, [categories, selectedTable]);
 
   const incItem = useCallback((dishId: string) => {
+    const defaultNote = selectedTable !== null && isDeliveryTable(selectedTable) ? "Para llevar" : "";
     setCart((prev) =>
       prev.map((i) =>
         i.dish_id === dishId
-          ? { ...i, quantity: i.quantity + 1, notes: [...i.notes, ""] }
+          ? { ...i, quantity: i.quantity + 1, notes: [...i.notes, defaultNote] }
           : i,
       ),
     );
-  }, []);
+  }, [selectedTable]);
 
   const decItem = useCallback((dishId: string) => {
     setCart((prev) =>
