@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn, formatCOP, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine, PlusCircle } from "lucide-react";
-import { toggleQuickNote, countParaLlevar, isParaLlevar, type CartItem } from "@/lib/pos/logic";
+import { toggleQuickNote, countParaLlevar, isParaLlevar, allNotesSame, type CartItem } from "@/lib/pos/logic";
 import { getQuickNotes } from "@/lib/pos/quick-notes";
 
 /** Right panel — order summary. Always visible while ordering. */
@@ -262,10 +262,9 @@ export function OrderSummary({
                         </button>
                         <button
                           onClick={() => {
-                            // When switching to perUnit, if all units share the same note
+                            // When switching to perUnit, if all units share equivalent notes
                             // (from "Todas" mode), keep it only on the first unit and clear the rest
-                            const allSame = item.notes.every((n) => n === item.notes[0]);
-                            if (allSame && item.notes[0]?.trim()) {
+                            if (allNotesSame(item.notes) && item.notes[0]?.trim()) {
                               onSetNotes(item.dish_id, 0, item.notes[0]);
                               for (let i = 1; i < item.notes.length; i++) {
                                 onSetNotes(item.dish_id, i, "");
@@ -381,9 +380,8 @@ export function OrderSummary({
                     onClick={() => {
                       setEditingNotes(item.dish_id);
                       setEditingNotesUnit(0);
-                      // Default to "all" mode if all units share the same note, else "perUnit"
-                      const allSame = item.notes.every((n) => n === item.notes[0]);
-                      setNotesMode(allSame ? "all" : "perUnit");
+                      // Default to "all" mode if all units share equivalent notes, else "perUnit"
+                      setNotesMode(allNotesSame(item.notes) ? "all" : "perUnit");
                     }}
                     className="mt-3 flex items-center gap-1.5 text-sm text-stone-600 transition-colors hover:text-stone-300"
                   >
@@ -392,9 +390,8 @@ export function OrderSummary({
                       <div className="flex flex-col items-start gap-0.5">
                         {(() => {
                           const nonEmpty = item.notes.filter((n) => n.trim());
-                          const allSame = nonEmpty.length > 0 && nonEmpty.every((n) => n === nonEmpty[0]);
-                          if (allSame) {
-                            // All units share the same note — show once with count
+                          if (allNotesSame(item.notes)) {
+                            // All units share equivalent notes — show once with count
                             return [<span key={0} className="text-stone-400">→ {nonEmpty[0]} ({nonEmpty.length}x)</span>];
                           }
                           // Different notes per unit — show each with unit number

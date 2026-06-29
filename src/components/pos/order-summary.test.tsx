@@ -339,6 +339,20 @@ describe("OrderSummary — notes", () => {
     renderSummary({ items: [makeItem({ notes: ["Para llevar, Sin cebolla", "Para llevar, Sin cebolla", ""], quantity: 3 })] });
     expect(screen.getByText("→ Para llevar, Sin cebolla (2x)")).toBeInTheDocument();
   });
+
+  it("groups notes with same tokens in different order", () => {
+    // 2 units: "Para llevar, Sin cebolla" and "Sin cebolla, Para llevar" — same tokens, different order
+    renderSummary({ items: [makeItem({ notes: ["Para llevar, Sin cebolla", "Sin cebolla, Para llevar"], quantity: 2 })] });
+    expect(screen.getByText("→ Para llevar, Sin cebolla (2x)")).toBeInTheDocument();
+  });
+
+  it("defaults to Todas when notes have same tokens in different order", async () => {
+    const user = userEvent.setup();
+    renderSummary({ items: [makeItem({ notes: ["Para llevar, Sin cebolla", "Sin cebolla, Para llevar"], quantity: 2 })] });
+    await user.click(screen.getByText("→ Para llevar, Sin cebolla (2x)"));
+    const todasBtn = screen.getByText("Todas");
+    expect(todasBtn.className).toContain("bg-stone-600");
+  });
 });
 
 // ============================================================

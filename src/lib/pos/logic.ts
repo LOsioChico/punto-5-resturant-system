@@ -68,6 +68,31 @@ export function isParaLlevar(note: string | null | undefined): boolean {
 }
 
 /**
+ * Normalize a note string for comparison: split by comma, trim, lowercase,
+ * sort tokens alphabetically, and rejoin. So "Para llevar, Sin cebolla"
+ * and "Sin cebolla, Para llevar" both become "para llevar, sin cebolla".
+ */
+export function normalizeNote(note: string): string {
+  return note
+    .split(",")
+    .map((p) => p.trim().toLowerCase())
+    .filter(Boolean)
+    .sort()
+    .join(", ");
+}
+
+/**
+ * Check if all non-empty notes in an array are equivalent (same tokens,
+ * regardless of order). Empty notes are ignored.
+ */
+export function allNotesSame(notes: string[]): boolean {
+  const nonEmpty = notes.filter((n) => n.trim());
+  if (nonEmpty.length === 0) return true;
+  const first = normalizeNote(nonEmpty[0]);
+  return nonEmpty.every((n) => normalizeNote(n) === first);
+}
+
+/**
  * Count how many units of a cart item have "Para llevar" in their notes.
  */
 export function countParaLlevar(notes: string[]): number {

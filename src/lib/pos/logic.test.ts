@@ -5,6 +5,8 @@ import {
   hasCartChanged,
   isParaLlevar,
   countParaLlevar,
+  normalizeNote,
+  allNotesSame,
   type CartItem,
 } from "./logic";
 
@@ -268,5 +270,58 @@ describe("countParaLlevar", () => {
   it("counts only 1 after switching from Todas to Por unidad", () => {
     // After switch: note kept on first unit only
     expect(countParaLlevar(["Para llevar", "", ""])).toBe(1);
+  });
+});
+
+describe("normalizeNote", () => {
+  it("sorts tokens alphabetically and lowercases", () => {
+    expect(normalizeNote("Para llevar, Sin cebolla")).toBe("para llevar, sin cebolla");
+    expect(normalizeNote("Sin cebolla, Para llevar")).toBe("para llevar, sin cebolla");
+  });
+
+  it("handles single token", () => {
+    expect(normalizeNote("Para llevar")).toBe("para llevar");
+  });
+
+  it("handles empty string", () => {
+    expect(normalizeNote("")).toBe("");
+  });
+
+  it("trims whitespace around tokens", () => {
+    expect(normalizeNote("  Para llevar ,  Sin cebolla  ")).toBe("para llevar, sin cebolla");
+  });
+
+  it("drops empty tokens", () => {
+    expect(normalizeNote("Para llevar, , Sin cebolla")).toBe("para llevar, sin cebolla");
+  });
+});
+
+describe("allNotesSame", () => {
+  it("returns true when all notes are identical", () => {
+    expect(allNotesSame(["Sin cebolla", "Sin cebolla", "Sin cebolla"])).toBe(true);
+  });
+
+  it("returns true when notes have same tokens in different order", () => {
+    expect(allNotesSame(["Para llevar, Sin cebolla", "Sin cebolla, Para llevar"])).toBe(true);
+  });
+
+  it("returns true when all non-empty are same, ignoring empty units", () => {
+    expect(allNotesSame(["Para llevar", "Para llevar", ""])).toBe(true);
+  });
+
+  it("returns true for all empty", () => {
+    expect(allNotesSame(["", "", ""])).toBe(true);
+  });
+
+  it("returns false when notes are genuinely different", () => {
+    expect(allNotesSame(["Sin cebolla", "Para llevar"])).toBe(false);
+  });
+
+  it("returns false when one note has extra token", () => {
+    expect(allNotesSame(["Para llevar", "Para llevar, Sin cebolla"])).toBe(false);
+  });
+
+  it("returns true for single unit", () => {
+    expect(allNotesSame(["Para llevar"])).toBe(true);
   });
 });
