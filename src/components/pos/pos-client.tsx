@@ -585,28 +585,9 @@ export function PosClient() {
     const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
     const newTotal = original.total + additionalTotal;
 
-    // Move order to "adicional" so kitchen knows there's pending work.
-    // Set updated_by_type=waiter + updated_at so the realtime subscription
-    // on both POS and dashboard reloads the order's items.
-    const now = new Date().toISOString();
-    const { error: orderErr } = await supabase
-      .from("orders")
-      .update({
-        status: "adicional",
-        total: newTotal,
-        updated_by: waiterName,
-        updated_at: now,
-        updated_by_type: "waiter",
-      })
-      .eq("id", additionalOrderId);
-
-    if (orderErr) {
-      toast("Error al actualizar el pedido", "error");
-      setSending(false);
-      return;
-    }
-
-    // Log audit event
+    // Log audit event BEFORE updating the order — so when the realtime
+    // UPDATE fires, the event is already in the DB and the dashboard's
+    // realtime handler can reload it immediately.
     const { error: eventErr } = await supabase.from("order_events").insert({
       order_id: additionalOrderId,
       event_type: "additional_added",
@@ -626,6 +607,27 @@ export function PosClient() {
     });
     if (eventErr) {
       console.error("Failed to log additional_added event:", eventErr);
+    }
+
+    // Update order LAST — fires the realtime UPDATE event.
+    // By this point, items and events are already in the DB, so the
+    // realtime handler on both POS and dashboard can reload everything.
+    const now = new Date().toISOString();
+    const { error: orderErr } = await supabase
+      .from("orders")
+      .update({
+        status: "adicional",
+        total: newTotal,
+        updated_by: waiterName,
+        updated_at: now,
+        updated_by_type: "waiter",
+      })
+      .eq("id", additionalOrderId);
+
+    if (orderErr) {
+      toast("Error al actualizar el pedido", "error");
+      setSending(false);
+      return;
     }
 
     // Optimistically update local state — fetch the full item list
