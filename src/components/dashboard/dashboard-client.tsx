@@ -10,7 +10,7 @@ import { signOut } from "@/lib/auth";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { needsItemReload } from "@/lib/realtime";
 import { filterByDate, sortOrders, filterByTable, searchOrders, getVisibleTables } from "@/lib/dashboard/logic";
-import { tableLabel, isDeliveryTable } from "@/lib/utils";
+import { tableLabel } from "@/lib/utils";
 import {
   advanceOrderStatus,
   undoOrderStatus,
