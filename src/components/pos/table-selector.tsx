@@ -38,6 +38,9 @@ export function TableSelector({
           <span className="flex items-center gap-1.5">
             <span className="size-2.5 rounded-full bg-green-500" /> Servida
           </span>
+          <span className="flex items-center gap-1.5">
+            <span className="size-2.5 rounded-full bg-blue-500" /> Adicional
+          </span>
         </div>
       </div>
       <div className="grid grid-cols-6 gap-3 sm:grid-cols-8 lg:grid-cols-12">

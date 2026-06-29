@@ -247,6 +247,7 @@ describe("TableSelector", () => {
     expect(screen.getByText("Nueva")).toBeInTheDocument();
     expect(screen.getByText("Cocina")).toBeInTheDocument();
     expect(screen.getByText("Servida")).toBeInTheDocument();
+    expect(screen.getByText("Adicional")).toBeInTheDocument();
   });
 });
 
