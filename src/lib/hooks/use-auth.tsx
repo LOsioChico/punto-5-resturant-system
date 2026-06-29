@@ -23,27 +23,29 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 const WAITER_LOGIN_KEY = "waiter_login_time";
 
-/** Record the waiter login time in localStorage (for cross-reload logout checks). */
-function recordWaiterLogin() {
+/** Store the waiter login timestamp (called only on SIGNED_IN event). */
+function setWaiterLoginTime() {
   try {
-    if (!localStorage.getItem(WAITER_LOGIN_KEY)) {
-      localStorage.setItem(WAITER_LOGIN_KEY, Date.now().toString());
-    }
+    localStorage.setItem(WAITER_LOGIN_KEY, Date.now().toString());
   } catch { /* localStorage may be unavailable (private mode) */ }
 }
 
-/** Clear the waiter login time. */
-function clearWaiterLogin() {
+/** Clear the waiter login timestamp (called on sign-out). */
+function clearWaiterLoginTime() {
   try {
     localStorage.removeItem(WAITER_LOGIN_KEY);
   } catch { /* ignore */ }
 }
 
-/** Check if the stored waiter login predates the most recent 6am boundary. */
+/**
+ * Check if the stored waiter login time predates the most recent 6am
+ * Colombia boundary. Returns false if no login time is stored (can't
+ * determine — let the timer handle it).
+ */
 function isWaiterSessionExpired(): boolean {
   try {
     const loginTime = localStorage.getItem(WAITER_LOGIN_KEY);
-    if (!loginTime) return false; // no record — can't determine, let timer handle it
+    if (!loginTime) return false;
     return parseInt(loginTime, 10) < lastLogoutTime().getTime();
   } catch {
     return false;
@@ -62,7 +64,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const doSignOut = useCallback(async () => {
     if (!supabase) return;
-    clearWaiterLogin();
+    clearWaiterLoginTime();
     await supabase.auth.signOut();
     setState({ user: null, session: null, role: null, waiter: null, loading: false });
   }, [supabase]);
@@ -75,7 +77,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      clearWaiterLogin();
       setState({ user: null, session: null, role: null, waiter: null, loading: false });
       return;
     }
@@ -92,7 +93,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // If waiter, fetch profile
     let waiter: Waiter | null = null;
     if (role === "waiter") {
-      recordWaiterLogin();
       const { data } = await supabase
         .from("waiters")
         .select("*")
@@ -114,17 +114,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     refresh();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
-        clearWaiterLogin();
+        clearWaiterLoginTime();
         setState({ user: null, session: null, role: null, waiter: null, loading: false });
         return;
       }
       const role = (session.user.app_metadata?.role as AuthRole) ?? null;
+      // Record login time ONLY on actual sign-in, not on token refresh or
+      // initial session restoration. This ensures the stored timestamp
+      // reflects the original login, not the last token refresh.
+      if (event === "SIGNED_IN" && role === "waiter") {
+        setWaiterLoginTime();
+      }
       setState((prev) => ({ ...prev, user: session.user, session, role, loading: false }));
       // Fetch waiter profile if needed
       if (role === "waiter") {
-        recordWaiterLogin();
         supabase
           .from("waiters")
           .select("*")
@@ -143,7 +148,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // 6am auto-logout timer for waiters
   useEffect(() => {
-    if (!supabase || state.role !== "waiter") return;
+    if (!supabase || state.role !== "waiter" || !state.session) return;
 
     let timer: ReturnType<typeof setTimeout>;
 
@@ -178,11 +183,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       clearTimeout(timer);
       document.removeEventListener("visibilitychange", onVisibilityChange);
     };
-  }, [supabase, state.role, doSignOut]);
+  }, [supabase, state.role, state.session, doSignOut]);
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
-    clearWaiterLogin();
+    clearWaiterLoginTime();
     await supabase.auth.signOut();
     setState({ user: null, session: null, role: null, waiter: null, loading: false });
   }, [supabase]);
