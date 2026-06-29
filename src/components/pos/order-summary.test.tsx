@@ -129,7 +129,7 @@ describe("OrderSummary — notes", () => {
 
   it("shows existing notes text", () => {
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla"] })] });
-    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
   });
 
   it("opens notes editor on click", async () => {
@@ -157,7 +157,7 @@ describe("OrderSummary — notes", () => {
     const onSetNotes = vi.fn();
     renderSummary({ items: [makeItem({ dish_id: "d1", notes: ["Sin lechuga"], quantity: 1 })], onSetNotes });
     // The notes display button shows the existing note text; click it to open the editor.
-    await user.click(screen.getByText("→ Sin lechuga"));
+    await user.click(screen.getByText("→ Sin lechuga (1x)"));
     // Now the quick-note chips are visible; click the active "Sin lechuga" chip to toggle it off.
     await user.click(screen.getByText("Sin lechuga"));
     expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "");
@@ -199,7 +199,7 @@ describe("OrderSummary — notes", () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar", ""], quantity: 3 })] });
     // Open notes editor — need to click the note display
-    const noteDisplay = screen.getByText("→ Sin cebolla");
+    const noteDisplay = screen.getByText("→ Sin cebolla (1x)");
     await user.click(noteDisplay);
     // "Por unidad" should be the active mode
     const perUnitBtn = screen.getByText("Por unidad");
@@ -237,7 +237,7 @@ describe("OrderSummary — notes", () => {
       items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla", "Para llevar", ""], quantity: 3 })],
       onSetNotes,
     });
-    await user.click(screen.getByText("→ Sin cebolla"));
+    await user.click(screen.getByText("→ Sin cebolla (1x)"));
     await user.click(screen.getByText("Por unidad"));
     // Should NOT call onSetNotes (notes are already per-unit)
     expect(onSetNotes).not.toHaveBeenCalled();
@@ -255,7 +255,7 @@ describe("OrderSummary — notes", () => {
   it("shows per-unit inputs in Por unidad mode", async () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
-    await user.click(screen.getByText("→ Sin cebolla"));
+    await user.click(screen.getByText("→ Sin cebolla (1x)"));
     // Should be in perUnit mode (notes are different)
     expect(screen.getByPlaceholderText("Nota unidad 1...")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Nota unidad 2...")).toBeInTheDocument();
@@ -269,21 +269,20 @@ describe("OrderSummary — notes", () => {
 
   it("shows each note individually when units have different notes (Por unidad)", () => {
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
-    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
-    expect(screen.getByText("→ Para llevar")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
+    expect(screen.getByText("→ Para llevar (1x)")).toBeInTheDocument();
   });
 
   it("groups identical notes with count in mixed scenario", () => {
     // 5 units: 2 with "Para llevar", 1 with "Sin cebolla", 2 empty
     renderSummary({ items: [makeItem({ notes: ["Para llevar", "Para llevar", "Sin cebolla", "", ""], quantity: 5 })] });
     expect(screen.getByText("→ Para llevar (2x)")).toBeInTheDocument();
-    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
   });
 
-  it("does not show count when only 1 unit has the note", () => {
+  it("shows count even for 1 unit", () => {
     renderSummary({ items: [makeItem({ notes: ["Para llevar", "", ""], quantity: 3 })] });
-    expect(screen.getByText("→ Para llevar")).toBeInTheDocument();
-    expect(screen.queryByText("→ Para llevar (1x)")).not.toBeInTheDocument();
+    expect(screen.getByText("→ Para llevar (1x)")).toBeInTheDocument();
   });
 
   it("groups comma-separated tokens individually", () => {

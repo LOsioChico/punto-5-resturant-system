@@ -394,7 +394,7 @@ export function OrderSummary({
                           }
                           return Array.from(tokens.entries()).map(([note, count], idx) => (
                             <span key={idx} className="text-stone-400">
-                              → {note}{count > 1 ? ` (${count}x)` : ""}
+                              → {note} ({count}x)
                             </span>
                           ));
                         })()}
