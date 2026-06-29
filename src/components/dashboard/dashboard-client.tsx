@@ -351,6 +351,7 @@ export function DashboardClient() {
         orderId: id,
         fee,
         order,
+        actor: { type: "admin", name: adminName, id: adminId },
       });
 
       if ("error" in result) {
@@ -362,7 +363,7 @@ export function DashboardClient() {
         prev.map((o) => (o.id === id ? { ...o, delivery_fee: fee, total: result.data.total } : o)),
       );
     },
-    [supabase, orders],
+    [supabase, orders, adminId, adminName],
   );
 
   const undoStatus = useCallback(async () => {

@@ -36,6 +36,7 @@ const EVENT_LABELS: Record<string, string> = {
   updated: "Actualización",
   cancelled: "Cancelación",
   additional_added: "Adicional agregado",
+  delivery_fee_set: "Domicilio actualizado",
 };
 
 const STATUS_LABELS: Record<string, string> = {

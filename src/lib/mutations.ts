@@ -307,6 +307,7 @@ export async function editOrder(
 
   // 2. Log audit event
   await logEvent(supabase, orderId, "updated", actor, {
+    from_status: originalOrder.status,
     to_status: originalOrder.status,
     metadata: {
       table_number: tableNumber,
@@ -434,15 +435,27 @@ export async function setOrderDeliveryFee(
     orderId: string;
     fee: number;
     order: Order;
+    actor: Actor;
   },
 ): Promise<Result<{ total: number }>> {
-  const { orderId, fee, order } = params;
+  const { orderId, fee, order, actor } = params;
 
   const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
   const desechables = isDeliveryTable(order.table_number) ? itemCount * DESECHABLES_PER_DISH : 0;
   const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
   const newTotal = subtotal + desechables + fee;
 
+  // 1. Log audit event
+  await logEvent(supabase, orderId, "delivery_fee_set", actor, {
+    metadata: {
+      previous_fee: order.delivery_fee,
+      new_fee: fee,
+      previous_total: order.total,
+      new_total: newTotal,
+    },
+  });
+
+  // 2. Update order — fires realtime UPDATE
   const { error } = await supabase
     .from("orders")
     .update({ delivery_fee: fee, total: newTotal })
@@ -465,20 +478,13 @@ export async function logPrintEvent(
 ): Promise<Result<void>> {
   const { orderId, version, actor } = params;
 
-  const { error } = await supabase.from("order_events").insert({
-    order_id: orderId,
-    event_type: "printed",
-    actor_type: actor.type,
-    actor_name: actor.name,
-    actor_id: actor.id,
+  await logEvent(supabase, orderId, "printed", actor, {
     metadata: {
       printed_at: new Date().toISOString(),
       version: version?.type ?? "full",
       ...(version?.round !== undefined ? { additional_round: version.round } : {}),
     },
   });
-
-  if (error) return { error: "Error al registrar la impresión" };
 
   return { data: undefined };
 }

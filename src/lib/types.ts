@@ -40,7 +40,8 @@ export type EventType =
   | "printed"
   | "updated"
   | "cancelled"
-  | "additional_added";
+  | "additional_added"
+  | "delivery_fee_set";
 
 export interface Order {
   id: string;
