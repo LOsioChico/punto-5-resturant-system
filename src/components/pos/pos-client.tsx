@@ -55,9 +55,14 @@ export function PosClient() {
   // Sync notes when table changes:
   // - Switching TO delivery: add "Para llevar" to all notes that don't have it
   // - Switching FROM delivery to a regular table: remove "Para llevar" from all notes
+  // - Switching between regular tables: no change
+  const prevTableRef = useRef<number | null>(null);
   useEffect(() => {
+    const prevTable = prevTableRef.current;
+    prevTableRef.current = selectedTable;
     if (selectedTable === null) return;
     const isDelivery = isDeliveryTable(selectedTable);
+    const wasDelivery = prevTable !== null && isDeliveryTable(prevTable);
     setCart((prev) => {
       if (isDelivery) {
         // Add "Para llevar" to every note that doesn't already have it
@@ -72,7 +77,8 @@ export function PosClient() {
           }),
         }));
       }
-      // Non-delivery: strip "Para llevar" from comma-separated notes
+      // Only strip "Para llevar" when switching FROM delivery to a regular table
+      if (!wasDelivery) return prev;
       const hasParaLlevar = prev.some((i) => i.notes.some((n) => isParaLlevar(n)));
       if (!hasParaLlevar) return prev;
       return prev.map((i) => ({
