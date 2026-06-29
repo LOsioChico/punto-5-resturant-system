@@ -269,14 +269,19 @@ export function DashboardClient() {
     if (!supabase) return;
     const channel = supabase.channel("waiters");
 
+    // Stale threshold: POS sends heartbeats every 15s, so any waiter
+    // whose last heartbeat is older than 30s has likely lost connection.
+    const STALE_MS = 30_000;
+
     const syncWaiters = () => {
       const state = channel.presenceState<{ name: string; joinedAt: string }>();
-      // Dedupe by name — Supabase presence already removes disconnected
-      // clients (WebSocket close fires a leave event), so we don't need
-      // timestamp-based stale filtering. If they're in presence state,
-      // their connection is alive.
+      const now = Date.now();
       const byName = new Map<string, ActiveWaiter>();
       for (const p of Object.values(state).flat()) {
+        // Filter out stale waiters — their heartbeat stopped, meaning
+        // the connection dropped without a clean WebSocket close.
+        const age = now - new Date(p.joinedAt).getTime();
+        if (age > STALE_MS) continue;
         const existing = byName.get(p.name);
         if (!existing || compareDesc(new Date(existing.joinedAt), new Date(p.joinedAt)) > 0) {
           byName.set(p.name, { name: p.name, joinedAt: p.joinedAt });
@@ -290,7 +295,12 @@ export function DashboardClient() {
       .on("presence", { event: "leave" }, syncWaiters)
       .subscribe();
 
+    // Poll presence state every 10s to remove stale waiters even when
+    // no "leave" event fires (network drop, app killed by OS, etc.)
+    const poll = setInterval(syncWaiters, 10_000);
+
     return () => {
+      clearInterval(poll);
       supabase.removeChannel(channel);
     };
   }, [supabase, adminId, adminName]);
