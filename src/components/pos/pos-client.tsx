@@ -13,7 +13,7 @@ import { tableLabel, isDeliveryTable } from "@/lib/utils";
 import { isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
 import { createOrder, addAdditional, editOrder as saveOrderToDb, fetchOrderItems, advanceOrderStatus } from "@/lib/mutations";
 import { needsItemReload } from "@/lib/realtime";
-import { nowISO } from "@/lib/timezone";
+import { nowISO, formatInColombia } from "@/lib/timezone";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -28,7 +28,7 @@ export function PosClient() {
   const supabase = useMemo(() => createSupabaseClient(), []);
   const router = useRouter();
   const { toast } = useToast();
-  const { waiter, user, loading: authLoading } = useAuth();
+  const { waiter, user, loading: authLoading, sessionExpiresAt } = useAuth();
   const waiterName = waiter?.name ?? null;
   const waiterId = waiter?.id ?? null;
   const authId = user?.id ?? null;
@@ -688,6 +688,15 @@ export function PosClient() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
                 <div className="absolute right-0 top-12 z-50 w-64 overflow-hidden rounded-lg border border-white/10 bg-stone-950 shadow-xl">
+                  {/* Session info */}
+                  {sessionExpiresAt && (
+                    <div className="border-b border-white/5 px-4 py-3">
+                      <p className="text-xs text-stone-500">Sesión activa hasta</p>
+                      <p className="text-sm font-medium text-stone-300">
+                        {formatInColombia(sessionExpiresAt, "h:mm a")} (Colombia)
+                      </p>
+                    </div>
+                  )}
                   {/* Notifications toggle */}
                   {permission !== "unsupported" && permission !== "denied" && (
                     <button

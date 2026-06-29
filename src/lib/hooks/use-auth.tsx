@@ -3,7 +3,13 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { nextLogoutTime, lastLogoutTime } from "@/lib/timezone";
+import { nextLogoutTime } from "@/lib/timezone";
+import {
+  setWaiterLoginTime,
+  clearWaiterLoginTime,
+  isWaiterSessionExpired,
+  getWaiterLoginTime,
+} from "@/lib/auth/session-expiry";
 import type { AuthRole, Waiter } from "@/lib/types";
 
 interface AuthState {
@@ -12,6 +18,8 @@ interface AuthState {
   role: AuthRole | null;
   waiter: Waiter | null;
   loading: boolean;
+  /** When the waiter's session will expire (6am Colombia time), or null. */
+  sessionExpiresAt: Date | null;
 }
 
 interface AuthContextValue extends AuthState {
@@ -21,37 +29,6 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
-const WAITER_LOGIN_KEY = "waiter_login_time";
-
-/** Store the waiter login timestamp (called only on SIGNED_IN event). */
-function setWaiterLoginTime() {
-  try {
-    localStorage.setItem(WAITER_LOGIN_KEY, Date.now().toString());
-  } catch { /* localStorage may be unavailable (private mode) */ }
-}
-
-/** Clear the waiter login timestamp (called on sign-out). */
-function clearWaiterLoginTime() {
-  try {
-    localStorage.removeItem(WAITER_LOGIN_KEY);
-  } catch { /* ignore */ }
-}
-
-/**
- * Check if the stored waiter login time predates the most recent 6am
- * Colombia boundary. Returns false if no login time is stored (can't
- * determine — let the timer handle it).
- */
-function isWaiterSessionExpired(): boolean {
-  try {
-    const loginTime = localStorage.getItem(WAITER_LOGIN_KEY);
-    if (!loginTime) return false;
-    return parseInt(loginTime, 10) < lastLogoutTime().getTime();
-  } catch {
-    return false;
-  }
-}
-
 export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createSupabaseClient();
   const [state, setState] = useState<AuthState>({
@@ -60,24 +37,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     role: null,
     waiter: null,
     loading: true,
+    sessionExpiresAt: null,
   });
 
   const doSignOut = useCallback(async () => {
     if (!supabase) return;
     clearWaiterLoginTime();
     await supabase.auth.signOut();
-    setState({ user: null, session: null, role: null, waiter: null, loading: false });
+    setState({ user: null, session: null, role: null, waiter: null, loading: false, sessionExpiresAt: null });
   }, [supabase]);
 
   const refresh = useCallback(async () => {
     if (!supabase) {
-      setState({ user: null, session: null, role: null, waiter: null, loading: false });
+      setState({ user: null, session: null, role: null, waiter: null, loading: false, sessionExpiresAt: null });
       return;
     }
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
-      setState({ user: null, session: null, role: null, waiter: null, loading: false });
+      setState({ user: null, session: null, role: null, waiter: null, loading: false, sessionExpiresAt: null });
       return;
     }
 
@@ -101,14 +79,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       waiter = (data as Waiter) ?? null;
     }
 
-    setState({ user: session.user, session, role, waiter, loading: false });
+    setState({
+      user: session.user,
+      session,
+      role,
+      waiter,
+      loading: false,
+      sessionExpiresAt: role === "waiter" ? nextLogoutTime() : null,
+    });
   }, [supabase, doSignOut]);
 
   // Initial load + auth state listener
   useEffect(() => {
     if (!supabase) {
       // eslint-disable-next-line react-hooks/set-state-in-effect -- initial state setup when supabase is not configured
-      setState({ user: null, session: null, role: null, waiter: null, loading: false });
+      setState({ user: null, session: null, role: null, waiter: null, loading: false, sessionExpiresAt: null });
       return;
     }
 
@@ -117,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (!session) {
         clearWaiterLoginTime();
-        setState({ user: null, session: null, role: null, waiter: null, loading: false });
+        setState({ user: null, session: null, role: null, waiter: null, loading: false, sessionExpiresAt: null });
         return;
       }
       const role = (session.user.app_metadata?.role as AuthRole) ?? null;
@@ -127,7 +112,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event === "SIGNED_IN" && role === "waiter") {
         setWaiterLoginTime();
       }
-      setState((prev) => ({ ...prev, user: session.user, session, role, loading: false }));
+      // Defense in depth: check session expiry on token refresh too.
+      // Supabase refreshes tokens ~hourly. If the 6am timer was killed
+      // (browser throttling) and the tab stayed foreground (visibility
+      // check never fired), this catches the expired session on the
+      // next token refresh.
+      if ((event === "TOKEN_REFRESHED" || event === "INITIAL_SESSION") && role === "waiter" && isWaiterSessionExpired()) {
+        doSignOut();
+        return;
+      }
+      setState((prev) => ({
+        ...prev,
+        user: session.user,
+        session,
+        role,
+        loading: false,
+        sessionExpiresAt: role === "waiter" ? nextLogoutTime() : null,
+      }));
       // Fetch waiter profile if needed
       if (role === "waiter") {
         supabase
@@ -144,7 +145,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, [supabase, refresh]);
+  }, [supabase, refresh, doSignOut]);
 
   // 6am auto-logout timer for waiters
   useEffect(() => {
@@ -189,7 +190,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!supabase) return;
     clearWaiterLoginTime();
     await supabase.auth.signOut();
-    setState({ user: null, session: null, role: null, waiter: null, loading: false });
+    setState({ user: null, session: null, role: null, waiter: null, loading: false, sessionExpiresAt: null });
   }, [supabase]);
 
   return (
