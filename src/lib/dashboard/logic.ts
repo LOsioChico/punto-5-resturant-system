@@ -30,9 +30,9 @@ export const STATUS_LABELS_PLURAL: Record<OrderStatus, string> = {
 
 /** Get the next status in the flow, or null if at the end. */
 export function nextStatus(status: OrderStatus): OrderStatus | null {
-  // 'adicional' is not in STATUS_FLOW — it goes to 'servida' (the
-  // additional items have been served to the table)
-  if (status === "adicional") return "servida";
+  // 'adicional' is not in STATUS_FLOW — it advances directly to 'finalizada'
+  // (the order was already served, additional items are now served too)
+  if (status === "adicional") return "finalizada";
   const idx = STATUS_FLOW.indexOf(status);
   if (idx < 0 || idx >= STATUS_FLOW.length - 1) return null;
   return STATUS_FLOW[idx + 1];
@@ -45,7 +45,7 @@ export function advanceActionLabel(status: OrderStatus): string {
     en_cocina: "Marcar como servida",
     servida: "Finalizar pedido",
     finalizada: "",
-    adicional: "Marcar como servida",
+    adicional: "Finalizar pedido",
   };
   return labels[status];
 }

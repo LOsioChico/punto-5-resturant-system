@@ -110,8 +110,8 @@ describe("nextStatus", () => {
     expect(nextStatus("finalizada")).toBeNull();
   });
 
-  it("returns servida for adicional (additional items served)", () => {
-    expect(nextStatus("adicional")).toBe("servida");
+  it("returns finalizada for adicional (order was already served)", () => {
+    expect(nextStatus("adicional")).toBe("finalizada");
   });
 });
 
@@ -135,8 +135,8 @@ describe("advanceActionLabel", () => {
     expect(advanceActionLabel("finalizada")).toBe("");
   });
 
-  it("returns 'Marcar como servida' for adicional", () => {
-    expect(advanceActionLabel("adicional")).toBe("Marcar como servida");
+  it("returns 'Finalizar pedido' for adicional", () => {
+    expect(advanceActionLabel("adicional")).toBe("Finalizar pedido");
   });
 });
 

@@ -436,7 +436,7 @@ export function PosClient() {
     setActiveTab("new");
   }, []);
 
-  // Waiter advances order status (en_cocina → servida, or adicional → servida)
+  // Waiter advances order status (en_cocina → servida, or adicional → finalizada)
   const advanceStatus = useCallback(
     async (order: Order) => {
       if (!supabase || !waiterName) return;

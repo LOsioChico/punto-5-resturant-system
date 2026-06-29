@@ -3,6 +3,7 @@
 import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import { compareDesc } from "date-fns";
 import { allNotesSame } from "@/lib/pos/logic";
+import { advanceActionLabel } from "@/lib/dashboard/logic";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike, Plus, PlusCircle } from "lucide-react";
@@ -145,8 +146,12 @@ export function WaiterOrders({
                         onClick={() => onAdvanceStatus(order)}
                         className="ml-1 flex items-center gap-1.5 rounded-lg bg-green-500/15 px-3 py-1.5 text-xs font-medium text-green-400 transition-colors hover:bg-green-500 hover:text-stone-950"
                       >
-                        <CheckCircle2 className="size-4" />
-                        Marcar como servida
+                        {order.status === "adicional" ? (
+                          <Utensils className="size-4" />
+                        ) : (
+                          <CheckCircle2 className="size-4" />
+                        )}
+                        {advanceActionLabel(order.status)}
                       </button>
                     )}
                     {canAddAdditional && (
