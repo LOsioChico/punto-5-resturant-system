@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, useCallback, type ReactNode } from "react";
 import type { Session, User } from "@supabase/supabase-js";
 import { createSupabaseClient } from "@/lib/supabase/client";
-import { nextLogoutTime } from "@/lib/timezone";
+import { nextLogoutTime, lastLogoutTime } from "@/lib/timezone";
 import type { AuthRole, Waiter } from "@/lib/types";
 
 interface AuthState {
@@ -21,6 +21,35 @@ interface AuthContextValue extends AuthState {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const WAITER_LOGIN_KEY = "waiter_login_time";
+
+/** Record the waiter login time in localStorage (for cross-reload logout checks). */
+function recordWaiterLogin() {
+  try {
+    if (!localStorage.getItem(WAITER_LOGIN_KEY)) {
+      localStorage.setItem(WAITER_LOGIN_KEY, Date.now().toString());
+    }
+  } catch { /* localStorage may be unavailable (private mode) */ }
+}
+
+/** Clear the waiter login time. */
+function clearWaiterLogin() {
+  try {
+    localStorage.removeItem(WAITER_LOGIN_KEY);
+  } catch { /* ignore */ }
+}
+
+/** Check if the stored waiter login predates the most recent 6am boundary. */
+function isWaiterSessionExpired(): boolean {
+  try {
+    const loginTime = localStorage.getItem(WAITER_LOGIN_KEY);
+    if (!loginTime) return false; // no record — can't determine, let timer handle it
+    return parseInt(loginTime, 10) < lastLogoutTime().getTime();
+  } catch {
+    return false;
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const supabase = createSupabaseClient();
   const [state, setState] = useState<AuthState>({
@@ -31,6 +60,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     loading: true,
   });
 
+  const doSignOut = useCallback(async () => {
+    if (!supabase) return;
+    clearWaiterLogin();
+    await supabase.auth.signOut();
+    setState({ user: null, session: null, role: null, waiter: null, loading: false });
+  }, [supabase]);
+
   const refresh = useCallback(async () => {
     if (!supabase) {
       setState({ user: null, session: null, role: null, waiter: null, loading: false });
@@ -39,15 +75,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) {
+      clearWaiterLogin();
       setState({ user: null, session: null, role: null, waiter: null, loading: false });
       return;
     }
 
     const role = (session.user.app_metadata?.role as AuthRole) ?? null;
 
+    // If waiter, check if the session has expired past 6am (handles page reload
+    // after the tab was backgrounded overnight)
+    if (role === "waiter" && isWaiterSessionExpired()) {
+      await doSignOut();
+      return;
+    }
+
     // If waiter, fetch profile
     let waiter: Waiter | null = null;
     if (role === "waiter") {
+      recordWaiterLogin();
       const { data } = await supabase
         .from("waiters")
         .select("*")
@@ -57,7 +102,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
 
     setState({ user: session.user, session, role, waiter, loading: false });
-  }, [supabase]);
+  }, [supabase, doSignOut]);
 
   // Initial load + auth state listener
   useEffect(() => {
@@ -71,6 +116,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!session) {
+        clearWaiterLogin();
         setState({ user: null, session: null, role: null, waiter: null, loading: false });
         return;
       }
@@ -78,6 +124,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setState((prev) => ({ ...prev, user: session.user, session, role, loading: false }));
       // Fetch waiter profile if needed
       if (role === "waiter") {
+        recordWaiterLogin();
         supabase
           .from("waiters")
           .select("*")
@@ -98,19 +145,44 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!supabase || state.role !== "waiter") return;
 
-    const ms = nextLogoutTime().getTime() - Date.now();
-    // Cap at ~24 days (max setTimeout delay)
-    const timer = setTimeout(() => {
-      supabase.auth.signOut().then(() => {
-        setState({ user: null, session: null, role: null, waiter: null, loading: false });
-      });
-    }, Math.min(ms, 2_147_483_000));
+    let timer: ReturnType<typeof setTimeout>;
 
-    return () => clearTimeout(timer);
-  }, [supabase, state.role]);
+    const armTimer = () => {
+      const ms = nextLogoutTime().getTime() - Date.now();
+      // Cap at ~24 days (max setTimeout delay)
+      timer = setTimeout(() => {
+        doSignOut();
+      }, Math.min(ms, 2_147_483_000));
+    };
+
+    armTimer();
+
+    // Browsers throttle/suspend setTimeout in backgrounded tabs, so the
+    // 6am timer may never fire. When the tab becomes visible again, check
+    // if the session has expired (6am boundary has passed since login) and
+    // sign out immediately if so. Otherwise re-arm the timer.
+    const onVisibilityChange = () => {
+      if (document.visibilityState !== "visible") return;
+      if (isWaiterSessionExpired()) {
+        doSignOut();
+        return;
+      }
+      // Not past logout time — re-arm the timer in case the browser killed it
+      clearTimeout(timer);
+      armTimer();
+    };
+
+    document.addEventListener("visibilitychange", onVisibilityChange);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
+  }, [supabase, state.role, doSignOut]);
 
   const signOut = useCallback(async () => {
     if (!supabase) return;
+    clearWaiterLogin();
     await supabase.auth.signOut();
     setState({ user: null, session: null, role: null, waiter: null, loading: false });
   }, [supabase]);

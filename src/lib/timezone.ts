@@ -92,6 +92,29 @@ export function nextLogoutTime(now: Date = new Date()): Date {
 }
 
 /**
+ * Get the most recent 6am Colombia time that has already passed.
+ * If it's currently 6am or later, returns today's 6am.
+ * If it's currently before 6am, returns yesterday's 6am.
+ * Used to check if a waiter session predates the last logout boundary.
+ */
+export function lastLogoutTime(now: Date = new Date()): Date {
+  const zoned = toZonedTime(now, COLOMBIA_TZ);
+  const year = zoned.getFullYear();
+  const month = zoned.getMonth();
+  const day = zoned.getDate();
+  const logout6am = fromZonedTime(
+    new Date(year, month, day, WAITER_LOGOUT_HOUR, 0, 0, 0),
+    COLOMBIA_TZ,
+  );
+  // If it's 6am or later today, today's 6am has passed
+  if (zoned.getHours() >= WAITER_LOGOUT_HOUR) {
+    return logout6am;
+  }
+  // Otherwise the most recent 6am was yesterday's
+  return new Date(logout6am.getTime() - 86_400_000);
+}
+
+/**
  * Format a timestamp for display in Colombia timezone.
  * Defaults to a short time format (HH:mm).
  */
