@@ -176,10 +176,13 @@ export function OrderSummary({
               <div className="flex flex-1 items-center rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 focus-within:border-yellow-500/50">
                 <span className="text-sm text-stone-600">$</span>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  value={deliveryFee}
-                  onChange={(e) => onDeliveryFeeChange(e.target.value)}
+                  value={deliveryFee ? new Intl.NumberFormat("es-CO").format(parseInt(deliveryFee, 10)) : ""}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "");
+                    onDeliveryFeeChange(digits);
+                  }}
                   placeholder="0"
                   className="w-full bg-transparent text-right text-sm font-semibold text-yellow-500 placeholder:text-stone-600 focus:outline-none"
                 />
