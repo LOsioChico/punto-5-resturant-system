@@ -21,7 +21,7 @@ import {
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle, Search, Table2 } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle, Search, Table2, Trash2, ArrowLeft } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -60,75 +60,86 @@ export function DashboardClient() {
   const [waiterFilterOpen, setWaiterFilterOpen] = useState(false);
   const [tableFilterOpen, setTableFilterOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
+  const [showDeleted, setShowDeleted] = useState(false);
   const [undoData, setUndoData] = useState<{
     orderId: string;
     fromStatus: OrderStatus;
     toStatus: OrderStatus;
   } | null>(null);
 
-  useEffect(() => {
+  const loadOrders = useCallback(async (includeDeleted: boolean) => {
     if (!supabase) return;
-    (async () => {
-      // If offline, load from cache
-      if (!navigator.onLine) {
-        const cached = await loadCachedOrders<Order>();
-        if (cached && cached.length > 0) {
-          setOrders(cached);
-        }
-        setLoading(false);
-        return;
+    setLoading(true);
+    setError(null);
+
+    // If offline, load from cache (only for active orders)
+    if (!navigator.onLine && !includeDeleted) {
+      const cached = await loadCachedOrders<Order>();
+      if (cached && cached.length > 0) {
+        setOrders(cached);
       }
+      setLoading(false);
+      return;
+    }
 
-      const { data: orderRows, error: orderErr } = await supabase
-        .from("orders")
-        .select("*")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(100);
+    const { data: orderRows, error: orderErr } = await supabase
+      .from("orders")
+      .select("*")
+      .is("deleted_at", includeDeleted ? "not.null" : "null")
+      .order("created_at", { ascending: false })
+      .limit(100);
 
-      if (orderErr) {
-        // Network error — try cache
-        if (orderErr.message.includes("Failed to fetch") || orderErr.message.includes("network")) {
+    if (orderErr) {
+      // Network error — try cache (only for active orders)
+      if (orderErr.message.includes("Failed to fetch") || orderErr.message.includes("network")) {
+        if (!includeDeleted) {
           const cached = await loadCachedOrders<Order>();
           if (cached) setOrders(cached);
-        } else {
-          setError(orderErr.message);
         }
-        setLoading(false);
-        return;
+      } else {
+        setError(orderErr.message);
       }
-
-      if (!orderRows || orderRows.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: itemRows, error: itemErr } = await supabase
-        .from("order_items")
-        .select("*, dishes(categories(name))")
-        .in("order_id", orderRows.map((o) => o.id));
-
-      if (itemErr) {
-        setError(itemErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const ordersWithItems: Order[] = orderRows.map((o) => ({
-        ...o,
-        items: (itemRows ?? [])
-          .filter((i) => i.order_id === o.id)
-          .map((i) => ({
-            ...i,
-            category_name: i.dishes?.categories?.name ?? null,
-          })),
-      }));
-
-      setOrders(ordersWithItems);
-      cacheOrders(ordersWithItems); // persist for offline use
       setLoading(false);
-    })();
-  }, [supabase, adminId, adminName]);
+      return;
+    }
+
+    if (!orderRows || orderRows.length === 0) {
+      setOrders([]);
+      setLoading(false);
+      return;
+    }
+
+    const { data: itemRows, error: itemErr } = await supabase
+      .from("order_items")
+      .select("*, dishes(categories(name))")
+      .in("order_id", orderRows.map((o) => o.id));
+
+    if (itemErr) {
+      setError(itemErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const ordersWithItems: Order[] = orderRows.map((o) => ({
+      ...o,
+      items: (itemRows ?? [])
+        .filter((i) => i.order_id === o.id)
+        .map((i) => ({
+          ...i,
+          category_name: i.dishes?.categories?.name ?? null,
+        })),
+    }));
+
+    setOrders(ordersWithItems);
+    if (!includeDeleted) {
+      cacheOrders(ordersWithItems); // persist for offline use
+    }
+    setLoading(false);
+  }, [supabase]);
+
+  useEffect(() => {
+    loadOrders(showDeleted);
+  }, [loadOrders, showDeleted]);
 
   // Keep IndexedDB cache in sync with orders state
   useEffect(() => {
@@ -139,6 +150,9 @@ export function DashboardClient() {
 
   useEffect(() => {
     if (!supabase) return;
+    // Skip realtime when viewing deleted orders — the deleted view is a
+    // static snapshot, not a live feed.
+    if (showDeleted) return;
     const orderChannel = supabase
       .channel("orders-realtime")
       .on(
@@ -226,7 +240,7 @@ export function DashboardClient() {
     return () => {
       supabase.removeChannel(orderChannel);
     };
-  }, [supabase, adminId, adminName]);
+  }, [supabase, adminId, adminName, showDeleted]);
 
   // Online/offline detection — just show a banner, don't auto-reload.
   // The admin can manually refresh the page when back online.
@@ -570,6 +584,26 @@ export function DashboardClient() {
         </div>
       )}
 
+      {/* Deleted orders banner */}
+      {showDeleted && (
+        <div className="flex items-center justify-between bg-red-500/10 px-6 py-2 text-sm text-red-400">
+          <span className="flex items-center gap-2">
+            <Trash2 className="size-4" />
+            Viendo pedidos eliminados — lectura únicamente
+          </span>
+          <button
+            onClick={() => {
+              setShowDeleted(false);
+              setSelectedId(null);
+            }}
+            className="flex items-center gap-1.5 font-medium text-stone-300 transition-colors hover:text-stone-100"
+          >
+            <ArrowLeft className="size-4" />
+            Volver a pedidos activos
+          </button>
+        </div>
+      )}
+
       {/* Top bar */}
       <div className="flex items-center justify-between bg-stone-900 px-6 py-3">
         <div className="flex items-center gap-3">
@@ -581,9 +615,13 @@ export function DashboardClient() {
             className="rounded-lg"
           />
           <div>
-            <h1 className="text-base font-bold text-stone-100">Panel principal</h1>
+            <h1 className="text-base font-bold text-stone-100">
+              {showDeleted ? "Pedidos eliminados" : "Panel principal"}
+            </h1>
             <p className="text-xs text-stone-500">
-              {filteredByDate.length} pedidos · {waiters.length} meseros activos
+              {showDeleted
+                ? `${filteredByDate.length} pedidos eliminados`
+                : `${filteredByDate.length} pedidos · ${waiters.length} meseros activos`}
             </p>
           </div>
         </div>
@@ -617,6 +655,23 @@ export function DashboardClient() {
                     <div className="min-w-0">
                       <p className="text-sm text-stone-200">Gestión de meseros</p>
                       <p className="text-xs text-stone-500">Crear, activar, desactivar</p>
+                    </div>
+                  </button>
+                  {/* View deleted orders */}
+                  <button
+                    onClick={() => {
+                      setMenuOpen(false);
+                      setSelectedId(null);
+                      setShowDeleted(true);
+                    }}
+                    className="flex w-full items-center gap-3 px-4 py-3.5 text-left transition-colors hover:bg-stone-900"
+                  >
+                    <div className="flex size-10 items-center justify-center rounded-lg bg-stone-800 text-stone-500">
+                      <Trash2 className="size-5" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-sm text-stone-200">Pedidos eliminados</p>
+                      <p className="text-xs text-stone-500">Ver historial de pedidos borrados</p>
                     </div>
                   </button>
                   {/* Divider */}
@@ -882,7 +937,7 @@ export function DashboardClient() {
             onPrint={printOrder}
             onSetDeliveryFee={setDeliveryFee}
             onDelete={removeOrder}
-            disabled={!isOnline}
+            disabled={!isOnline || showDeleted}
           />
         </div>
       </div>
