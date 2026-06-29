@@ -1,7 +1,7 @@
 // Simple service worker for PWA — matches the Next.js team's recommended approach.
 // https://nextjs.org/docs/app/guides/progressive-web-apps
 
-const CACHE_NAME = "punto5-v4";
+const CACHE_NAME = "punto5-v5";
 const OFFLINE_URL = "/~offline";
 const DASHBOARD_URL = "/dashboard";
 const NOTIFICATIONS_STORE = "notifications";

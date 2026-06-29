@@ -25,6 +25,16 @@ export function ServiceWorkerRegister() {
           // Check for updates every 60 seconds
           setInterval(() => reg.update(), 60_000);
 
+          // Check for updates immediately when the tab regains focus —
+          // tablets are frequently backgrounded (screen off, app switched),
+          // so the 60s polling doesn't run. This catches updates the moment
+          // the waiter picks up the tablet again.
+          const checkForUpdate = () => {
+            if (document.visibilityState === "visible") reg.update();
+          };
+          document.addEventListener("visibilitychange", checkForUpdate);
+          window.addEventListener("focus", checkForUpdate);
+
           // When a new SW takes over, reload the page once
           let refreshing = false;
           navigator.serviceWorker.addEventListener("controllerchange", () => {
