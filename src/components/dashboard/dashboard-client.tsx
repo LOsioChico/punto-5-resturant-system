@@ -7,8 +7,13 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
-import { filterByDate, sortOrders, nextStatus } from "@/lib/dashboard/logic";
-import { isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
+import { filterByDate, sortOrders } from "@/lib/dashboard/logic";
+import {
+  advanceOrderStatus,
+  undoOrderStatus,
+  setOrderDeliveryFee,
+  logPrintEvent,
+} from "@/lib/mutations";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
@@ -299,11 +304,18 @@ export function DashboardClient() {
       if (!supabase || !navigator.onLine) return;
       const order = orders.find((o) => o.id === id);
       if (!order) return;
-      // Use nextStatus() which handles 'adicional' → 'lista' specially
-      const nextStatusVal = nextStatus(order.status);
-      if (!nextStatusVal) return;
-      const fromStatus = order.status;
-      const now = new Date().toISOString();
+
+      const result = await advanceOrderStatus(supabase, {
+        orderId: id,
+        currentStatus: order.status,
+        actor: { type: "admin", name: adminName, id: adminId },
+      });
+
+      if ("error" in result) {
+        return;
+      }
+
+      const { fromStatus, toStatus, now } = result.data;
 
       // Optimistic update
       setOrders((prev) =>
@@ -311,7 +323,7 @@ export function DashboardClient() {
           o.id === id
             ? {
                 ...o,
-                status: nextStatusVal,
+                status: toStatus,
                 updated_by: adminName,
                 updated_at: now,
                 updated_by_type: "admin",
@@ -320,35 +332,8 @@ export function DashboardClient() {
         ),
       );
 
-      const { error: updateErr } = await supabase
-        .from("orders")
-        .update({
-          status: nextStatusVal,
-          updated_by: adminName,
-          updated_at: now,
-          updated_by_type: "admin",
-        })
-        .eq("id", id);
-
-      if (updateErr) {
-        // Rollback optimistic update
-        setOrders((prev) =>
-          prev.map((o) => (o.id === id ? { ...o, status: fromStatus } : o)),
-        );
-        return;
-      }
-
-      await supabase.from("order_events").insert({
-        order_id: id,
-        event_type: "status_changed",
-        actor_type: "admin",
-        actor_name: adminName, actor_id: adminId,
-        from_status: fromStatus,
-        to_status: nextStatusVal,
-      });
-
       // Set undo data — expires after 5 seconds
-      setUndoData({ orderId: id, fromStatus, toStatus: nextStatusVal });
+      setUndoData({ orderId: id, fromStatus, toStatus });
       setTimeout(() => setUndoData(null), 5000);
     },
     [supabase, orders, adminId, adminName],
@@ -361,28 +346,20 @@ export function DashboardClient() {
       const order = orders.find((o) => o.id === id);
       if (!order) return;
 
-      // Recalculate total: subtotal + desechables + new delivery fee
-      const itemCount = order.items.reduce((s, i) => s + i.quantity, 0);
-      const desechables = isDeliveryTable(order.table_number) ? itemCount * DESECHABLES_PER_DISH : 0;
-      const subtotal = order.items.reduce((s, i) => s + i.price * i.quantity, 0);
-      const newTotal = subtotal + desechables + fee;
+      const result = await setOrderDeliveryFee(supabase, {
+        orderId: id,
+        fee,
+        order,
+      });
+
+      if ("error" in result) {
+        return;
+      }
 
       // Optimistic update
       setOrders((prev) =>
-        prev.map((o) => (o.id === id ? { ...o, delivery_fee: fee, total: newTotal } : o)),
+        prev.map((o) => (o.id === id ? { ...o, delivery_fee: fee, total: result.data.total } : o)),
       );
-
-      const { error } = await supabase
-        .from("orders")
-        .update({ delivery_fee: fee, total: newTotal })
-        .eq("id", id);
-
-      if (error) {
-        // Rollback
-        setOrders((prev) =>
-          prev.map((o) => (o.id === id ? { ...o, delivery_fee: order.delivery_fee, total: order.total } : o)),
-        );
-      }
     },
     [supabase, orders],
   );
@@ -390,39 +367,27 @@ export function DashboardClient() {
   const undoStatus = useCallback(async () => {
     if (!supabase || !undoData) return;
     const { orderId, fromStatus, toStatus } = undoData;
-    const now = new Date().toISOString();
+
+    const result = await undoOrderStatus(supabase, {
+      orderId,
+      fromStatus,
+      toStatus,
+      actor: { type: "admin", name: adminName, id: adminId },
+    });
+
+    if ("error" in result) {
+      setUndoData(null);
+      return;
+    }
 
     // Optimistic revert
     setOrders((prev) =>
       prev.map((o) =>
         o.id === orderId
-          ? { ...o, status: fromStatus, updated_at: now, updated_by: adminName, updated_by_type: "admin" }
+          ? { ...o, status: fromStatus, updated_at: result.data.now, updated_by: adminName, updated_by_type: "admin" }
           : o,
       ),
     );
-
-    const { error: updateErr } = await supabase
-      .from("orders")
-      .update({ status: fromStatus, updated_by: adminName, updated_at: now, updated_by_type: "admin" })
-      .eq("id", orderId);
-
-    if (updateErr) {
-      // Rollback the revert — go back to the new status
-      setOrders((prev) =>
-        prev.map((o) => (o.id === orderId ? { ...o, status: toStatus } : o)),
-      );
-      setUndoData(null);
-      return;
-    }
-
-    await supabase.from("order_events").insert({
-      order_id: orderId,
-      event_type: "status_changed",
-      actor_type: "admin",
-      actor_name: adminName, actor_id: adminId,
-      from_status: toStatus,
-      to_status: fromStatus,
-    });
 
     setUndoData(null);
   }, [supabase, undoData, adminId, adminName]);
@@ -430,16 +395,10 @@ export function DashboardClient() {
   const printOrder = useCallback(
     async (id: string, version?: { type: "full" | "additional"; round?: number }) => {
       if (!supabase || !navigator.onLine) return;
-      await supabase.from("order_events").insert({
-        order_id: id,
-        event_type: "printed",
-        actor_type: "admin",
-        actor_name: adminName, actor_id: adminId,
-        metadata: {
-          printed_at: new Date().toISOString(),
-          version: version?.type ?? "full",
-          ...(version?.round !== undefined ? { additional_round: version.round } : {}),
-        },
+      await logPrintEvent(supabase, {
+        orderId: id,
+        version,
+        actor: { type: "admin", name: adminName, id: adminId },
       });
       window.print();
     },

@@ -9,8 +9,9 @@ import { NotificationBell } from "@/components/ui/notification-bell";
 import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
-import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
-import { countParaLlevar, isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
+import { tableLabel, isDeliveryTable } from "@/lib/utils";
+import { isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
+import { createOrder, addAdditional, editOrder as saveOrderToDb, fetchOrderItems } from "@/lib/mutations";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -478,58 +479,21 @@ export function PosClient() {
       return;
     }
     setSending(true);
-    const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const isDelivery = isDeliveryTable(selectedTable);
-    const paraLlevarCount = isDelivery ? 0 : cart.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
-    const desechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
-    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + desechables;
 
-    const { data: order, error: orderErr } = await supabase
-      .from("orders")
-      .insert({
-        table_number: selectedTable,
-        waiter_name: waiterName,
-        waiter_id: waiterId,
-        status: "nueva",
-        total,
-        delivery_name: isDeliveryTable(selectedTable) ? deliveryName.trim() : null,
-      })
-      .select("id")
-      .single();
-
-    if (orderErr || !order) {
-      toast("Error al crear el pedido", "error");
-      setSending(false);
-      return;
-    }
-
-    const { error: itemsErr } = await supabase.from("order_items").insert(
-      cart.map((item) => ({
-        order_id: order.id,
-        dish_id: item.dish_id,
-        dish_name: item.dish_name,
-        price: item.price,
-        quantity: item.quantity,
-        notes: item.notes.some((n) => n.trim()) ? item.notes : null,
-      })),
-    );
-
-    if (itemsErr) {
-      toast("Error al guardar los items del pedido", "error");
-      setSending(false);
-      return;
-    }
-
-    // Log audit event: order created by this waiter
-    await supabase.from("order_events").insert({
-      order_id: order.id,
-      event_type: "created",
-      actor_type: "waiter",
-      actor_name: waiterName,
-      actor_id: authId,
-      to_status: "nueva",
-      metadata: { table_number: selectedTable, item_count: cart.length, total },
+    const result = await createOrder(supabase, {
+      tableNumber: selectedTable,
+      waiterName,
+      waiterId,
+      deliveryName,
+      cart,
+      actor: { type: "waiter", name: waiterName, id: authId },
     });
+
+    if ("error" in result) {
+      toast(result.error, "error");
+      setSending(false);
+      return;
+    }
 
     toast(`Pedido enviado a cocina — ${tableLabel(selectedTable)}`, "success");
     setCart([]);
@@ -549,94 +513,24 @@ export function PosClient() {
       return;
     }
 
-    // Next additional round number
-    const nextRound = original.items.reduce((max, i) => {
-      return i.additional_number && i.additional_number > max ? i.additional_number : max;
-    }, 0) + 1;
-
-    // Insert additional items
-    const { error: itemsErr } = await supabase.from("order_items").insert(
-      cart.map((item) => ({
-        order_id: additionalOrderId,
-        dish_id: item.dish_id,
-        dish_name: item.dish_name,
-        price: item.price,
-        quantity: item.quantity,
-        notes: item.notes.some((n) => n.trim()) ? item.notes : null,
-        is_additional: true,
-        additional_number: nextRound,
-      })),
-    );
-
-    if (itemsErr) {
-      toast("Error al guardar el adicional", "error");
-      setSending(false);
-      return;
-    }
-
-    // Recalculate total (original items + new additional items + desechables)
-    // Desechables follow the same rules as regular orders:
-    //   - delivery table: every dish gets desechables
-    //   - regular table: only dishes with "Para llevar" note get desechables
-    const isDelivery = isDeliveryTable(original.table_number);
-    const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
-    const paraLlevarCount = isDelivery ? 0 : cart.reduce((s, i) => s + countParaLlevar(i.notes), 0);
-    const additionalDesechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
-    const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
-    const newTotal = original.total + additionalTotal;
-
-    // Log audit event BEFORE updating the order — so when the realtime
-    // UPDATE fires, the event is already in the DB and the dashboard's
-    // realtime handler can reload it immediately.
-    const { error: eventErr } = await supabase.from("order_events").insert({
-      order_id: additionalOrderId,
-      event_type: "additional_added",
-      actor_type: "waiter",
-      actor_name: waiterName,
-      actor_id: authId,
-      from_status: original.status,
-      to_status: "adicional",
-      metadata: {
-        additional_number: nextRound,
-        item_count: cart.length,
-        additional_total: additionalTotal,
-        additional_desechables: additionalDesechables,
-        new_total: newTotal,
-        added_items: cart.map((i) => ({ name: i.dish_name, qty: i.quantity, notes: i.notes })),
-      },
+    const result = await addAdditional(supabase, {
+      order: original,
+      cart,
+      actor: { type: "waiter", name: waiterName, id: authId },
     });
-    if (eventErr) {
-      console.error("Failed to log additional_added event:", eventErr);
-    }
 
-    // Update order LAST — fires the realtime UPDATE event.
-    // By this point, items and events are already in the DB, so the
-    // realtime handler on both POS and dashboard can reload everything.
-    const now = new Date().toISOString();
-    const { error: orderErr } = await supabase
-      .from("orders")
-      .update({
-        status: "adicional",
-        total: newTotal,
-        updated_by: waiterName,
-        updated_at: now,
-        updated_by_type: "waiter",
-      })
-      .eq("id", additionalOrderId);
-
-    if (orderErr) {
-      toast("Error al actualizar el pedido", "error");
+    if ("error" in result) {
+      toast(result.error, "error");
       setSending(false);
       return;
     }
+
+    const { round, newTotal } = result.data;
 
     // Optimistically update local state — fetch the full item list
     // (original + additional) so the waiter sees the change immediately
     // without waiting for the realtime subscription.
-    const { data: updatedItems } = await supabase
-      .from("order_items")
-      .select("*, dishes(categories(name))")
-      .eq("order_id", additionalOrderId);
+    const updatedItems = await fetchOrderItems(supabase, additionalOrderId);
     setOrders((prev) =>
       prev.map((o) =>
         o.id === additionalOrderId
@@ -645,18 +539,15 @@ export function PosClient() {
               status: "adicional" as OrderStatus,
               total: newTotal,
               updated_by: waiterName,
-              updated_at: now,
+              updated_at: new Date().toISOString(),
               updated_by_type: "waiter",
-              items: (updatedItems ?? []).map((i) => ({
-                ...i,
-                category_name: i.dishes?.categories?.name ?? null,
-              })),
+              items: updatedItems,
             }
           : o,
       ),
     );
 
-    toast(`Adicional #${nextRound} enviado a cocina — ${tableLabel(original.table_number)}`, "success");
+    toast(`Adicional #${round} enviado a cocina — ${tableLabel(original.table_number)}`, "success");
     setCart([]);
     setAdditionalOrderId(null);
     setSelectedTable(null);
@@ -668,149 +559,25 @@ export function PosClient() {
   const saveEditedOrder = useCallback(async () => {
     if (!waiterName || !supabase || !editingOrderId || cart.length === 0) return;
     setSending(true);
-    const itemCount = cart.reduce((sum, i) => sum + i.quantity, 0);
-    const isDelivery = isDeliveryTable(selectedTable!);
-    const paraLlevarCount = isDelivery ? 0 : cart.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
-    const desechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
-    const total = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + desechables;
 
     const original = orders.find((o) => o.id === editingOrderId);
-    const oldItems = original?.items ?? [];
-
-    // Build maps by dish_id for diffing
-    const oldByDish = new Map(oldItems.map((i) => [i.dish_id, i]));
-    const newByDish = new Map(cart.map((i) => [i.dish_id, i]));
-
-    const toInsert: CartItem[] = [];
-    const toUpdate: { id: string; quantity: number; notes: string[] | null }[] = [];
-    const toDelete: string[] = [];
-
-    for (const newItem of cart) {
-      const old = oldByDish.get(newItem.dish_id);
-      if (!old) {
-        // New item — insert
-        toInsert.push(newItem);
-      } else {
-        // Compare notes arrays (normalize for trailing empty strings)
-        const oldNotes = (old.notes ?? []).map((n: string) => n.trim());
-        const newNotes = newItem.notes.map((n) => n.trim());
-        while (oldNotes.length > 0 && oldNotes[oldNotes.length - 1] === "") oldNotes.pop();
-        while (newNotes.length > 0 && newNotes[newNotes.length - 1] === "") newNotes.pop();
-        const notesChanged = oldNotes.length !== newNotes.length || oldNotes.some((v, i) => v !== newNotes[i]);
-
-        if (old.quantity !== newItem.quantity || notesChanged) {
-          // Changed item — update
-          toUpdate.push({
-            id: old.id,
-            quantity: newItem.quantity,
-            notes: newItem.notes.some((n) => n.trim()) ? newItem.notes : null,
-          });
-        }
-      }
+    if (!original) {
+      toast("No se encontró el pedido", "error");
+      setSending(false);
+      return;
     }
 
-    for (const oldItem of oldItems) {
-      if (!newByDish.has(oldItem.dish_id)) {
-        // Removed item — delete
-        toDelete.push(oldItem.id);
-      }
-    }
-
-    // 1. Apply item changes (insert / update / delete) before the order UPDATE
-    //    so realtime sees the final state when the UPDATE event fires
-
-    if (toDelete.length > 0) {
-      const { error: delErr } = await supabase
-        .from("order_items")
-        .delete()
-        .in("id", toDelete);
-      if (delErr) {
-        toast("Error al eliminar items", "error");
-        setSending(false);
-        return;
-      }
-    }
-
-    if (toUpdate.length > 0) {
-      for (const item of toUpdate) {
-        const { error: updErr } = await supabase
-          .from("order_items")
-          .update({ quantity: item.quantity, notes: item.notes })
-          .eq("id", item.id);
-        if (updErr) {
-          toast("Error al actualizar items", "error");
-          setSending(false);
-          return;
-        }
-      }
-    }
-
-    if (toInsert.length > 0) {
-      const { error: insErr } = await supabase.from("order_items").insert(
-        toInsert.map((item) => ({
-          order_id: editingOrderId,
-          dish_id: item.dish_id,
-          dish_name: item.dish_name,
-          price: item.price,
-          quantity: item.quantity,
-          notes: item.notes.some((n) => n.trim()) ? item.notes : null,
-        })),
-      );
-      if (insErr) {
-        toast("Error al agregar items", "error");
-        setSending(false);
-        return;
-      }
-    }
-
-    // 2. Log the update event with detailed change info
-    await supabase.from("order_events").insert({
-      order_id: editingOrderId,
-      event_type: "updated",
-      actor_type: "waiter",
-      actor_name: waiterName,
-      actor_id: authId,
-      to_status: original?.status ?? null,
-      metadata: {
-        table_number: selectedTable,
-        item_count: cart.length,
-        total,
-        added: toInsert.length,
-        updated: toUpdate.length,
-        removed: toDelete.length,
-        added_items: toInsert.map((i) => ({ name: i.dish_name, qty: i.quantity })),
-        updated_items: toUpdate.map((u) => {
-          const old = oldItems.find((o) => o.id === u.id);
-          const newItem = cart.find((c) => c.dish_id === old?.dish_id);
-          return {
-            name: newItem?.dish_name ?? old?.dish_name ?? "",
-            qty: u.quantity,
-            old_qty: old?.quantity ?? 0,
-            notes: u.notes,
-            old_notes: old?.notes ?? null,
-          };
-        }),
-        removed_items: toDelete.map((id) => {
-          const old = oldItems.find((o) => o.id === id);
-          return { name: old?.dish_name ?? "", qty: old?.quantity ?? 0 };
-        }),
-      },
+    const result = await saveOrderToDb(supabase, {
+      orderId: editingOrderId,
+      cart,
+      originalOrder: original,
+      tableNumber: selectedTable!,
+      deliveryName,
+      actor: { type: "waiter", name: waiterName, id: authId },
     });
 
-    // 3. Update order LAST — fires the realtime UPDATE event
-    const { error: orderErr } = await supabase
-      .from("orders")
-      .update({
-        total,
-        delivery_name: isDeliveryTable(selectedTable!) ? deliveryName.trim() : null,
-        updated_by: waiterName,
-        updated_at: new Date().toISOString(),
-        updated_by_type: "waiter",
-      })
-      .eq("id", editingOrderId);
-
-    if (orderErr) {
-      toast("Error al actualizar el pedido", "error");
+    if ("error" in result) {
+      toast(result.error, "error");
       setSending(false);
       return;
     }
