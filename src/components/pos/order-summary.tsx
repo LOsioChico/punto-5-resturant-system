@@ -195,7 +195,7 @@ export function OrderSummary({
                     </span>
                     {isDelivery && (
                       <span className="mt-0.5 block text-xs text-yellow-500/70">
-                        + {formatCOP(DESECHABLES_PER_DISH)} desechable
+                        + {formatCOP(DESECHABLES_PER_DISH)} desechable ({item.quantity} {item.quantity === 1 ? "unidad" : "unidades"})
                       </span>
                     )}
                     {!isDelivery && countParaLlevar(item.notes) > 0 && (
@@ -389,11 +389,11 @@ export function OrderSummary({
                       // Default to "all" mode if all units share equivalent notes, else "perUnit"
                       setNotesMode(allNotesSame(item.notes) ? "all" : "perUnit");
                     }}
-                    className="mt-3 flex items-center gap-1.5 text-sm text-stone-600 transition-colors hover:text-stone-300"
+                    className="mt-3 flex items-start gap-1.5 text-left text-sm text-stone-600 transition-colors hover:text-stone-300"
                   >
-                    <Pencil className="size-3.5" />
+                    <Pencil className="mt-0.5 size-3.5 shrink-0" />
                     {item.notes.some((n) => n.trim()) ? (
-                      <div className="flex flex-col items-start gap-0.5">
+                      <div className="flex flex-col gap-0.5">
                         {(() => {
                           const nonEmpty = item.notes.filter((n) => n.trim());
                           if (allNotesSame(item.notes)) {
