@@ -60,8 +60,9 @@ export function OrderSummary({
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = tableNumber !== null && isDeliveryTable(tableNumber);
   const isAdditional = additionalOrderId !== null;
-  // Both delivery and adicional always have "Para llevar" → desechables per dish
-  const forceParaLlevar = isDelivery || isAdditional;
+  // Delivery forces "Para llevar" on all items → desechables per dish.
+  // Additional orders do NOT force it — the waiter decides per item.
+  const forceParaLlevar = isDelivery;
   const paraLlevarCount = forceParaLlevar ? itemCount : items.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
   const desechables = paraLlevarCount * DESECHABLES_PER_DISH;
   const grandTotal = total + desechables;
@@ -291,7 +292,7 @@ export function OrderSummary({
                       return (
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {quickNotes.map((note) => {
-                        // "Para llevar" is locked on for delivery and adicional orders
+                        // "Para llevar" is locked on for delivery orders
                         const isLockedParaLlevar = forceParaLlevar && note === "Para llevar";
                         // In "all" mode, highlight if any unit has the note
                         // In "perUnit" mode, highlight only the focused unit

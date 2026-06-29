@@ -323,14 +323,15 @@ export function PosClient() {
     [orders, waiterName],
   );
 
-  // Both delivery and adicional force "Para llevar" on all items
-  const forceParaLlevar = (selectedTable !== null && isDeliveryTable(selectedTable)) || additionalOrderId !== null;
+  // Delivery orders force "Para llevar" on all items.
+  // Additional orders do NOT force it — the waiter decides per item.
+  const forceParaLlevar = selectedTable !== null && isDeliveryTable(selectedTable);
 
   const addToCart = useCallback((dish: Dish) => {
     // Look up category name for this dish
     const category = categories.find((c) => c.id === dish.category_id);
     const categoryName = category?.name ?? "";
-    // Delivery and adicional default to "Para llevar" on every unit
+    // Delivery defaults to "Para llevar" on every unit
     const defaultNote = forceParaLlevar ? "Para llevar" : "";
 
     setCart((prev) => {
@@ -446,7 +447,7 @@ export function PosClient() {
     setActiveTab("history");
   }, []);
 
-  // For delivery and adicional orders, ensure "Para llevar" is always present in notes
+  // For delivery orders, ensure "Para llevar" is always present in notes
   const ensureParaLlevar = useCallback((value: string): string => {
     if (!forceParaLlevar) return value;
     if (isParaLlevar(value)) return value;
@@ -582,9 +583,13 @@ export function PosClient() {
     }
 
     // Recalculate total (original items + new additional items + desechables)
-    // Adicional always charges desechables per dish (like delivery)
-    const paraLlevarCount = cart.reduce((s, i) => s + i.quantity, 0);
-    const additionalDesechables = paraLlevarCount * DESECHABLES_PER_DISH;
+    // Desechables follow the same rules as regular orders:
+    //   - delivery table: every dish gets desechables
+    //   - regular table: only dishes with "Para llevar" note get desechables
+    const isDelivery = isDeliveryTable(original.table_number);
+    const itemCount = cart.reduce((s, i) => s + i.quantity, 0);
+    const paraLlevarCount = isDelivery ? 0 : cart.reduce((s, i) => s + countParaLlevar(i.notes), 0);
+    const additionalDesechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
     const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
     const newTotal = original.total + additionalTotal;
 

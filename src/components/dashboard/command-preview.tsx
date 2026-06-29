@@ -153,9 +153,9 @@ export function CommandPreview({ order, additionalOnly }: { order: Order; additi
         {additionalOnly !== undefined ? (
           // Additional-only print: show just the additional subtotal
           <>
-            {isDelivery && (
+            {desechables > 0 && (
               <div className="flex items-center justify-between text-xs text-stone-600">
-                <span>Desechables ({itemCount})</span>
+                <span>Desechables ({isDelivery ? itemCount : paraLlevarCount})</span>
                 <span>{formatCOP(desechables)}</span>
               </div>
             )}

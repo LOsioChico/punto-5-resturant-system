@@ -473,9 +473,13 @@ export function DashboardClient() {
 
       if (itemsErr) return;
 
-      // Recalculate total (adicional always charges desechables per dish)
-      const paraLlevarCount = items.reduce((s, i) => s + i.quantity, 0);
-      const additionalDesechables = paraLlevarCount * DESECHABLES_PER_DISH;
+      // Recalculate total — desechables follow the same rules as regular orders:
+      //   - delivery table: every dish gets desechables
+      //   - regular table: only dishes with "Para llevar" note get desechables
+      //   (dashboard modal doesn't collect notes, so regular tables get 0 desechables)
+      const isDelivery = isDeliveryTable(original.table_number);
+      const itemCount = items.reduce((s, i) => s + i.quantity, 0);
+      const additionalDesechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
       const additionalTotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
       const newTotal = original.total + additionalTotal;
 
