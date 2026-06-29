@@ -10,7 +10,7 @@ import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
-import { countParaLlevar } from "@/lib/pos/logic";
+import { countParaLlevar, isParaLlevar } from "@/lib/pos/logic";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -52,15 +52,31 @@ export function PosClient() {
   const [editInitialCart, setEditInitialCart] = useState<CartItem[] | null>(null);
   const [additionalOrderId, setAdditionalOrderId] = useState<string | null>(null);
 
-  // When switching to a delivery table, fill empty notes with "Para llevar"
+  // Sync notes when table changes:
+  // - Switching TO delivery: fill empty notes with "Para llevar"
+  // - Switching FROM delivery to a regular table: remove "Para llevar" from all notes
   useEffect(() => {
-    if (selectedTable === null || !isDeliveryTable(selectedTable)) return;
+    if (selectedTable === null) return;
+    const isDelivery = isDeliveryTable(selectedTable);
     setCart((prev) => {
-      const hasEmpty = prev.some((i) => i.notes.some((n) => !n.trim()));
-      if (!hasEmpty) return prev;
+      if (isDelivery) {
+        const hasEmpty = prev.some((i) => i.notes.some((n) => !n.trim()));
+        if (!hasEmpty) return prev;
+        return prev.map((i) => ({
+          ...i,
+          notes: i.notes.map((n) => (n.trim() ? n : "Para llevar")),
+        }));
+      }
+      // Non-delivery: strip "Para llevar" from comma-separated notes
+      const hasParaLlevar = prev.some((i) => i.notes.some((n) => isParaLlevar(n)));
+      if (!hasParaLlevar) return prev;
       return prev.map((i) => ({
         ...i,
-        notes: i.notes.map((n) => (n.trim() ? n : "Para llevar")),
+        notes: i.notes.map((n) => {
+          if (!n.trim()) return n;
+          const parts = n.split(",").map((p) => p.trim()).filter((p) => p.toLowerCase() !== "para llevar");
+          return parts.join(", ");
+        }),
       }));
     });
   }, [selectedTable]);
@@ -419,25 +435,35 @@ export function PosClient() {
     setActiveTab("history");
   }, []);
 
+  // For delivery orders, ensure "Para llevar" is always present in notes
+  const ensureParaLlevar = useCallback((value: string): string => {
+    if (selectedTable === null || !isDeliveryTable(selectedTable)) return value;
+    if (isParaLlevar(value)) return value;
+    const parts = value.split(",").map((p) => p.trim()).filter(Boolean);
+    return [...parts, "Para llevar"].join(", ");
+  }, [selectedTable]);
+
   const setNotes = useCallback((dishId: string, unitIndex: number, value: string) => {
+    const finalValue = ensureParaLlevar(value);
     setCart((prev) =>
       prev.map((i) =>
         i.dish_id === dishId
-          ? { ...i, notes: i.notes.map((n, idx) => (idx === unitIndex ? value : n)) }
+          ? { ...i, notes: i.notes.map((n, idx) => (idx === unitIndex ? finalValue : n)) }
           : i,
       ),
     );
-  }, []);
+  }, [ensureParaLlevar]);
 
   const setAllNotes = useCallback((dishId: string, value: string) => {
+    const finalValue = ensureParaLlevar(value);
     setCart((prev) =>
       prev.map((i) =>
         i.dish_id === dishId
-          ? { ...i, notes: Array.from({ length: i.quantity }, () => value) }
+          ? { ...i, notes: Array.from({ length: i.quantity }, () => finalValue) }
           : i,
       ),
     );
-  }, []);
+  }, [ensureParaLlevar]);
 
   const sendOrder = useCallback(async () => {
     if (!waiterName || !waiterId || !supabase || selectedTable === null || cart.length === 0)

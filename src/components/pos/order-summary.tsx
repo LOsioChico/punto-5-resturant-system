@@ -290,9 +290,11 @@ export function OrderSummary({
                       return (
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {quickNotes.map((note) => {
+                        // "Para llevar" is locked on for delivery orders
+                        const isLockedParaLlevar = isDelivery && note === "Para llevar";
                         // In "all" mode, highlight if any unit has the note
                         // In "perUnit" mode, highlight only the focused unit
-                        const active = notesMode === "all" || item.quantity === 1
+                        const active = isLockedParaLlevar || (notesMode === "all" || item.quantity === 1
                           ? item.notes.some((n) =>
                               (n ?? "").split(",").map((p) => p.trim()).includes(note),
                             )
@@ -303,11 +305,13 @@ export function OrderSummary({
                                 .split(",")
                                 .map((p) => p.trim())
                                 .includes(note);
-                            })();
+                            })());
                         return (
                           <button
                             key={note}
+                            disabled={isLockedParaLlevar}
                             onClick={() => {
+                              if (isLockedParaLlevar) return;
                               if (item.quantity === 1) {
                                 // Single unit — use onSetNotes directly
                                 const currentUnitNotes = item.notes[0] ?? "";
@@ -330,9 +334,11 @@ export function OrderSummary({
                               }
                             }}
                             className={
-                              active
-                                ? "rounded-lg bg-yellow-500/15 px-2.5 py-1.5 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-500/30"
-                                : "rounded-lg bg-stone-800 px-2.5 py-1.5 text-xs text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
+                              isLockedParaLlevar
+                                ? "cursor-not-allowed rounded-lg bg-yellow-500/15 px-2.5 py-1.5 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-500/30 opacity-60"
+                                : active
+                                  ? "rounded-lg bg-yellow-500/15 px-2.5 py-1.5 text-xs font-medium text-yellow-400 ring-1 ring-inset ring-yellow-500/30"
+                                  : "rounded-lg bg-stone-800 px-2.5 py-1.5 text-xs text-stone-300 transition-colors hover:bg-stone-700 hover:text-stone-100"
                             }
                           >
                             {note}
