@@ -133,7 +133,11 @@ export async function createOrder(
   // 3. Log audit event
   await logEvent(supabase, order.id, "created", actor, {
     to_status: "nueva",
-    metadata: { table_number: tableNumber, item_count: cart.length, total },
+    metadata: {
+      table_number: tableNumber,
+      item_count: cart.reduce((s, i) => s + i.quantity, 0),
+      total,
+    },
   });
 
   return { data: { orderId: order.id, total } };
@@ -189,7 +193,7 @@ export async function addAdditional(
     to_status: "adicional",
     metadata: {
       additional_number: nextRound,
-      item_count: cart.length,
+      item_count: itemCount,
       additional_total: additionalTotal,
       additional_desechables: additionalDesechables,
       new_total: newTotal,
@@ -306,7 +310,7 @@ export async function editOrder(
     to_status: originalOrder.status,
     metadata: {
       table_number: tableNumber,
-      item_count: cart.length,
+      item_count: cart.reduce((s, i) => s + i.quantity, 0),
       total,
       added: toInsert.length,
       updated: toUpdate.length,
