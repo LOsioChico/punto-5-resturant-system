@@ -212,14 +212,14 @@ export function OrderDetail({
 
           {/* Preview version tabs — show if order has adicionals */}
           {order.items.some((i) => i.is_additional) ? (
-            <div className="mb-3 flex flex-wrap gap-1">
+            <div className="mb-3 flex flex-wrap gap-1.5 rounded-lg bg-stone-900/60 p-1.5">
               <button
                 onClick={() => setPrintAdditional(undefined)}
                 className={cn(
-                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  "rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
                   printAdditional === undefined
-                    ? "bg-stone-700 text-stone-100"
-                    : "text-stone-500 hover:text-stone-300",
+                    ? "bg-blue-500/20 text-blue-300 ring-1 ring-inset ring-blue-500/40"
+                    : "text-stone-400 hover:bg-stone-800 hover:text-stone-200",
                 )}
               >
                 Comanda completa
@@ -231,10 +231,10 @@ export function OrderDetail({
                   key={round}
                   onClick={() => setPrintAdditional(round ?? undefined)}
                   className={cn(
-                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                    "rounded-md px-3 py-1.5 text-xs font-semibold transition-all",
                     printAdditional === round
-                      ? "bg-stone-700 text-stone-100"
-                      : "text-stone-500 hover:text-stone-300",
+                      ? "bg-blue-500/20 text-blue-300 ring-1 ring-inset ring-blue-500/40"
+                      : "text-stone-400 hover:bg-stone-800 hover:text-stone-200",
                   )}
                 >
                   Adicional #{round}
