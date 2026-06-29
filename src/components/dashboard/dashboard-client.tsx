@@ -82,12 +82,19 @@ export function DashboardClient() {
       return;
     }
 
-    const { data: orderRows, error: orderErr } = await supabase
+    let query = supabase
       .from("orders")
       .select("*")
-      .is("deleted_at", includeDeleted ? "not.null" : "null")
       .order("created_at", { ascending: false })
       .limit(100);
+
+    if (includeDeleted) {
+      query = query.not("deleted_at", "is", null);
+    } else {
+      query = query.is("deleted_at", null);
+    }
+
+    const { data: orderRows, error: orderErr } = await query;
 
     if (orderErr) {
       // Network error — try cache (only for active orders)
