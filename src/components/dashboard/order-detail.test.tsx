@@ -180,7 +180,7 @@ describe("OrderDetail — print", () => {
     const onPrint = vi.fn();
     render(<OrderDetail order={makeOrder({ id: "print-id" })} events={[]} onAdvanceStatus={noop} onPrint={onPrint} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     await user.click(screen.getByRole("button", { name: /Imprimir/ }));
-    expect(onPrint).toHaveBeenCalledWith("print-id");
+    expect(onPrint).toHaveBeenCalledWith("print-id", { type: "full" });
   });
 
   it("disables print button when disabled prop is true", () => {

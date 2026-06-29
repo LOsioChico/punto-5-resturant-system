@@ -7,11 +7,15 @@ import { startOfTodayColombia, startOfYesterdayColombia, isOnColombiaDate } from
 
 export const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
 
+// Statuses shown in KPI cards and filters (excludes 'adicional')
+export const FILTERABLE_STATUSES: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
+
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   nueva: "Nueva",
   en_cocina: "En cocina",
   lista: "Lista",
   servida: "Servida",
+  adicional: "Adicional",
 };
 
 export const STATUS_LABELS_PLURAL: Record<OrderStatus, string> = {
@@ -19,10 +23,13 @@ export const STATUS_LABELS_PLURAL: Record<OrderStatus, string> = {
   en_cocina: "En cocina",
   lista: "Listas",
   servida: "Servidas",
+  adicional: "Adicionales",
 };
 
 /** Get the next status in the flow, or null if at the end. */
 export function nextStatus(status: OrderStatus): OrderStatus | null {
+  // 'adicional' is not in STATUS_FLOW — it advances directly to 'lista'
+  if (status === "adicional") return "lista";
   const idx = STATUS_FLOW.indexOf(status);
   if (idx < 0 || idx >= STATUS_FLOW.length - 1) return null;
   return STATUS_FLOW[idx + 1];
@@ -35,6 +42,7 @@ export function advanceActionLabel(status: OrderStatus): string {
     en_cocina: "Marcar como lista",
     lista: "Marcar como servida",
     servida: "",
+    adicional: "Marcar como lista",
   };
   return labels[status];
 }
@@ -52,6 +60,11 @@ export function canEditOrder(status: OrderStatus): boolean {
 /** Check if an order is active (not served). */
 export function isOrderActive(status: OrderStatus): boolean {
   return status !== "servida";
+}
+
+/** Check if an order is in the 'adicional' status. */
+export function isAdicional(status: OrderStatus): boolean {
+  return status === "adicional";
 }
 
 /** Filter orders by date (today, yesterday, or all) in Colombia timezone. */
@@ -85,13 +98,14 @@ export function getVisibleWaiters(orders: Order[]): string[] {
   return Array.from(names).sort();
 }
 
-/** Count orders by status. */
+/** Count orders by status (only filterable statuses — excludes 'adicional'). */
 export function countByStatus(orders: Order[]): Record<OrderStatus, number> {
   return {
     nueva: orders.filter((o) => o.status === "nueva").length,
     en_cocina: orders.filter((o) => o.status === "en_cocina").length,
     lista: orders.filter((o) => o.status === "lista").length,
     servida: orders.filter((o) => o.status === "servida").length,
+    adicional: orders.filter((o) => o.status === "adicional").length,
   };
 }
 
@@ -150,9 +164,14 @@ export function additionalSubtotal(order: Order, round?: number): number {
   return getAdditionalItems(order, round).reduce((sum, i) => sum + i.price * i.quantity, 0);
 }
 
-/** Sort orders: active with adicionals first, then active, then served. */
+/** Sort orders: 'adicional' status first, then active with adicionals, then active, then served. */
 export function sortOrders(orders: Order[]): Order[] {
   return [...orders].sort((a, b) => {
+    // 'adicional' status always on top
+    const aAdicional = a.status === "adicional" ? 0 : 1;
+    const bAdicional = b.status === "adicional" ? 0 : 1;
+    if (aAdicional !== bAdicional) return aAdicional - bAdicional;
+
     const aActive = a.status !== "servida" ? 0 : 1;
     const bActive = b.status !== "servida" ? 0 : 1;
     if (aActive !== bActive) return aActive - bActive;

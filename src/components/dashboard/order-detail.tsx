@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DESECHABLES_PER_DISH, isDeliveryTable, splitPerUnit } from "@/lib/utils";
+import { cn, formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DESECHABLES_PER_DISH, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import { allNotesSame } from "@/lib/pos/logic";
 import type { Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,6 @@ import {
   User,
   PencilLine,
   Bike,
-  PlusCircle,
 } from "lucide-react";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -27,6 +26,7 @@ const NEXT_ACTION: Record<OrderStatus, { label: string; icon: React.ReactNode }>
   en_cocina: { label: "Marcar como lista", icon: <CheckCircle2 className="size-4" /> },
   lista: { label: "Marcar como servida", icon: <Utensils className="size-4" /> },
   servida: { label: "", icon: null },
+  adicional: { label: "Marcar como lista", icon: <CheckCircle2 className="size-4" /> },
 };
 
 const EVENT_LABELS: Record<string, string> = {
@@ -43,6 +43,7 @@ const STATUS_LABELS: Record<string, string> = {
   en_cocina: "En cocina",
   lista: "Lista",
   servida: "Servida",
+  adicional: "Adicional",
 };
 
 const STATUS_COLORS: Record<OrderStatus, { dot: string; text: string; bg: string }> = {
@@ -50,6 +51,7 @@ const STATUS_COLORS: Record<OrderStatus, { dot: string; text: string; bg: string
   en_cocina: { dot: "bg-amber-500", text: "text-amber-400", bg: "bg-amber-500/10" },
   lista: { dot: "bg-green-500", text: "text-green-400", bg: "bg-green-500/10" },
   servida: { dot: "bg-stone-600", text: "text-stone-400", bg: "bg-stone-800" },
+  adicional: { dot: "bg-blue-500", text: "text-blue-400", bg: "bg-blue-500/10" },
 };
 
 /** Right panel — order detail. */
@@ -65,7 +67,7 @@ export function OrderDetail({
   order: Order | null;
   events: OrderEvent[];
   onAdvanceStatus: (id: string) => void;
-  onPrint: (id: string) => void;
+  onPrint: (id: string, version?: { type: "full" | "additional"; round?: number }) => void;
   onSetDeliveryFee: (id: string, fee: number) => void;
   onAddAdditional: (order: Order) => void;
   disabled?: boolean;
@@ -85,7 +87,8 @@ export function OrderDetail({
   }
 
   const currentIndex = STATUS_FLOW.indexOf(order.status);
-  const nextStatus = STATUS_FLOW[currentIndex + 1];
+  // 'adicional' is not in STATUS_FLOW — it advances to 'lista'
+  const nextStatus = order.status === "adicional" ? "lista" as OrderStatus : STATUS_FLOW[currentIndex + 1];
   const action = NEXT_ACTION[order.status];
   const printCount = events.filter((e) => e.event_type === "printed").length;
   const colors = STATUS_COLORS[order.status];
@@ -197,8 +200,9 @@ export function OrderDetail({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setPrintAdditional(undefined);
-                  onPrint(order.id);
+                  onPrint(order.id, printAdditional !== undefined
+                    ? { type: "additional", round: printAdditional }
+                    : { type: "full" });
                 }}
                 disabled={disabled}
               >
@@ -207,49 +211,41 @@ export function OrderDetail({
               </Button>
             </div>
           </div>
-          <CommandPreview order={order} additionalOnly={printAdditional} />
 
-          {/* Additional print buttons — show if order has adicionals */}
-          {order.items.some((i) => i.is_additional) && (
-            <div className="mt-3 space-y-2">
-              <p className="text-xs font-semibold uppercase tracking-wider text-stone-500">
-                Imprimir adicional
-              </p>
-              <div className="flex flex-wrap gap-2">
-                {/* Print full order (with adicionals highlighted) */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setPrintAdditional(undefined);
-                    onPrint(order.id);
-                  }}
-                  disabled={disabled}
+          {/* Preview version tabs — show if order has adicionals */}
+          {order.items.some((i) => i.is_additional) ? (
+            <div className="mb-3 flex flex-wrap gap-1">
+              <button
+                onClick={() => setPrintAdditional(undefined)}
+                className={cn(
+                  "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                  printAdditional === undefined
+                    ? "bg-stone-700 text-stone-100"
+                    : "text-stone-500 hover:text-stone-300",
+                )}
+              >
+                Comanda completa
+              </button>
+              {Array.from(
+                new Set(order.items.filter((i) => i.is_additional).map((i) => i.additional_number)),
+              ).map((round) => (
+                <button
+                  key={round}
+                  onClick={() => setPrintAdditional(round ?? undefined)}
+                  className={cn(
+                    "rounded-md px-2.5 py-1 text-xs font-medium transition-colors",
+                    printAdditional === round
+                      ? "bg-stone-700 text-stone-100"
+                      : "text-stone-500 hover:text-stone-300",
+                  )}
                 >
-                  <Printer className="size-3.5" />
-                  Comanda completa
-                </Button>
-                {/* Print each additional round separately */}
-                {Array.from(
-                  new Set(order.items.filter((i) => i.is_additional).map((i) => i.additional_number)),
-                ).map((round) => (
-                  <Button
-                    key={round}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setPrintAdditional(round ?? undefined);
-                      onPrint(order.id);
-                    }}
-                    disabled={disabled}
-                  >
-                    <Printer className="size-3.5" />
-                    Adicional #{round}
-                  </Button>
-                ))}
-              </div>
+                  Adicional #{round}
+                </button>
+              ))}
             </div>
-          )}
+          ) : null}
+
+          <CommandPreview order={order} additionalOnly={printAdditional} />
         </div>
 
         {/* Items */}
@@ -557,41 +553,14 @@ export function OrderDetail({
       {/* Action bar */}
       {nextStatus && action.label ? (
         <div className="bg-stone-900/50 p-4">
-          <div className="flex gap-2">
-            <Button
-              className="flex-1 transition-all active:scale-[0.98]"
-              size="lg"
-              onClick={() => onAdvanceStatus(order.id)}
-              disabled={disabled}
-            >
-              {action.icon}
-              {action.label}
-            </Button>
-            {(order.status === "lista" || order.status === "servida") && (
-              <Button
-                variant="outline"
-                className="transition-all active:scale-[0.98]"
-                size="lg"
-                onClick={() => onAddAdditional(order)}
-                disabled={disabled}
-              >
-                <PlusCircle className="size-4" />
-                Adicional
-              </Button>
-            )}
-          </div>
-        </div>
-      ) : order.status === "servida" ? (
-        <div className="bg-stone-900/50 p-4">
           <Button
-            variant="outline"
             className="w-full transition-all active:scale-[0.98]"
             size="lg"
-            onClick={() => onAddAdditional(order)}
+            onClick={() => onAdvanceStatus(order.id)}
             disabled={disabled}
           >
-            <PlusCircle className="size-4" />
-            Agregar adicional
+            {action.icon}
+            {action.label}
           </Button>
         </div>
       ) : null}

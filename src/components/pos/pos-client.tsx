@@ -209,11 +209,12 @@ export function PosClient() {
 
           // Toast the waiter when their order's status changes
           if (updated.waiter_name === waiterName) {
-            const statusMessages: Record<OrderStatus, { msg: string; variant: "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida" }> = {
+            const statusMessages: Record<OrderStatus, { msg: string; variant: "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida" | "status-adicional" }> = {
               nueva: { msg: `${tableLabel(updated.table_number)}: pedido recibido`, variant: "status-nueva" },
               en_cocina: { msg: `${tableLabel(updated.table_number)}: pedido en cocina`, variant: "status-en_cocina" },
               lista: { msg: `${tableLabel(updated.table_number)}: pedido listo para servir`, variant: "status-lista" },
               servida: { msg: `${tableLabel(updated.table_number)}: pedido servido`, variant: "status-servida" },
+              adicional: { msg: `${tableLabel(updated.table_number)}: adicional agregado`, variant: "status-adicional" },
             };
             const { msg, variant } = statusMessages[updated.status];
             toast(msg, variant, updated.table_number);
@@ -587,10 +588,10 @@ export function PosClient() {
     const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
     const newTotal = original.total + additionalTotal;
 
-    // Move order back to "lista" so kitchen knows there's pending work
+    // Move order to "adicional" so kitchen knows there's pending work
     const { error: orderErr } = await supabase
       .from("orders")
-      .update({ status: "lista", total: newTotal })
+      .update({ status: "adicional", total: newTotal })
       .eq("id", additionalOrderId);
 
     if (orderErr) {
@@ -606,14 +607,15 @@ export function PosClient() {
       actor_type: "waiter",
       actor_name: waiterName,
       actor_id: authId,
-      from_status: "servida",
-      to_status: "lista",
+      from_status: original.status,
+      to_status: "adicional",
       metadata: {
         additional_number: nextRound,
         item_count: cart.length,
         additional_total: additionalTotal,
+        additional_desechables: additionalDesechables,
         new_total: newTotal,
-        added_items: cart.map((i) => ({ name: i.dish_name, qty: i.quantity })),
+        added_items: cart.map((i) => ({ name: i.dish_name, qty: i.quantity, notes: i.notes })),
       },
     });
 

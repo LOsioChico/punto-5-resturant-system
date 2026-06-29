@@ -10,6 +10,7 @@ const statusDot: Record<OrderStatus, string> = {
   en_cocina: "bg-amber-500",
   lista: "bg-green-500",
   servida: "bg-stone-600",
+  adicional: "bg-blue-500",
 };
 
 const statusLabel: Record<OrderStatus, string> = {
@@ -17,6 +18,7 @@ const statusLabel: Record<OrderStatus, string> = {
   en_cocina: "En cocina",
   lista: "Lista",
   servida: "Servida",
+  adicional: "Adicional",
 };
 
 /** Left column — live feed of incoming orders. */
@@ -56,13 +58,15 @@ export function OrdersFeed({
                 "w-full rounded-lg px-3.5 py-3 text-left transition-all active:scale-[0.99]",
                 isSelected
                   ? "bg-stone-800 ring-1 ring-inset ring-yellow-500/40"
-                  : hasAdditionals && order.status !== "servida"
+                  : order.status === "adicional"
                     ? "bg-blue-500/5 ring-1 ring-inset ring-blue-500/20 hover:bg-blue-500/10"
-                    : isNew
-                      ? "bg-red-500/5 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/10"
-                      : isDelivery
-                        ? "bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/15 hover:bg-yellow-500/10"
-                        : "bg-stone-900 hover:bg-stone-800/60",
+                    : hasAdditionals && order.status !== "servida"
+                      ? "bg-blue-500/5 ring-1 ring-inset ring-blue-500/20 hover:bg-blue-500/10"
+                      : isNew
+                        ? "bg-red-500/5 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/10"
+                        : isDelivery
+                          ? "bg-yellow-500/5 ring-1 ring-inset ring-yellow-500/15 hover:bg-yellow-500/10"
+                          : "bg-stone-900 hover:bg-stone-800/60",
               )}
             >
               {/* Row 1 — table + time */}

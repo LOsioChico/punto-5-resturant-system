@@ -23,6 +23,11 @@ const statusConfig: Record<OrderStatus, { label: string; className: string }> = 
     label: "Servida",
     className: "bg-stone-800/50 text-stone-600 ring-1 ring-inset ring-stone-600/50",
   },
+  // Blue = additional items added
+  adicional: {
+    label: "Adicional",
+    className: "bg-blue-500/15 text-blue-400 ring-1 ring-inset ring-blue-500/30",
+  },
 };
 
 export function StatusBadge({ status }: { status: OrderStatus }) {

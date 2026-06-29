@@ -10,6 +10,7 @@ const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; l
   en_cocina: { icon: <ChefHat className="size-5" />, ring: "bg-amber-500", label: "En cocina" },
   lista: { icon: <CheckCircle2 className="size-5" />, ring: "bg-green-500", label: "Lista" },
   servida: { icon: <Utensils className="size-5" />, ring: "bg-stone-600", label: "Servida" },
+  adicional: { icon: <PlusCircle className="size-5" />, ring: "bg-blue-500", label: "Adicional" },
 };
 
 /** Waiter's order history — flat list of order cards with status timeline. */
@@ -58,7 +59,7 @@ export function WaiterOrders({
             const config = statusConfig[order.status];
             const isActive = order.status !== "servida";
             const canEdit = order.status === "nueva" || order.status === "en_cocina";
-            const canAddAdditional = order.status === "lista" || order.status === "servida";
+            const canAddAdditional = order.status === "lista" || order.status === "servida" || order.status === "adicional";
             const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
             const isDelivery = isDeliveryTable(order.table_number);
             const hasAdditionals = order.items.some((i) => i.is_additional);

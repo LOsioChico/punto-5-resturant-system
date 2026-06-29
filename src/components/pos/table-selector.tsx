@@ -9,6 +9,7 @@ const statusDot: Record<OrderStatus, string> = {
   en_cocina: "bg-amber-500",
   lista: "bg-green-500",
   servida: "bg-stone-600",
+  adicional: "bg-blue-500",
 };
 
 /** Top section — table selector. Minimal, clean, status as a dot not a full color wash. */

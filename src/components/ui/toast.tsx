@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { cn } from "@/lib/utils";
-import { CheckCircle2, XCircle, Info, X, Clock, ChefHat, Utensils } from "lucide-react";
+import { CheckCircle2, XCircle, Info, X, Clock, ChefHat, Utensils, PlusCircle } from "lucide-react";
 import {
   loadNotifications,
   markAllNotificationsRead,
@@ -17,7 +17,7 @@ import {
   type StoredNotification,
 } from "@/lib/notifications/db";
 
-type ToastVariant = "success" | "error" | "info" | "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida";
+type ToastVariant = "success" | "error" | "info" | "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida" | "status-adicional";
 
 export interface NotificationItem {
   id: number;
@@ -76,6 +76,10 @@ const variantConfig: Record<
     icon: <Utensils className="size-5 text-stone-600" />,
     className: "border-stone-700",
   },
+  "status-adicional": {
+    icon: <PlusCircle className="size-5 text-blue-400" />,
+    className: "border-blue-500/30",
+  },
 };
 
 /** Map a stored push notification (from IndexedDB) to a NotificationItem. */
@@ -87,6 +91,7 @@ function storedToItem(n: StoredNotification): NotificationItem {
   else if (text.includes("cocina")) variant = "status-en_cocina";
   else if (text.includes("listo")) variant = "status-lista";
   else if (text.includes("servida")) variant = "status-servida";
+  else if (text.includes("adicional")) variant = "status-adicional";
 
   // Extract table number from title (e.g. "Mesa 5" → 5)
   const tableMatch = n.title.match(/Mesa\s+(\d+)/);

@@ -30,7 +30,7 @@ export interface OrderItem {
   additional_number: number | null;
 }
 
-export type OrderStatus = "nueva" | "en_cocina" | "lista" | "servida";
+export type OrderStatus = "nueva" | "en_cocina" | "lista" | "servida" | "adicional";
 
 export type ActorType = "waiter" | "admin" | "system";
 
