@@ -19,6 +19,8 @@ import {
   PencilLine,
   Bike,
   Trash2,
+  Truck,
+  Check,
 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
@@ -436,58 +438,14 @@ export function OrderDetail({
           </ul>
 
           {order.delivery_name && (
-            <>
-              <div className="mt-3 flex items-center justify-between border-t border-white/5 px-1 pt-2">
-                <span className="text-xs text-yellow-500/70">
-                  Desechables ({order.items.reduce((s, i) => s + i.quantity, 0)})
-                </span>
-                <span className="text-sm font-semibold text-yellow-500/70">
-                  {formatCOP(order.items.reduce((s, i) => s + i.quantity, 0) * DESECHABLES_PER_DISH)}
-                </span>
-              </div>
-              {/* Delivery fee — admin editable */}
-              <div className="flex items-center justify-between px-1 pt-1">
-                <span className="text-xs text-yellow-500/70">Domicilio</span>
-                {editingFee ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-xs text-stone-600">$</span>
-                    <input
-                      type="number"
-                      autoFocus
-                      value={deliveryFeeInput}
-                      onChange={(e) => setDeliveryFeeInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          const fee = parseInt(deliveryFeeInput, 10) || 0;
-                          onSetDeliveryFee(order.id, fee);
-                          setEditingFee(false);
-                        } else if (e.key === "Escape") {
-                          setEditingFee(false);
-                        }
-                      }}
-                      onBlur={() => {
-                        const fee = parseInt(deliveryFeeInput, 10) || 0;
-                        onSetDeliveryFee(order.id, fee);
-                        setEditingFee(false);
-                      }}
-                      placeholder="0"
-                      className="w-24 rounded border border-stone-700 bg-stone-800 px-2 py-0.5 text-right text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
-                    />
-                  </div>
-                ) : (
-                  <button
-                    onClick={() => {
-                      setDeliveryFeeInput(order.delivery_fee ? String(order.delivery_fee) : "");
-                      setEditingFee(true);
-                    }}
-                    disabled={disabled}
-                    className="text-sm font-semibold text-yellow-500/70 transition-colors hover:text-yellow-400 disabled:opacity-50"
-                  >
-                    {order.delivery_fee > 0 ? formatCOP(order.delivery_fee) : "Agregar"}
-                  </button>
-                )}
-              </div>
-            </>
+            <div className="mt-3 flex items-center justify-between border-t border-white/5 px-1 pt-2">
+              <span className="text-xs text-yellow-500/70">
+                Desechables ({order.items.reduce((s, i) => s + i.quantity, 0)})
+              </span>
+              <span className="text-sm font-semibold text-yellow-500/70">
+                {formatCOP(order.items.reduce((s, i) => s + i.quantity, 0) * DESECHABLES_PER_DISH)}
+              </span>
+            </div>
           )}
           <div className="mt-3 flex items-center justify-between px-1">
             <span className="text-sm text-stone-500">Total</span>
@@ -496,6 +454,78 @@ export function OrderDetail({
             </span>
           </div>
         </div>
+
+        {/* Delivery fee — prominent editable card for delivery orders */}
+        {order.delivery_name && (
+          <div className="mb-6 rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Truck className="size-4 text-yellow-500" />
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-yellow-500">
+                Domicilio
+              </h3>
+            </div>
+            {editingFee ? (
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-stone-500">$</span>
+                <input
+                  type="number"
+                  autoFocus
+                  value={deliveryFeeInput}
+                  onChange={(e) => setDeliveryFeeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      const fee = parseInt(deliveryFeeInput, 10) || 0;
+                      onSetDeliveryFee(order.id, fee);
+                      setEditingFee(false);
+                    } else if (e.key === "Escape") {
+                      setEditingFee(false);
+                    }
+                  }}
+                  placeholder="0"
+                  className="w-32 rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-lg font-semibold text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
+                />
+                <button
+                  onClick={() => {
+                    const fee = parseInt(deliveryFeeInput, 10) || 0;
+                    onSetDeliveryFee(order.id, fee);
+                    setEditingFee(false);
+                  }}
+                  className="flex items-center gap-1.5 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-semibold text-stone-950 transition-colors hover:bg-yellow-400"
+                >
+                  <Check className="size-4" />
+                  Guardar
+                </button>
+                <button
+                  onClick={() => setEditingFee(false)}
+                  className="rounded-lg px-3 py-2 text-sm text-stone-400 transition-colors hover:bg-stone-800 hover:text-stone-200"
+                >
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center justify-between">
+                <div className="flex items-baseline gap-2">
+                  <span className="text-2xl font-bold text-yellow-500">
+                    {order.delivery_fee > 0 ? formatCOP(order.delivery_fee) : "—"}
+                  </span>
+                  {order.delivery_fee === 0 && (
+                    <span className="text-sm text-stone-500">Sin domicilio</span>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setDeliveryFeeInput(order.delivery_fee ? String(order.delivery_fee) : "");
+                    setEditingFee(true);
+                  }}
+                  disabled={disabled}
+                  className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 px-4 py-2 text-sm font-semibold text-yellow-500 transition-colors hover:bg-yellow-500/20 disabled:opacity-50"
+                >
+                  {order.delivery_fee > 0 ? "Editar" : "Agregar domicilio"}
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Audit trail */}
         <div>
