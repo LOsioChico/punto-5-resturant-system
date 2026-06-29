@@ -144,6 +144,17 @@ Deno.serve(async (req) => {
       return json({ error: "waiter_id and is_active are required" }, 400);
     }
 
+    // Refuse to toggle a soft-deleted waiter
+    const { data: waiter } = await admin
+      .from("waiters")
+      .select("deleted_at")
+      .eq("id", waiter_id)
+      .single();
+
+    if (waiter?.deleted_at) {
+      return json({ error: "No se puede activar un mesero eliminado" }, 400);
+    }
+
     const { error } = await admin
       .from("waiters")
       .update({ is_active })
@@ -161,25 +172,35 @@ Deno.serve(async (req) => {
       return json({ error: "waiter_id is required" }, 400);
     }
 
+    // Fetch the waiter first (need auth_id + cedula for auth cleanup)
+    const { data: waiter, error: fetchError } = await admin
+      .from("waiters")
+      .select("auth_id, cedula")
+      .eq("id", waiter_id)
+      .is("deleted_at", null)
+      .single();
+
+    if (fetchError || !waiter) {
+      return json({ error: "Mesero no encontrado o ya eliminado" }, 404);
+    }
+
     // Soft delete: set deleted_at and deactivate
     const { error } = await admin
       .from("waiters")
       .update({ deleted_at: new Date().toISOString(), is_active: false })
-      .eq("id", waiter_id)
-      .is("deleted_at", null); // prevent double-delete
+      .eq("id", waiter_id);
 
     if (error) return json({ error: error.message }, 400);
 
-    // Also disable the auth account so the waiter can't log in anymore
-    const { data: waiter } = await admin
-      .from("waiters")
-      .select("auth_id")
-      .eq("id", waiter_id)
-      .single();
-
-    if (waiter?.auth_id) {
-      await admin.auth.admin.updateUserById(waiter.auth_id, { ban_duration: "876000h" });
-    }
+    // Disable the auth account: ban it AND rename the email to free up
+    // the original synthetic email (${cedula}@punto5.co) so a new waiter
+    // can be created with the same cédula. Supabase Auth enforces email
+    // uniqueness via a partial unique index (users_email_partial_key).
+    const deletedEmail = `deleted+${waiter.cedula}+${Date.now()}@punto5.co`;
+    await admin.auth.admin.updateUserById(waiter.auth_id, {
+      ban_duration: "876000h",
+      email: deletedEmail,
+    });
 
     return json({ id: waiter_id, deleted: true });
   }
