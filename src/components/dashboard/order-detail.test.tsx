@@ -233,7 +233,7 @@ describe("OrderDetail — items", () => {
       items: [makeItem({ notes: ["Sin cebolla"] })],
     })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     // Notes with arrow prefix appear in both the items list and the CommandPreview.
-    expect(screen.getAllByText("→ Sin cebolla").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("→ Sin cebolla (1x)").length).toBeGreaterThan(0);
   });
 
   it("does not show notes when null", () => {
@@ -241,6 +241,28 @@ describe("OrderDetail — items", () => {
       items: [makeItem({ notes: null })],
     })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
     expect(screen.queryByText(/→/)).not.toBeInTheDocument();
+  });
+
+  it("groups identical notes with count", () => {
+    render(<OrderDetail order={makeOrder({
+      items: [makeItem({ quantity: 3, notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"] })],
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
+    expect(screen.getAllByText("→ Sin cebolla (3x)").length).toBeGreaterThan(0);
+  });
+
+  it("shows per-unit notes when they differ", () => {
+    render(<OrderDetail order={makeOrder({
+      items: [makeItem({ quantity: 2, notes: ["Sin cebolla", "Para llevar"] })],
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
+    expect(screen.getAllByText("U1: Sin cebolla").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("U2: Para llevar").length).toBeGreaterThan(0);
+  });
+
+  it("groups notes with same tokens in different order", () => {
+    render(<OrderDetail order={makeOrder({
+      items: [makeItem({ quantity: 2, notes: ["Para llevar, Sin cebolla", "Sin cebolla, Para llevar"] })],
+    })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onAddAdditional={noop} />);
+    expect(screen.getAllByText("→ Para llevar, Sin cebolla (2x)").length).toBeGreaterThan(0);
   });
 
   it("shows total", () => {

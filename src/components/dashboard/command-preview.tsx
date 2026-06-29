@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCOP, formatTime, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH, splitPerUnit } from "@/lib/utils";
+import { allNotesSame } from "@/lib/pos/logic";
 import type { Order } from "@/lib/types";
 
 /**
@@ -93,20 +94,41 @@ export function CommandPreview({ order, additionalOnly }: { order: Order; additi
                 return (
                   <li key={item.id} className="text-black">
                     {units ? (
-                      // Split per unit when any unit has a note
-                      units.map((u, idx) => (
-                        <div key={idx} className={idx > 0 ? "mt-1" : ""}>
-                          <div className="flex items-baseline gap-2">
-                            <span className="text-base font-bold tabular-nums text-black">1x</span>
-                            <span className="text-sm font-semibold text-black">{item.dish_name}</span>
+                      (() => {
+                        const notes = item.notes ?? [];
+                        const nonEmpty = notes.filter((n) => n?.trim());
+                        // Group when all non-empty notes are equivalent
+                        if (allNotesSame(notes)) {
+                          const count = nonEmpty.length;
+                          return (
+                            <div>
+                              <div className="flex items-baseline gap-2">
+                                <span className="text-base font-bold tabular-nums text-black">{item.quantity}x</span>
+                                <span className="text-sm font-semibold text-black">{item.dish_name}</span>
+                              </div>
+                              {count > 0 && (
+                                <p className="mt-0.5 ml-6 text-xs italic text-stone-600">
+                                  → {nonEmpty[0]} ({count}x)
+                                </p>
+                              )}
+                            </div>
+                          );
+                        }
+                        // Different notes per unit — show each with unit number
+                        return units.map((u, idx) => (
+                          <div key={idx} className={idx > 0 ? "mt-1" : ""}>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-base font-bold tabular-nums text-black">1x</span>
+                              <span className="text-sm font-semibold text-black">{item.dish_name}</span>
+                            </div>
+                            {u.note && (
+                              <p className="mt-0.5 ml-6 text-xs italic text-stone-600">
+                                U{idx + 1}: {u.note}
+                              </p>
+                            )}
                           </div>
-                          {u.note && (
-                            <p className="mt-0.5 ml-6 text-xs italic text-stone-600">
-                              → {u.note}
-                            </p>
-                          )}
-                        </div>
-                      ))
+                        ));
+                      })()
                     ) : (
                       // Grouped when no notes
                       <div className="flex items-baseline gap-2">

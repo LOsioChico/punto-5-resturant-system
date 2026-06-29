@@ -80,7 +80,22 @@ describe("CommandPreview", () => {
     render(<CommandPreview order={makeOrder({
       items: [makeItem({ notes: ["Sin cebolla"] })],
     })} />);
-    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
+  });
+
+  it("groups identical notes with count", () => {
+    render(<CommandPreview order={makeOrder({
+      items: [makeItem({ quantity: 3, notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"] })],
+    })} />);
+    expect(screen.getByText("→ Sin cebolla (3x)")).toBeInTheDocument();
+  });
+
+  it("shows per-unit notes when they differ", () => {
+    render(<CommandPreview order={makeOrder({
+      items: [makeItem({ quantity: 2, notes: ["Sin cebolla", "Para llevar"] })],
+    })} />);
+    expect(screen.getByText("U1: Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("U2: Para llevar")).toBeInTheDocument();
   });
 
   it("does not render notes when null", () => {
