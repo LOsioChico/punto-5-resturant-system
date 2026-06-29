@@ -384,19 +384,20 @@ export function OrderSummary({
                     {item.notes.some((n) => n.trim()) ? (
                       <div className="flex flex-col items-start gap-0.5">
                         {(() => {
-                          // Split comma-separated notes and group by individual token
-                          const tokens = new Map<string, number>();
-                          for (const n of item.notes) {
-                            if (!n.trim()) continue;
-                            for (const part of n.split(",").map((p) => p.trim()).filter(Boolean)) {
-                              tokens.set(part, (tokens.get(part) ?? 0) + 1);
-                            }
+                          const nonEmpty = item.notes.filter((n) => n.trim());
+                          const allSame = nonEmpty.length > 0 && nonEmpty.every((n) => n === nonEmpty[0]);
+                          if (allSame) {
+                            // All units share the same note — show once with count
+                            return [<span key={0} className="text-stone-400">→ {nonEmpty[0]} ({nonEmpty.length}x)</span>];
                           }
-                          return Array.from(tokens.entries()).map(([note, count], idx) => (
-                            <span key={idx} className="text-stone-400">
-                              → {note} ({count}x)
-                            </span>
-                          ));
+                          // Different notes per unit — show each with unit number
+                          return item.notes.map((n, idx) => (
+                            n.trim() ? (
+                              <span key={idx} className="text-stone-400">
+                                U{idx + 1}: {n.trim()}
+                              </span>
+                            ) : null
+                          )).filter(Boolean);
                         })()}
                       </div>
                     ) : (

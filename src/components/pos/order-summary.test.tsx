@@ -132,6 +132,12 @@ describe("OrderSummary — notes", () => {
     expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
   });
 
+  it("shows per-unit notes with unit number when notes differ", () => {
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar", ""], quantity: 3 })] });
+    expect(screen.getByText("U1: Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("U2: Para llevar")).toBeInTheDocument();
+  });
+
   it("opens notes editor on click", async () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: [], quantity: 1 })] });
@@ -161,6 +167,13 @@ describe("OrderSummary — notes", () => {
     // Now the quick-note chips are visible; click the active "Sin lechuga" chip to toggle it off.
     await user.click(screen.getByText("Sin lechuga"));
     expect(onSetNotes).toHaveBeenCalledWith("d1", 0, "");
+  });
+
+  it("opens editor from per-unit note display", async () => {
+    const user = userEvent.setup();
+    renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
+    await user.click(screen.getByText("U1: Sin cebolla"));
+    expect(screen.getByText("Sin salsas")).toBeInTheDocument();
   });
 
   it("closes notes editor on Enter key", async () => {
@@ -198,9 +211,8 @@ describe("OrderSummary — notes", () => {
   it("defaults to Por unidad mode when units have different notes", async () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar", ""], quantity: 3 })] });
-    // Open notes editor — need to click the note display
-    const noteDisplay = screen.getByText("→ Sin cebolla (1x)");
-    await user.click(noteDisplay);
+    // Open notes editor — click the per-unit note display
+    await user.click(screen.getByText("U1: Sin cebolla"));
     // "Por unidad" should be the active mode
     const perUnitBtn = screen.getByText("Por unidad");
     expect(perUnitBtn.className).toContain("bg-stone-600");
@@ -237,7 +249,7 @@ describe("OrderSummary — notes", () => {
       items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla", "Para llevar", ""], quantity: 3 })],
       onSetNotes,
     });
-    await user.click(screen.getByText("→ Sin cebolla (1x)"));
+    await user.click(screen.getByText("U1: Sin cebolla"));
     await user.click(screen.getByText("Por unidad"));
     // Should NOT call onSetNotes (notes are already per-unit)
     expect(onSetNotes).not.toHaveBeenCalled();
@@ -255,49 +267,49 @@ describe("OrderSummary — notes", () => {
   it("shows per-unit inputs in Por unidad mode", async () => {
     const user = userEvent.setup();
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
-    await user.click(screen.getByText("→ Sin cebolla (1x)"));
+    await user.click(screen.getByText("U1: Sin cebolla"));
     // Should be in perUnit mode (notes are different)
     expect(screen.getByPlaceholderText("Nota unidad 1...")).toBeInTheDocument();
     expect(screen.getByPlaceholderText("Nota unidad 2...")).toBeInTheDocument();
   });
 
-  it("deduplicates note display when all units have the same note (Todas)", () => {
+  it("groups identical notes with count when all units share same note (Todas)", () => {
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Sin cebolla", "Sin cebolla"], quantity: 3 })] });
-    // Should show "→ Sin cebolla (3x)" once, not 3 times
     expect(screen.getByText("→ Sin cebolla (3x)")).toBeInTheDocument();
   });
 
-  it("shows each note individually when units have different notes (Por unidad)", () => {
+  it("shows per-unit with unit number when notes differ", () => {
     renderSummary({ items: [makeItem({ notes: ["Sin cebolla", "Para llevar"], quantity: 2 })] });
-    expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
-    expect(screen.getByText("→ Para llevar (1x)")).toBeInTheDocument();
+    expect(screen.getByText("U1: Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("U2: Para llevar")).toBeInTheDocument();
   });
 
-  it("groups identical notes with count in mixed scenario", () => {
+  it("shows per-unit for mixed scenario with some empty notes", () => {
     // 5 units: 2 with "Para llevar", 1 with "Sin cebolla", 2 empty
     renderSummary({ items: [makeItem({ notes: ["Para llevar", "Para llevar", "Sin cebolla", "", ""], quantity: 5 })] });
+    expect(screen.getByText("U1: Para llevar")).toBeInTheDocument();
+    expect(screen.getByText("U2: Para llevar")).toBeInTheDocument();
+    expect(screen.getByText("U3: Sin cebolla")).toBeInTheDocument();
+  });
+
+  it("groups when all non-empty notes are identical even with empty units", () => {
+    // 3 units: 2 with "Para llevar", 1 empty → all non-empty are same
+    renderSummary({ items: [makeItem({ notes: ["Para llevar", "Para llevar", ""], quantity: 3 })] });
     expect(screen.getByText("→ Para llevar (2x)")).toBeInTheDocument();
-    expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
   });
 
-  it("shows count even for 1 unit", () => {
-    renderSummary({ items: [makeItem({ notes: ["Para llevar", "", ""], quantity: 3 })] });
-    expect(screen.getByText("→ Para llevar (1x)")).toBeInTheDocument();
-  });
-
-  it("groups comma-separated tokens individually", () => {
+  it("shows per-unit for comma-separated notes that differ", () => {
     // 4 units: "Para llevar, Sin cebolla" + "Para llevar" + "Sin cebolla" + empty
-    // → Para llevar appears in 2 units, Sin cebolla in 2 units
     renderSummary({ items: [makeItem({ notes: ["Para llevar, Sin cebolla", "Para llevar", "Sin cebolla", ""], quantity: 4 })] });
-    expect(screen.getByText("→ Para llevar (2x)")).toBeInTheDocument();
-    expect(screen.getByText("→ Sin cebolla (2x)")).toBeInTheDocument();
+    expect(screen.getByText("U1: Para llevar, Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("U2: Para llevar")).toBeInTheDocument();
+    expect(screen.getByText("U3: Sin cebolla")).toBeInTheDocument();
   });
 
-  it("groups tokens from comma-separated notes across units", () => {
+  it("groups when all units have same comma-separated note", () => {
     // 3 units: 2 with "Para llevar, Sin cebolla", 1 empty
     renderSummary({ items: [makeItem({ notes: ["Para llevar, Sin cebolla", "Para llevar, Sin cebolla", ""], quantity: 3 })] });
-    expect(screen.getByText("→ Para llevar (2x)")).toBeInTheDocument();
-    expect(screen.getByText("→ Sin cebolla (2x)")).toBeInTheDocument();
+    expect(screen.getByText("→ Para llevar, Sin cebolla (2x)")).toBeInTheDocument();
   });
 });
 
