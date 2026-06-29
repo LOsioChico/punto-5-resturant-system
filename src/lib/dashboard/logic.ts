@@ -3,6 +3,7 @@
  */
 
 import type { Order, OrderItem, OrderStatus } from "@/lib/types";
+import { compareDesc } from "date-fns";
 import { startOfTodayColombia, startOfYesterdayColombia, isOnColombiaDate } from "@/lib/timezone";
 
 export const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
@@ -181,7 +182,7 @@ export function sortOrders(orders: Order[]): Order[] {
       const bAdd = hasAdditionals(b) ? 0 : 1;
       if (aAdd !== bAdd) return aAdd - bAdd;
     }
-    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+    return compareDesc(new Date(a.created_at), new Date(b.created_at));
   });
 }
 

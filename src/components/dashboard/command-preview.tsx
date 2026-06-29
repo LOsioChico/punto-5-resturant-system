@@ -9,7 +9,7 @@ import type { Order } from "@/lib/types";
  * Items are grouped by category so kitchen stations can prep efficiently.
  * This is the layout that will eventually be sent to a printer.
  */
-export function CommandPreview({ order, additionalOnly }: { order: Order; additionalOnly?: number }) {
+export function CommandPreview({ order, additionalOnly, wasModified }: { order: Order; additionalOnly?: number; wasModified?: boolean }) {
   // Filter items: if additionalOnly is set, show only that round; otherwise show all
   const items = additionalOnly !== undefined
     ? order.items.filter((i) => i.is_additional && i.additional_number === additionalOnly)
@@ -24,7 +24,6 @@ export function CommandPreview({ order, additionalOnly }: { order: Order; additi
     grouped.set(cat, list);
   }
 
-  const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null;
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = isDeliveryTable(order.table_number);
   // Desechables: delivery adds per dish, non-delivery adds per unit with "Para llevar" in notes

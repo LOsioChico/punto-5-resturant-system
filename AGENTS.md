@@ -71,6 +71,25 @@ This rule exists because a migration with `DELETE FROM orders WHERE waiter_id IS
 - Waiter presence via Supabase Realtime presence channel.
 - PWA: custom service worker in `public/sw.js`, registered via `service-worker-register.tsx`.
 
+### Dates and Timezones
+
+- **Always use `date-fns` and `date-fns-tz`** for date operations. Never use raw `new Date()` arithmetic (`.getTime()`, `Date.now() - ...`).
+- **Colombia timezone is UTC-5** (`America/Bogota`). All display formatting goes through `src/lib/timezone.ts` helpers (`formatInColombia`, `nowInColombia`, `startOfTodayColombia`).
+- DB timestamps are stored in UTC (`new Date().toISOString()` is fine for generating these).
+- For display: use `formatTime()` (from `utils.ts`) which calls `formatInColombia` with `HH:mm`.
+- For elapsed time: use `timeAgo()` (from `utils.ts`) which uses `date-fns` `differenceInSeconds`/`differenceInMinutes`/`differenceInHours`.
+- For date comparisons/sorting: use `compareDesc` from `date-fns`.
+
+### Mutations (DB writes)
+
+- All order-related DB mutations go through `src/lib/mutations.ts`.
+- The module enforces a consistent order of operations for realtime reliability:
+  1. Write `order_items` (insert/update/delete)
+  2. Write `order_events` (audit trail)
+  3. Update `orders` **LAST** — this fires the Supabase realtime UPDATE event, and by this point all items and events are already committed.
+- Components call mutation functions and handle UI state (optimistic updates, toasts, cart clearing).
+- Never call `supabase.from("orders").update(...)` or `supabase.from("order_events").insert(...)` directly in components — use the mutation helpers.
+
 ## Linting Notes
 
 - React 19 ESLint rules are strict: `react-hooks/set-state-in-effect` flags synchronous `setState` in effects.

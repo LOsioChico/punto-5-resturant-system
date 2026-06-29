@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
+import { compareDesc } from "date-fns";
 import { createSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
@@ -246,7 +247,7 @@ export function DashboardClient() {
       const byName = new Map<string, ActiveWaiter>();
       for (const p of Object.values(state).flat()) {
         const existing = byName.get(p.name);
-        if (!existing || new Date(p.joinedAt) > new Date(existing.joinedAt)) {
+        if (!existing || compareDesc(new Date(existing.joinedAt), new Date(p.joinedAt)) > 0) {
           byName.set(p.name, { name: p.name, joinedAt: p.joinedAt });
         }
       }

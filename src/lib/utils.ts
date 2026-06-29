@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { differenceInSeconds, differenceInMinutes, differenceInHours } from "date-fns";
 import type { Order, OrderItem } from "./types";
 import { formatInColombia } from "./timezone";
 
@@ -34,11 +35,11 @@ export function formatTime(date: Date | string): string {
 /** Human-readable elapsed time since a timestamp, in Spanish. */
 export function timeAgo(date: Date | string): string {
   const d = typeof date === "string" ? new Date(date) : date;
-  const seconds = Math.floor((Date.now() - d.getTime()) / 1000);
+  const seconds = differenceInSeconds(new Date(), d);
   if (seconds < 60) return "hace un momento";
-  const minutes = Math.floor(seconds / 60);
+  const minutes = differenceInMinutes(new Date(), d);
   if (minutes < 60) return `hace ${minutes} min`;
-  const hours = Math.floor(minutes / 60);
+  const hours = differenceInHours(new Date(), d);
   return `hace ${hours}h ${minutes % 60}min`;
 }
 

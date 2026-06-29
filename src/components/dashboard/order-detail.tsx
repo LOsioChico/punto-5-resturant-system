@@ -245,7 +245,7 @@ export function OrderDetail({
             </div>
           ) : null}
 
-          <CommandPreview order={order} additionalOnly={printAdditional} />
+          <CommandPreview order={order} additionalOnly={printAdditional} wasModified={wasModified} />
         </div>
 
         {/* Items */}

@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable, splitPerUnit } from "@/lib/utils";
+import { compareDesc } from "date-fns";
 import { allNotesSame } from "@/lib/pos/logic";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -32,7 +33,7 @@ export function WaiterOrders({
       const aActive = a.status !== "servida" ? 0 : 1;
       const bActive = b.status !== "servida" ? 0 : 1;
       if (aActive !== bActive) return aActive - bActive;
-      return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
+      return compareDesc(new Date(a.created_at), new Date(b.created_at));
     });
 
   if (myOrders.length === 0) {
@@ -148,30 +149,23 @@ export function WaiterOrders({
                   </div>
                 </div>
 
-                {/* Items — grouped by category */}
+                {/* Items — regular items first, then additionals grouped by round */}
                 <div className="border-t border-white/5 px-5 py-4">
                   <ul className="space-y-3">
-                    {order.items.map((item) => {
+                    {/* Regular (non-additional) items */}
+                    {order.items.filter((i) => !i.is_additional).map((item) => {
                       const units = splitPerUnit(item);
-                      const isAdd = item.is_additional;
                       return (
-                        <li key={item.id} className={isAdd ? "rounded-lg bg-stone-800/40 px-3 py-2 -mx-1" : ""}>
-                          {isAdd && (
-                            <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                              Adicional #{item.additional_number}
-                            </p>
-                          )}
+                        <li key={item.id}>
                           {units ? (
-                            // Has notes — group when all equivalent, split per-unit when different
                             (() => {
                               const notes = item.notes ?? [];
                               const nonEmpty = notes.filter((n) => n?.trim());
                               if (allNotesSame(notes)) {
-                                // All units share equivalent notes — show once with count
                                 return (
                                   <div>
                                     <div className="flex items-center justify-between text-base">
-                                      <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
+                                      <span className="flex items-center gap-2.5 text-stone-300">
                                         <span className="font-bold text-stone-400 tabular-nums">{item.quantity}x</span>
                                         <span>
                                           {item.category_name && (
@@ -192,13 +186,12 @@ export function WaiterOrders({
                                   </div>
                                 );
                               }
-                              // Different notes per unit — show each with unit number
                               return (
                                 <div className="space-y-1.5">
                                   {units.map((u, idx) => (
                                     <div key={idx}>
                                       <div className="flex items-center justify-between text-base">
-                                        <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
+                                        <span className="flex items-center gap-2.5 text-stone-300">
                                           <span className="font-bold text-stone-400 tabular-nums">1x</span>
                                           <span>
                                             {item.category_name && (
@@ -222,9 +215,8 @@ export function WaiterOrders({
                               );
                             })()
                           ) : (
-                            // Grouped when no notes
                             <div className="flex items-center justify-between text-base">
-                              <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
+                              <span className="flex items-center gap-2.5 text-stone-300">
                                 <span className="font-bold text-stone-400 tabular-nums">
                                   {item.quantity}x
                                 </span>
@@ -240,6 +232,100 @@ export function WaiterOrders({
                               </span>
                             </div>
                           )}
+                        </li>
+                      );
+                    })}
+
+                    {/* Additional items grouped by round */}
+                    {Array.from(
+                      new Set(order.items.filter((i) => i.is_additional).map((i) => i.additional_number)),
+                    ).map((round) => {
+                      const roundItems = order.items.filter((i) => i.is_additional && i.additional_number === round);
+                      return (
+                        <li key={`round-${round}`} className="rounded-lg bg-stone-800/40 px-3 py-2 -mx-1">
+                          <p className="mb-1.5 text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                            Adicional #{round}
+                          </p>
+                          <div className="space-y-2">
+                            {roundItems.map((item) => {
+                              const units = splitPerUnit(item);
+                              return units ? (
+                                (() => {
+                                  const notes = item.notes ?? [];
+                                  const nonEmpty = notes.filter((n) => n?.trim());
+                                  if (allNotesSame(notes)) {
+                                    return (
+                                      <div key={item.id}>
+                                        <div className="flex items-center justify-between text-base">
+                                          <span className="flex items-center gap-2.5 text-stone-400">
+                                            <span className="font-bold text-stone-400 tabular-nums">{item.quantity}x</span>
+                                            <span>
+                                              {item.category_name && (
+                                                <span className="text-sm text-stone-600">{item.category_name} · </span>
+                                              )}
+                                              {item.dish_name}
+                                            </span>
+                                          </span>
+                                          <span className="text-stone-500">
+                                            {formatCOP(item.price * item.quantity)}
+                                          </span>
+                                        </div>
+                                        {nonEmpty.length > 0 && (
+                                          <p className="ml-7 mt-0.5 text-sm text-amber-400/80">
+                                            → {nonEmpty[0]} ({nonEmpty.length}x)
+                                          </p>
+                                        )}
+                                      </div>
+                                    );
+                                  }
+                                  return (
+                                    <div key={item.id} className="space-y-1.5">
+                                      {units.map((u, idx) => (
+                                        <div key={idx}>
+                                          <div className="flex items-center justify-between text-base">
+                                            <span className="flex items-center gap-2.5 text-stone-400">
+                                              <span className="font-bold text-stone-400 tabular-nums">1x</span>
+                                              <span>
+                                                {item.category_name && (
+                                                  <span className="text-sm text-stone-600">{item.category_name} · </span>
+                                                )}
+                                                {item.dish_name}
+                                              </span>
+                                            </span>
+                                            <span className="text-stone-500">
+                                              {formatCOP(item.price)}
+                                            </span>
+                                          </div>
+                                          {u.note && (
+                                            <p className="ml-7 mt-0.5 text-sm text-amber-400/80">
+                                              U{idx + 1}: {u.note}
+                                            </p>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  );
+                                })()
+                              ) : (
+                                <div key={item.id} className="flex items-center justify-between text-base">
+                                  <span className="flex items-center gap-2.5 text-stone-400">
+                                    <span className="font-bold text-stone-400 tabular-nums">
+                                      {item.quantity}x
+                                    </span>
+                                    <span>
+                                      {item.category_name && (
+                                        <span className="text-sm text-stone-600">{item.category_name} · </span>
+                                      )}
+                                      {item.dish_name}
+                                    </span>
+                                  </span>
+                                  <span className="text-stone-500">
+                                    {formatCOP(item.price * item.quantity)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </li>
                       );
                     })}

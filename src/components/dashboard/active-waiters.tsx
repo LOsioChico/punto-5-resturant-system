@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { differenceInMinutes } from "date-fns";
 import { Users, ChevronDown } from "lucide-react";
 import type { ActiveWaiter } from "@/lib/types";
 
@@ -75,8 +76,7 @@ export function ActiveWaiters({ waiters }: { waiters: ActiveWaiter[] }) {
 
 /** Human-readable "x min ago" from an ISO timestamp. */
 function timeAgo(iso: string): string {
-  const diff = Date.now() - new Date(iso).getTime();
-  const mins = Math.floor(diff / 60000);
+  const mins = differenceInMinutes(new Date(), new Date(iso));
   if (mins < 1) return "ahora";
   if (mins === 1) return "hace 1 min";
   if (mins < 60) return `hace ${mins} min`;

@@ -138,24 +138,24 @@ describe("CommandPreview", () => {
     expect(screen.getByText(/2 platos/)).toBeInTheDocument();
   });
 
-  it("shows modified banner when order was modified by waiter", () => {
+  it("shows modified banner when wasModified prop is true", () => {
     render(<CommandPreview order={makeOrder({
       updated_by_type: "waiter",
       updated_at: new Date().toISOString(),
-    })} />);
+    })} wasModified />);
     expect(screen.getByText("★ Modificada ★")).toBeInTheDocument();
   });
 
-  it("does not show modified banner for unmodified order", () => {
+  it("does not show modified banner when wasModified is not set", () => {
     render(<CommandPreview order={makeOrder()} />);
     expect(screen.queryByText("★ Modificada ★")).not.toBeInTheDocument();
   });
 
-  it("does not show modified banner when updated_by_type is admin", () => {
+  it("does not show modified banner when wasModified is false", () => {
     render(<CommandPreview order={makeOrder({
       updated_by_type: "admin",
       updated_at: new Date().toISOString(),
-    })} />);
+    })} wasModified={false} />);
     expect(screen.queryByText("★ Modificada ★")).not.toBeInTheDocument();
   });
 
