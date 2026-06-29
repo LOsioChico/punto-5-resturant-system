@@ -432,6 +432,11 @@ export function OrderDetail({
                   added_items?: { name: string; qty: number }[];
                   updated_items?: { name: string; qty: number; old_qty: number; notes: string | null; old_notes: string | null }[];
                   removed_items?: { name: string; qty: number }[];
+                  version?: "full" | "additional";
+                  additional_round?: number;
+                  additional_number?: number;
+                  additional_total?: number;
+                  new_total?: number;
                 };
                 const changes: string[] = [];
                 if (meta.added) changes.push(`+${meta.added} agregado${meta.added > 1 ? "s" : ""}`);
@@ -502,6 +507,21 @@ export function OrderDetail({
                           </>
                         )}
                       </p>
+                      {/* Print version info */}
+                      {event.event_type === "printed" && (
+                        <p className="mt-1 text-xs text-blue-400/80">
+                          {meta.version === "additional" && meta.additional_round
+                            ? `Adicional #${meta.additional_round}`
+                            : "Comanda completa"}
+                        </p>
+                      )}
+                      {/* Additional added details */}
+                      {event.event_type === "additional_added" && (
+                        <p className="mt-1 text-xs text-blue-400/80">
+                          Adicional #{meta.additional_number} · {meta.item_count} {meta.item_count === 1 ? "plato" : "platos"}
+                          {meta.additional_total ? ` · ${formatCOP(meta.additional_total)}` : ""}
+                        </p>
+                      )}
                       {changes.length > 0 && (
                         <div className="mt-1.5 flex flex-wrap gap-1.5">
                           {changes.map((c) => (
