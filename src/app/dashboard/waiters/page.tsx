@@ -3,10 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { ArrowLeft, UserPlus, UserX, UserCheck, Loader2 } from "lucide-react";
+import { ArrowLeft, UserPlus, UserX, UserCheck, Loader2, Trash2 } from "lucide-react";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
 import { createSupabaseClient } from "@/lib/supabase/client";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import type { Waiter } from "@/lib/types";
 
 export default function WaitersManagementPage() {
@@ -22,6 +23,8 @@ export default function WaitersManagementPage() {
   const [newName, setNewName] = useState("");
   const [creating, setCreating] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deleteWaiter, setDeleteWaiter] = useState<Waiter | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const loadWaiters = useCallback(async () => {
     if (!supabase) return;
@@ -119,6 +122,40 @@ export default function WaitersManagementPage() {
       loadWaiters();
     } finally {
       setTogglingId(null);
+    }
+  }
+
+  async function handleDelete() {
+    if (!supabase || !deleteWaiter) return;
+    setDeleting(true);
+
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session.session?.access_token) return;
+
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const res = await fetch(`${supabaseUrl}/functions/v1/manage-waiters/delete-waiter`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${session.session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ waiter_id: deleteWaiter.id }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        toast(data.error ?? "Error al eliminar mesero", "error");
+        return;
+      }
+
+      toast("Mesero eliminado", "success");
+      setDeleteWaiter(null);
+      loadWaiters();
+    } catch {
+      toast("Error al eliminar mesero", "error");
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -259,28 +296,48 @@ export default function WaitersManagementPage() {
                     </p>
                   </div>
                 </div>
-                <button
-                  onClick={() => handleToggle(w)}
-                  disabled={togglingId === w.id}
-                  className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
-                    w.is_active
-                      ? "border border-stone-700 text-stone-400 hover:bg-stone-800"
-                      : "bg-green-500/10 text-green-400 hover:bg-green-500/20"
-                  }`}
-                >
-                  {togglingId === w.id ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : w.is_active ? (
-                    "Desactivar"
-                  ) : (
-                    "Activar"
-                  )}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleToggle(w)}
+                    disabled={togglingId === w.id}
+                    className={`rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-50 ${
+                      w.is_active
+                        ? "border border-stone-700 text-stone-400 hover:bg-stone-800"
+                        : "bg-green-500/10 text-green-400 hover:bg-green-500/20"
+                    }`}
+                  >
+                    {togglingId === w.id ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : w.is_active ? (
+                      "Desactivar"
+                    ) : (
+                      "Activar"
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setDeleteWaiter(w)}
+                    className="rounded-lg border border-stone-800 p-2 text-stone-500 transition-colors hover:bg-red-500/10 hover:text-red-400"
+                    title="Eliminar mesero"
+                  >
+                    <Trash2 className="size-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={deleteWaiter !== null}
+        onClose={() => !deleting && setDeleteWaiter(null)}
+        onConfirm={handleDelete}
+        title="¿Eliminar mesero?"
+        message={`Se eliminará a "${deleteWaiter?.name}" (cédula ${deleteWaiter?.cedula}). Su cédula podrá reutilizarse para un nuevo mesero. Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+        loading={deleting}
+      />
     </main>
   );
 }

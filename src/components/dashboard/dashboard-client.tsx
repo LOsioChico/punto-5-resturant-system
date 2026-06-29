@@ -16,6 +16,7 @@ import {
   undoOrderStatus,
   setOrderDeliveryFee,
   logPrintEvent,
+  deleteOrder,
 } from "@/lib/mutations";
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
@@ -81,6 +82,7 @@ export function DashboardClient() {
       const { data: orderRows, error: orderErr } = await supabase
         .from("orders")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(100);
 
@@ -167,6 +169,12 @@ export function DashboardClient() {
         { event: "UPDATE", schema: "public", table: "orders" },
         async (payload) => {
           const updated = payload.new as Order;
+
+          // Soft-deleted order — remove from list
+          if (updated.deleted_at) {
+            setOrders((prev) => prev.filter((o) => o.id !== updated.id));
+            return;
+          }
 
           // Reload items if a waiter modified the order (items may have changed)
           // or if the status changed to "adicional" (additional items were added)
@@ -404,6 +412,23 @@ export function DashboardClient() {
         actor: { type: "admin", name: adminName, id: adminId },
       });
       window.print();
+    },
+    [supabase, adminId, adminName],
+  );
+
+  // Admin soft-deletes an order
+  const removeOrder = useCallback(
+    async (id: string) => {
+      if (!supabase) return;
+      const result = await deleteOrder(supabase, {
+        orderId: id,
+        actor: { type: "admin", name: adminName, id: adminId },
+      });
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setSelectedId(null);
     },
     [supabase, adminId, adminName],
   );
@@ -856,6 +881,7 @@ export function DashboardClient() {
             onAdvanceStatus={advanceStatus}
             onPrint={printOrder}
             onSetDeliveryFee={setDeliveryFee}
+            onDelete={removeOrder}
             disabled={!isOnline}
           />
         </div>

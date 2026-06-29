@@ -3,7 +3,8 @@
 // Endpoints:
 //   POST /create-waiter  — create a new waiter auth account + profile
 //   POST /toggle-waiter  — activate/deactivate a waiter
-//   GET  /list-waiters   — list all waiters
+//   POST /delete-waiter  — soft delete a waiter (sets deleted_at, deactivates)
+//   GET  /list-waiters   — list all non-deleted waiters
 //
 // Requires: admin JWT (app_metadata.role = 'admin')
 //
@@ -82,11 +83,12 @@ Deno.serve(async (req) => {
       return json({ error: "cedula must contain only digits" }, 400);
     }
 
-    // Check if cedula already exists
+    // Check if cedula already exists (only among non-deleted waiters)
     const { data: existing } = await admin
       .from("waiters")
       .select("id")
       .eq("cedula", cedula)
+      .is("deleted_at", null)
       .single();
 
     if (existing) {
@@ -152,11 +154,42 @@ Deno.serve(async (req) => {
     return json({ id: waiter_id, is_active });
   }
 
-  // GET /list-waiters
+  // POST /delete-waiter — soft delete (set deleted_at, deactivate, disable auth)
+  if (method === "POST" && path.endsWith("/delete-waiter")) {
+    const { waiter_id } = await req.json();
+    if (!waiter_id) {
+      return json({ error: "waiter_id is required" }, 400);
+    }
+
+    // Soft delete: set deleted_at and deactivate
+    const { error } = await admin
+      .from("waiters")
+      .update({ deleted_at: new Date().toISOString(), is_active: false })
+      .eq("id", waiter_id)
+      .is("deleted_at", null); // prevent double-delete
+
+    if (error) return json({ error: error.message }, 400);
+
+    // Also disable the auth account so the waiter can't log in anymore
+    const { data: waiter } = await admin
+      .from("waiters")
+      .select("auth_id")
+      .eq("id", waiter_id)
+      .single();
+
+    if (waiter?.auth_id) {
+      await admin.auth.admin.updateUserById(waiter.auth_id, { ban_duration: "876000h" });
+    }
+
+    return json({ id: waiter_id, deleted: true });
+  }
+
+  // GET /list-waiters — only non-deleted waiters
   if (method === "GET" && path.endsWith("/list-waiters")) {
     const { data, error } = await admin
       .from("waiters")
       .select("id, cedula, name, is_active, pin_changed, created_at, created_by")
+      .is("deleted_at", null)
       .order("created_at", { ascending: false });
 
     if (error) return json({ error: error.message }, 400);

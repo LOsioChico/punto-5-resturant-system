@@ -111,6 +111,7 @@ export function PosClient() {
       const { data: orderRows } = await supabase
         .from("orders")
         .select("*")
+        .is("deleted_at", null)
         .order("created_at", { ascending: false })
         .limit(50);
 
@@ -166,6 +167,12 @@ export function PosClient() {
         { event: "UPDATE", schema: "public", table: "orders" },
         async (payload) => {
           const updated = payload.new as Order;
+
+          // Soft-deleted order — remove from list
+          if (updated.deleted_at) {
+            setOrders((prev) => prev.filter((o) => o.id !== updated.id));
+            return;
+          }
 
           // Reload items if the order was modified by a waiter (items may have changed)
           // or if the status changed to "adicional" (additional items were added)

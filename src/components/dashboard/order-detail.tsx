@@ -17,7 +17,9 @@ import {
   User,
   PencilLine,
   Bike,
+  Trash2,
 } from "lucide-react";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "servida", "finalizada"];
 
@@ -62,6 +64,7 @@ export function OrderDetail({
   onAdvanceStatus,
   onPrint,
   onSetDeliveryFee,
+  onDelete,
   disabled = false,
 }: {
   order: Order | null;
@@ -69,11 +72,13 @@ export function OrderDetail({
   onAdvanceStatus: (id: string) => void;
   onPrint: (id: string, version?: { type: "full" | "additional"; round?: number }) => void;
   onSetDeliveryFee: (id: string, fee: number) => void;
+  onDelete: (id: string) => void;
   disabled?: boolean;
 }) {
   const [deliveryFeeInput, setDeliveryFeeInput] = useState("");
   const [editingFee, setEditingFee] = useState(false);
   const [printAdditional, setPrintAdditional] = useState<number | undefined>(undefined);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   if (!order) {
     return (
@@ -209,6 +214,16 @@ export function OrderDetail({
               >
                 <Printer className="size-3.5" />
                 Imprimir
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setConfirmDelete(true)}
+                disabled={disabled}
+                className="text-red-400 hover:bg-red-500/10 hover:border-red-500/30"
+              >
+                <Trash2 className="size-3.5" />
+                Eliminar
               </Button>
             </div>
           </div>
@@ -660,6 +675,19 @@ export function OrderDetail({
           </Button>
         </div>
       ) : null}
+
+      {/* Delete confirmation */}
+      <ConfirmDialog
+        open={confirmDelete}
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={() => {
+          onDelete(order.id);
+          setConfirmDelete(false);
+        }}
+        title="¿Eliminar pedido?"
+        message={`Se eliminará el pedido de ${tableLabel(order.table_number)}. Esta acción no se puede deshacer.`}
+        confirmText="Eliminar"
+      />
     </div>
   );
 }

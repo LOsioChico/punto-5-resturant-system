@@ -59,6 +59,8 @@ export interface Order {
   updated_by: string | null;
   updated_at: string | null;
   updated_by_type: ActorType | null;
+  // Soft delete (nullable — set when admin deletes the order)
+  deleted_at: string | null;
 }
 
 /** A single audit event for an order (who did what, when, what changed). */
@@ -91,6 +93,8 @@ export interface Waiter {
   pin_changed: boolean;
   created_at: string;
   created_by: string | null;
+  // Soft delete (nullable — set when admin deletes the waiter)
+  deleted_at: string | null;
 }
 
 /** Auth user role. */

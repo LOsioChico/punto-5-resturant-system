@@ -171,6 +171,7 @@ describe("isOrderOwner", () => {
     updated_by: null,
     updated_at: null,
     updated_by_type: null,
+    deleted_at: null,
   };
 
   it("returns true when waiter name matches", () => {

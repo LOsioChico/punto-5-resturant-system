@@ -496,3 +496,32 @@ export async function logPrintEvent(
 
   return { data: undefined };
 }
+
+// ─── 7. Soft Delete Order ────────────────────────────────────
+
+export async function deleteOrder(
+  supabase: SupabaseClient,
+  params: {
+    orderId: string;
+    actor: Actor;
+  },
+): Promise<Result<void>> {
+  const { orderId, actor } = params;
+  const now = nowISO();
+
+  // 1. Log the deletion event (audit trail)
+  await logEvent(supabase, orderId, "cancelled", actor, {
+    metadata: { deleted_at: now },
+  });
+
+  // 2. Soft delete the order (sets deleted_at, fires realtime UPDATE)
+  const { error } = await supabase
+    .from("orders")
+    .update({ deleted_at: now })
+    .eq("id", orderId)
+    .is("deleted_at", null);
+
+  if (error) return { error: error.message };
+
+  return { data: undefined };
+}

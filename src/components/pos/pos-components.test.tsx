@@ -41,6 +41,7 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
     updated_by: null,
     updated_at: null,
     updated_by_type: null,
+    deleted_at: null,
     ...overrides,
   };
 }
