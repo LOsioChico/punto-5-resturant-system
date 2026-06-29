@@ -8,6 +8,7 @@ import { createSupabaseClient } from "@/lib/supabase/client";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
+import { needsItemReload } from "@/lib/realtime";
 import { filterByDate, sortOrders } from "@/lib/dashboard/logic";
 import {
   advanceOrderStatus,
@@ -165,11 +166,7 @@ export function DashboardClient() {
 
           // Reload items if a waiter modified the order (items may have changed)
           // or if the status changed to "adicional" (additional items were added)
-          const needsItemReload =
-            (updated.updated_by_type === "waiter" && updated.updated_at) ||
-            updated.status === "adicional";
-
-          if (needsItemReload) {
+          if (needsItemReload(updated)) {
             // Small delay to ensure replication has caught up (items were
             // inserted before the order UPDATE, but Supabase realtime
             // may still be propagating)

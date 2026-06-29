@@ -455,10 +455,17 @@ export async function setOrderDeliveryFee(
     },
   });
 
-  // 2. Update order — fires realtime UPDATE
+  // 2. Update order LAST — fires realtime UPDATE
+  const now = new Date().toISOString();
   const { error } = await supabase
     .from("orders")
-    .update({ delivery_fee: fee, total: newTotal })
+    .update({
+      delivery_fee: fee,
+      total: newTotal,
+      updated_by: actor.name,
+      updated_at: now,
+      updated_by_type: actor.type,
+    })
     .eq("id", orderId);
 
   if (error) return { error: "Error al actualizar el domicilio" };

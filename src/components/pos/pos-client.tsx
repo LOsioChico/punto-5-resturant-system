@@ -12,6 +12,7 @@ import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable } from "@/lib/utils";
 import { isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
 import { createOrder, addAdditional, editOrder as saveOrderToDb, fetchOrderItems } from "@/lib/mutations";
+import { needsItemReload } from "@/lib/realtime";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -167,11 +168,7 @@ export function PosClient() {
 
           // Reload items if the order was modified by a waiter (items may have changed)
           // or if the status changed to "adicional" (additional items were added)
-          const needsItemReload =
-            (updated.updated_by_type === "waiter" && updated.updated_at) ||
-            updated.status === "adicional";
-
-          if (needsItemReload) {
+          if (needsItemReload(updated)) {
             // Small delay to ensure replication has caught up
             await new Promise((r) => setTimeout(r, 300));
             const { data: items } = await supabase
