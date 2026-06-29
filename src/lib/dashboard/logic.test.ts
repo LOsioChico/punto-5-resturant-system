@@ -3,6 +3,8 @@ import {
   STATUS_FLOW,
   nextStatus,
   advanceActionLabel,
+  statusLabel,
+  statusLabelPlural,
   wasModified,
   canEditOrder,
   isOrderActive,
@@ -137,6 +139,40 @@ describe("advanceActionLabel", () => {
 
   it("returns 'Finalizar pedido' for adicional", () => {
     expect(advanceActionLabel("adicional")).toBe("Finalizar pedido");
+  });
+
+  it("returns 'Marcar en camino' for en_cocina delivery", () => {
+    expect(advanceActionLabel("en_cocina", true)).toBe("Marcar en camino");
+  });
+});
+
+// ============================================================
+// statusLabel
+// ============================================================
+describe("statusLabel", () => {
+  it("returns 'Servida' for servida (dine-in)", () => {
+    expect(statusLabel("servida", false)).toBe("Servida");
+  });
+
+  it("returns 'En camino' for servida delivery", () => {
+    expect(statusLabel("servida", true)).toBe("En camino");
+  });
+
+  it("returns 'Nueva' for nueva regardless of delivery", () => {
+    expect(statusLabel("nueva", true)).toBe("Nueva");
+  });
+});
+
+// ============================================================
+// statusLabelPlural
+// ============================================================
+describe("statusLabelPlural", () => {
+  it("returns 'Servidas' for servida (dine-in)", () => {
+    expect(statusLabelPlural("servida", false)).toBe("Servidas");
+  });
+
+  it("returns 'En camino' for servida delivery", () => {
+    expect(statusLabelPlural("servida", true)).toBe("En camino");
   });
 });
 

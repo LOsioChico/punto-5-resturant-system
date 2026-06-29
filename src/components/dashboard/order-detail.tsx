@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn, formatCOP, formatTime, timeAgo, tableLabel, tableShortName, DESECHABLES_PER_DISH, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import { allNotesSame } from "@/lib/pos/logic";
+import { statusLabel, advanceActionLabel } from "@/lib/dashboard/logic";
 import type { Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { CommandPreview } from "./command-preview";
@@ -39,14 +40,6 @@ const EVENT_LABELS: Record<string, string> = {
   cancelled: "Cancelación",
   additional_added: "Adicional agregado",
   delivery_fee_set: "Domicilio actualizado",
-};
-
-const STATUS_LABELS: Record<string, string> = {
-  nueva: "Nueva",
-  en_cocina: "En cocina",
-  servida: "Servida",
-  finalizada: "Finalizada",
-  adicional: "Adicional",
 };
 
 const STATUS_COLORS: Record<OrderStatus, { dot: string; text: string; bg: string }> = {
@@ -91,9 +84,11 @@ export function OrderDetail({
   }
 
   const currentIndex = STATUS_FLOW.indexOf(order.status);
+  const isDelivery = isDeliveryTable(order.table_number);
   // 'adicional' is not in STATUS_FLOW — it advances directly to 'finalizada'
   const nextStatus = order.status === "adicional" ? "finalizada" as OrderStatus : STATUS_FLOW[currentIndex + 1];
   const action = NEXT_ACTION[order.status];
+  const actionLabel = advanceActionLabel(order.status, isDelivery);
   const printCount = events.filter((e) => e.event_type === "printed").length;
   const colors = STATUS_COLORS[order.status];
   // "Modificado" badge: only show when the order has an "updated" event
@@ -137,7 +132,7 @@ export function OrderDetail({
             <div className={`flex items-center gap-2 rounded-lg px-3 py-1.5 ${colors.bg}`}>
               <span className={`size-2 rounded-full ${colors.dot}`} />
               <span className={`text-sm font-medium ${colors.text}`}>
-                {STATUS_LABELS[order.status]}
+                {statusLabel(order.status, isDeliveryTable(order.table_number))}
               </span>
             </div>
             {wasModified && order.updated_at && (
@@ -174,7 +169,7 @@ export function OrderDetail({
                   <span className={
                     isCurrent ? "text-xs font-medium text-stone-200" : isDone ? "text-xs text-stone-500" : "text-xs text-stone-600"
                   }>
-                    {STATUS_LABELS[status]}
+                    {statusLabel(status, isDeliveryTable(order.table_number))}
                   </span>
                 </div>
                 {idx < STATUS_FLOW.length - 1 && (
@@ -594,9 +589,9 @@ export function OrderDetail({
                         {event.event_type === "status_changed" && event.from_status && event.to_status && (
                           <>
                             {" · "}
-                            {STATUS_LABELS[event.from_status] ?? event.from_status}
+                            {statusLabel(event.from_status, isDelivery)}
                             {" → "}
-                            {STATUS_LABELS[event.to_status] ?? event.to_status}
+                            {statusLabel(event.to_status, isDelivery)}
                           </>
                         )}
                       </p>
@@ -662,7 +657,7 @@ export function OrderDetail({
       </div>
 
       {/* Action bar */}
-      {nextStatus && action.label ? (
+      {nextStatus && actionLabel ? (
         <div className="bg-stone-900/50 p-4">
           <Button
             className="w-full transition-all active:scale-[0.98]"
@@ -671,7 +666,7 @@ export function OrderDetail({
             disabled={disabled}
           >
             {action.icon}
-            {action.label}
+            {actionLabel}
           </Button>
         </div>
       ) : null}

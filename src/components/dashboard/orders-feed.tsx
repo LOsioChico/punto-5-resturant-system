@@ -1,6 +1,7 @@
 "use client";
 
 import { cn, timeAgo, formatTime, tableLabel, isDeliveryTable } from "@/lib/utils";
+import { statusLabel as getStatusLabel } from "@/lib/dashboard/logic";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Clock, PencilLine, User, Bike, PlusCircle } from "lucide-react";
@@ -11,14 +12,6 @@ const statusDot: Record<OrderStatus, string> = {
   servida: "bg-green-500",
   finalizada: "bg-stone-600",
   adicional: "bg-blue-500",
-};
-
-const statusLabel: Record<OrderStatus, string> = {
-  nueva: "Nueva",
-  en_cocina: "En cocina",
-  servida: "Servida",
-  finalizada: "Finalizada",
-  adicional: "Adicional",
 };
 
 /** Left column — live feed of incoming orders. */
@@ -112,7 +105,7 @@ export function OrdersFeed({
                 </span>
                 <span className="flex shrink-0 items-center gap-1.5 pl-2 text-xs text-stone-500">
                   <span className={cn("size-2 rounded-full", statusDot[order.status])} />
-                  {statusLabel[order.status]}
+                  {getStatusLabel(order.status, isDeliveryTable(order.table_number))}
                 </span>
               </div>
             </button>

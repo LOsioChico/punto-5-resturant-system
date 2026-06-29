@@ -3,7 +3,7 @@
 import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable, splitPerUnit } from "@/lib/utils";
 import { compareDesc } from "date-fns";
 import { allNotesSame } from "@/lib/pos/logic";
-import { advanceActionLabel } from "@/lib/dashboard/logic";
+import { advanceActionLabel, statusLabel } from "@/lib/dashboard/logic";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike, Plus, PlusCircle } from "lucide-react";
@@ -130,7 +130,7 @@ export function WaiterOrders({
                     <span className={
                       isActive ? "text-sm font-medium text-stone-300" : "text-sm text-stone-500"
                     }>
-                      {config.label}
+                      {statusLabel(order.status, isDeliveryTable(order.table_number))}
                     </span>
                     {canEdit && (
                       <button
@@ -151,7 +151,7 @@ export function WaiterOrders({
                         ) : (
                           <CheckCircle2 className="size-4" />
                         )}
-                        {advanceActionLabel(order.status)}
+                        {advanceActionLabel(order.status, isDeliveryTable(order.table_number))}
                       </button>
                     )}
                     {canAddAdditional && (

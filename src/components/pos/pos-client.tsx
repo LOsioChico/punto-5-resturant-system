@@ -207,10 +207,11 @@ export function PosClient() {
 
           // Toast the waiter when their order's status changes
           if (updated.waiter_name === waiterName) {
+            const isDel = isDeliveryTable(updated.table_number);
             const statusMessages: Record<OrderStatus, { msg: string; variant: "status-nueva" | "status-en_cocina" | "status-servida" | "status-finalizada" | "status-adicional" }> = {
               nueva: { msg: `${tableLabel(updated.table_number)}: pedido recibido`, variant: "status-nueva" },
               en_cocina: { msg: `${tableLabel(updated.table_number)}: pedido en cocina`, variant: "status-en_cocina" },
-              servida: { msg: `${tableLabel(updated.table_number)}: pedido servido`, variant: "status-servida" },
+              servida: { msg: `${tableLabel(updated.table_number)}: ${isDel ? "pedido en camino" : "pedido servido"}`, variant: "status-servida" },
               finalizada: { msg: `${tableLabel(updated.table_number)}: pedido finalizado`, variant: "status-finalizada" },
               adicional: { msg: `${tableLabel(updated.table_number)}: adicional agregado`, variant: "status-adicional" },
             };

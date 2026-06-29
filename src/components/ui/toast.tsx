@@ -90,7 +90,7 @@ function storedToItem(n: StoredNotification): NotificationItem {
   if (text.includes("recibido")) variant = "status-nueva";
   else if (text.includes("cocina")) variant = "status-en_cocina";
   else if (text.includes("finalizado")) variant = "status-finalizada";
-  else if (text.includes("servida") || text.includes("servido")) variant = "status-servida";
+  else if (text.includes("servida") || text.includes("servido") || text.includes("en camino")) variant = "status-servida";
   else if (text.includes("adicional")) variant = "status-adicional";
 
   // Extract table number from title (e.g. "Mesa 5" → 5)

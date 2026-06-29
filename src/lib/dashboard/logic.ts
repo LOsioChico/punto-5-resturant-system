@@ -28,6 +28,24 @@ export const STATUS_LABELS_PLURAL: Record<OrderStatus, string> = {
   adicional: "Adicionales",
 };
 
+/**
+ * Get the display label for a status. For delivery orders, "servida"
+ * is shown as "En camino" (the food is on its way to the customer).
+ */
+export function statusLabel(status: OrderStatus, isDelivery = false): string {
+  if (status === "servida" && isDelivery) return "En camino";
+  return STATUS_LABELS[status];
+}
+
+/**
+ * Get the plural display label for a status (for filters/KPIs).
+ * For delivery orders, "servida" is shown as "En camino".
+ */
+export function statusLabelPlural(status: OrderStatus, isDelivery = false): string {
+  if (status === "servida" && isDelivery) return "En camino";
+  return STATUS_LABELS_PLURAL[status];
+}
+
 /** Get the next status in the flow, or null if at the end. */
 export function nextStatus(status: OrderStatus): OrderStatus | null {
   // 'adicional' is not in STATUS_FLOW — it advances directly to 'finalizada'
@@ -38,8 +56,12 @@ export function nextStatus(status: OrderStatus): OrderStatus | null {
   return STATUS_FLOW[idx + 1];
 }
 
-/** Get the action label for advancing an order, or empty string if none. */
-export function advanceActionLabel(status: OrderStatus): string {
+/**
+ * Get the action label for advancing an order, or empty string if none.
+ * For delivery orders, "Marcar como servida" becomes "Marcar en camino".
+ */
+export function advanceActionLabel(status: OrderStatus, isDelivery = false): string {
+  if (status === "en_cocina" && isDelivery) return "Marcar en camino";
   const labels: Record<OrderStatus, string> = {
     nueva: "Enviar a cocina",
     en_cocina: "Marcar como servida",
