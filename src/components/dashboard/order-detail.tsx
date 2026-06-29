@@ -248,41 +248,31 @@ export function OrderDetail({
           <CommandPreview order={order} additionalOnly={printAdditional} wasModified={wasModified} />
         </div>
 
-        {/* Items */}
+        {/* Items — regular items first, then additionals grouped by round */}
         <div className="mb-6">
           <h3 className="mb-2.5 text-xs font-semibold uppercase tracking-wider text-stone-500">
             Items del pedido
           </h3>
           <ul className="overflow-hidden rounded-xl bg-stone-900">
-            {order.items.map((item, idx) => {
+            {/* Regular (non-additional) items */}
+            {order.items.filter((i) => !i.is_additional).map((item, idx) => {
               const units = splitPerUnit(item);
-              const isAdd = item.is_additional;
-              const addBadge = isAdd && idx === 0 || isAdd && !order.items[idx - 1]?.is_additional;
               return units ? (
-                // Split per unit when any unit has a note
                 <div key={item.id}>
-                  {addBadge && (
-                    <div className="flex items-center gap-2 border-t border-white/5 bg-stone-800/30 px-3.5 py-1.5">
-                      <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                        Adicional #{item.additional_number}
-                      </span>
-                    </div>
-                  )}
                   {(() => {
                     const notes = item.notes ?? [];
                     const nonEmpty = notes.filter((n) => n?.trim());
-                    // Group when all non-empty notes are equivalent
                     if (allNotesSame(notes)) {
                       const count = nonEmpty.length;
                       return (
                         <li
-                          className={`flex items-center gap-3 p-3.5 ${idx > 0 ? "border-t border-white/5" : ""} ${isAdd ? "bg-stone-800/20" : ""}`}
+                          className={`flex items-center gap-3 p-3.5 ${idx > 0 ? "border-t border-white/5" : ""}`}
                         >
-                          <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums ${isAdd ? "bg-stone-800 text-stone-400" : "bg-stone-800 text-stone-200"}`}>
+                          <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums bg-stone-800 text-stone-200">
                             {item.quantity}
                           </span>
                           <div className="min-w-0 flex-1">
-                            <span className={`block text-sm ${isAdd ? "text-stone-400" : "text-stone-100"}`}>
+                            <span className="block text-sm text-stone-100">
                               {item.dish_name}
                             </span>
                             {count > 0 && (
@@ -297,17 +287,16 @@ export function OrderDetail({
                         </li>
                       );
                     }
-                    // Different notes per unit — show each with unit number
                     return units.map((u, unitIdx) => (
                       <li
                         key={`${item.id}-${unitIdx}`}
-                        className={`flex items-center gap-3 p-3.5 ${idx > 0 || unitIdx > 0 ? "border-t border-white/5" : ""} ${isAdd ? "bg-stone-800/20" : ""}`}
+                        className={`flex items-center gap-3 p-3.5 ${idx > 0 || unitIdx > 0 ? "border-t border-white/5" : ""}`}
                       >
-                        <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums ${isAdd ? "bg-stone-800 text-stone-400" : "bg-stone-800 text-stone-200"}`}>
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums bg-stone-800 text-stone-200">
                           1
                         </span>
                         <div className="min-w-0 flex-1">
-                          <span className={`block text-sm ${isAdd ? "text-stone-400" : "text-stone-100"}`}>
+                          <span className="block text-sm text-stone-100">
                             {item.dish_name}
                           </span>
                           {u.note && (
@@ -326,18 +315,13 @@ export function OrderDetail({
               ) : (
                 <li
                   key={item.id}
-                  className={`flex items-center gap-3 p-3.5 ${idx > 0 ? "border-t border-white/5" : ""} ${isAdd ? "bg-stone-800/20" : ""}`}
+                  className={`flex items-center gap-3 p-3.5 ${idx > 0 ? "border-t border-white/5" : ""}`}
                 >
-                  <span className={`flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums ${isAdd ? "bg-stone-800 text-stone-400" : "bg-stone-800 text-stone-200"}`}>
+                  <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums bg-stone-800 text-stone-200">
                     {item.quantity}
                   </span>
                   <div className="min-w-0 flex-1">
-                    {addBadge && (
-                      <span className="mb-0.5 block text-[10px] font-bold uppercase tracking-wider text-stone-500">
-                        Adicional #{item.additional_number}
-                      </span>
-                    )}
-                    <span className={`block text-sm ${isAdd ? "text-stone-400" : "text-stone-100"}`}>
+                    <span className="block text-sm text-stone-100">
                       {item.dish_name}
                     </span>
                   </div>
@@ -345,6 +329,97 @@ export function OrderDetail({
                     {formatCOP(item.price * item.quantity)}
                   </span>
                 </li>
+              );
+            })}
+
+            {/* Additional items grouped by round */}
+            {Array.from(
+              new Set(order.items.filter((i) => i.is_additional).map((i) => i.additional_number)),
+            ).map((round) => {
+              const roundItems = order.items.filter((i) => i.is_additional && i.additional_number === round);
+              return (
+                <div key={`round-${round}`}>
+                  <div className="flex items-center gap-2 border-t border-white/5 bg-stone-800/30 px-3.5 py-1.5">
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-stone-500">
+                      Adicional #{round}
+                    </span>
+                  </div>
+                  {roundItems.map((item, idx) => {
+                    const units = splitPerUnit(item);
+                    return units ? (
+                      (() => {
+                        const notes = item.notes ?? [];
+                        const nonEmpty = notes.filter((n) => n?.trim());
+                        if (allNotesSame(notes)) {
+                          const count = nonEmpty.length;
+                          return (
+                            <li
+                              key={item.id}
+                              className={`flex items-center gap-3 p-3.5 ${idx > 0 ? "border-t border-white/5" : ""} bg-stone-800/20`}
+                            >
+                              <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums bg-stone-800 text-stone-400">
+                                {item.quantity}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <span className="block text-sm text-stone-400">
+                                  {item.dish_name}
+                                </span>
+                                {count > 0 && (
+                                  <span className="block truncate text-xs text-amber-400/80">
+                                    → {nonEmpty[0]} ({count}x)
+                                  </span>
+                                )}
+                              </div>
+                              <span className="text-sm font-medium text-stone-400">
+                                {formatCOP(item.price * item.quantity)}
+                              </span>
+                            </li>
+                          );
+                        }
+                        return units.map((u, unitIdx) => (
+                          <li
+                            key={`${item.id}-${unitIdx}`}
+                            className={`flex items-center gap-3 p-3.5 ${idx > 0 || unitIdx > 0 ? "border-t border-white/5" : ""} bg-stone-800/20`}
+                          >
+                            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums bg-stone-800 text-stone-400">
+                              1
+                            </span>
+                            <div className="min-w-0 flex-1">
+                              <span className="block text-sm text-stone-400">
+                                {item.dish_name}
+                              </span>
+                              {u.note && (
+                                <span className="block truncate text-xs text-amber-400/80">
+                                  U{unitIdx + 1}: {u.note}
+                                </span>
+                              )}
+                            </div>
+                            <span className="text-sm font-medium text-stone-400">
+                              {formatCOP(item.price)}
+                            </span>
+                          </li>
+                        ));
+                      })()
+                    ) : (
+                      <li
+                        key={item.id}
+                        className={`flex items-center gap-3 p-3.5 ${idx > 0 ? "border-t border-white/5" : ""} bg-stone-800/20`}
+                      >
+                        <span className="flex size-8 shrink-0 items-center justify-center rounded-lg text-sm font-bold tabular-nums bg-stone-800 text-stone-400">
+                          {item.quantity}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <span className="block text-sm text-stone-400">
+                            {item.dish_name}
+                          </span>
+                        </div>
+                        <span className="text-sm font-medium text-stone-400">
+                          {formatCOP(item.price * item.quantity)}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </div>
               );
             })}
           </ul>
