@@ -28,7 +28,7 @@ const NEXT_ACTION: Record<OrderStatus, { label: string; icon: React.ReactNode }>
   en_cocina: { label: "Marcar como servida", icon: <CheckCircle2 className="size-4" /> },
   servida: { label: "Finalizar pedido", icon: <Utensils className="size-4" /> },
   finalizada: { label: "", icon: null },
-  adicional: { label: "Finalizar pedido", icon: <Utensils className="size-4" /> },
+  adicional: { label: "Marcar como servida", icon: <CheckCircle2 className="size-4" /> },
 };
 
 const EVENT_LABELS: Record<string, string> = {
@@ -91,8 +91,8 @@ export function OrderDetail({
   }
 
   const currentIndex = STATUS_FLOW.indexOf(order.status);
-  // 'adicional' is not in STATUS_FLOW — it advances to 'finalizada'
-  const nextStatus = order.status === "adicional" ? "finalizada" as OrderStatus : STATUS_FLOW[currentIndex + 1];
+  // 'adicional' is not in STATUS_FLOW — it advances to 'servida'
+  const nextStatus = order.status === "adicional" ? "servida" as OrderStatus : STATUS_FLOW[currentIndex + 1];
   const action = NEXT_ACTION[order.status];
   const printCount = events.filter((e) => e.event_type === "printed").length;
   const colors = STATUS_COLORS[order.status];

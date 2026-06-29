@@ -109,6 +109,10 @@ describe("nextStatus", () => {
   it("returns null for finalizada (terminal status)", () => {
     expect(nextStatus("finalizada")).toBeNull();
   });
+
+  it("returns servida for adicional (additional items served)", () => {
+    expect(nextStatus("adicional")).toBe("servida");
+  });
 });
 
 // ============================================================
@@ -129,6 +133,10 @@ describe("advanceActionLabel", () => {
 
   it("returns empty string for finalizada", () => {
     expect(advanceActionLabel("finalizada")).toBe("");
+  });
+
+  it("returns 'Marcar como servida' for adicional", () => {
+    expect(advanceActionLabel("adicional")).toBe("Marcar como servida");
   });
 });
 

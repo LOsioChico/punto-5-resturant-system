@@ -436,7 +436,7 @@ export function PosClient() {
     setActiveTab("new");
   }, []);
 
-  // Waiter advances order status (en_cocina → servida, or adicional → finalizada)
+  // Waiter advances order status (en_cocina → servida, or adicional → servida)
   const advanceStatus = useCallback(
     async (order: Order) => {
       if (!supabase || !waiterName) return;
@@ -444,10 +444,10 @@ export function PosClient() {
       await advanceOrderStatus(supabase, {
         orderId: order.id,
         currentStatus: order.status,
-        actor: { type: "waiter", name: waiterName, id: waiterId },
+        actor: { type: "waiter", name: waiterName, id: authId },
       });
     },
-    [supabase, waiterName, waiterId],
+    [supabase, waiterName, authId],
   );
 
   // Cancel additional — go back to history
