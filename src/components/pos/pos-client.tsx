@@ -101,8 +101,6 @@ export function PosClient() {
   }, [supabase, waiterName]);
 
   // Load existing orders + subscribe to realtime changes (for table statuses + history).
-  // Polling fallback (every 15s) ensures the POS stays in sync even if
-  // realtime events are dropped — which happens in practice on Supabase.
   useEffect(() => {
     if (!waiterName || !supabase) return;
 
@@ -133,7 +131,6 @@ export function PosClient() {
     };
 
     loadOrders();
-    const interval = setInterval(loadOrders, 15_000);
 
     // Subscribe to order inserts + updates (status changes by admin)
     const channel = supabase
@@ -219,7 +216,6 @@ export function PosClient() {
       .subscribe();
 
     return () => {
-      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [supabase, waiterName, toast]);
