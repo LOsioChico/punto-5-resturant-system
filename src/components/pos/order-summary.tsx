@@ -243,7 +243,14 @@ export function OrderSummary({
                     {item.quantity > 1 && (
                       <div className="flex w-fit gap-0.5 rounded-md bg-stone-800/80 p-0.5">
                         <button
-                          onClick={() => setNotesMode("all")}
+                          onClick={() => {
+                            // When switching to "Todas", sync notes: copy first unit's note to all
+                            const first = item.notes[0] ?? "";
+                            if (item.notes.some((n) => n !== first)) {
+                              onSetAllNotes(item.dish_id, first);
+                            }
+                            setNotesMode("all");
+                          }}
                           className={cn(
                             "rounded px-2 py-0.5 text-[11px] font-medium transition-colors",
                             notesMode === "all"

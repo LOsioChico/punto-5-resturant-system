@@ -242,6 +242,34 @@ describe("OrderSummary — notes", () => {
     expect(onSetNotes).toHaveBeenCalledWith("d1", 2, "");
   });
 
+  it("syncs notes to all units when switching from Por unidad to Todas", async () => {
+    const user = userEvent.setup();
+    const onSetAllNotes = vi.fn();
+    renderSummary({
+      items: [makeItem({ dish_id: "d1", notes: ["Para llevar", "Sin cebolla"], quantity: 2 })],
+      onSetAllNotes,
+    });
+    // Notes differ → per-unit display
+    await user.click(screen.getByText("U1: Para llevar"));
+    // Switch to Todas
+    await user.click(screen.getByText("Todas"));
+    // Should copy first unit's note to all units
+    expect(onSetAllNotes).toHaveBeenCalledWith("d1", "Para llevar");
+  });
+
+  it("does not call onSetAllNotes when switching to Todas if notes already all same", async () => {
+    const user = userEvent.setup();
+    const onSetAllNotes = vi.fn();
+    renderSummary({
+      items: [makeItem({ dish_id: "d1", notes: ["Sin cebolla", "Sin cebolla"], quantity: 2 })],
+      onSetAllNotes,
+    });
+    await user.click(screen.getByText("→ Sin cebolla (2x)"));
+    // Already in Todas mode, click Todas again
+    await user.click(screen.getByText("Todas"));
+    expect(onSetAllNotes).not.toHaveBeenCalled();
+  });
+
   it("does not clear notes when switching to Por unidad if notes are already different", async () => {
     const user = userEvent.setup();
     const onSetNotes = vi.fn();
