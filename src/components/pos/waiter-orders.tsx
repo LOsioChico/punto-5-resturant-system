@@ -1,6 +1,7 @@
 "use client";
 
 import { formatCOP, formatTime, timeAgo, tableLabel, tableShortName, isDeliveryTable, splitPerUnit } from "@/lib/utils";
+import { allNotesSame } from "@/lib/pos/logic";
 import type { Order, OrderStatus } from "@/lib/types";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike, Plus, PlusCircle } from "lucide-react";
@@ -161,32 +162,65 @@ export function WaiterOrders({
                             </p>
                           )}
                           {units ? (
-                            // Split per unit when any unit has a note
-                            <div className="space-y-1.5">
-                              {units.map((u, idx) => (
-                                <div key={idx}>
-                                  <div className="flex items-center justify-between text-base">
-                                    <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
-                                      <span className="font-bold text-stone-400 tabular-nums">1x</span>
-                                      <span>
-                                        {item.category_name && (
-                                          <span className="text-sm text-stone-600">{item.category_name} · </span>
-                                        )}
-                                        {item.dish_name}
+                            // Has notes — group when all equivalent, split per-unit when different
+                            (() => {
+                              const notes = item.notes ?? [];
+                              const nonEmpty = notes.filter((n) => n?.trim());
+                              if (allNotesSame(notes)) {
+                                // All units share equivalent notes — show once with count
+                                return (
+                                  <div>
+                                    <div className="flex items-center justify-between text-base">
+                                      <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
+                                        <span className="font-bold text-stone-400 tabular-nums">{item.quantity}x</span>
+                                        <span>
+                                          {item.category_name && (
+                                            <span className="text-sm text-stone-600">{item.category_name} · </span>
+                                          )}
+                                          {item.dish_name}
+                                        </span>
                                       </span>
-                                    </span>
-                                    <span className="text-stone-500">
-                                      {formatCOP(item.price)}
-                                    </span>
+                                      <span className="text-stone-500">
+                                        {formatCOP(item.price * item.quantity)}
+                                      </span>
+                                    </div>
+                                    {nonEmpty.length > 0 && (
+                                      <p className="ml-7 mt-0.5 text-sm text-amber-400/80">
+                                        → {nonEmpty[0]} ({nonEmpty.length}x)
+                                      </p>
+                                    )}
                                   </div>
-                                  {u.note && (
-                                    <p className="ml-7 mt-0.5 text-sm text-amber-400/80">
-                                      → {u.note}
-                                    </p>
-                                  )}
+                                );
+                              }
+                              // Different notes per unit — show each with unit number
+                              return (
+                                <div className="space-y-1.5">
+                                  {units.map((u, idx) => (
+                                    <div key={idx}>
+                                      <div className="flex items-center justify-between text-base">
+                                        <span className={`flex items-center gap-2.5 ${isAdd ? "text-stone-400" : "text-stone-300"}`}>
+                                          <span className="font-bold text-stone-400 tabular-nums">1x</span>
+                                          <span>
+                                            {item.category_name && (
+                                              <span className="text-sm text-stone-600">{item.category_name} · </span>
+                                            )}
+                                            {item.dish_name}
+                                          </span>
+                                        </span>
+                                        <span className="text-stone-500">
+                                          {formatCOP(item.price)}
+                                        </span>
+                                      </div>
+                                      {u.note && (
+                                        <p className="ml-7 mt-0.5 text-sm text-amber-400/80">
+                                          U{idx + 1}: {u.note}
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
+                              );
+                            })()
                           ) : (
                             // Grouped when no notes
                             <div className="flex items-center justify-between text-base">

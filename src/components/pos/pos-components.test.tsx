@@ -190,7 +190,7 @@ describe("WaiterOrders", () => {
       items: [makeItem({ notes: ["Sin cebolla"] })],
     })];
     render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
-    expect(screen.getByText("→ Sin cebolla")).toBeInTheDocument();
+    expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
   });
 
   it("shows category name prefix", () => {
