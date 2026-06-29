@@ -15,8 +15,6 @@ import { OrderDetail } from "./order-detail";
 import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
-const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
-
 const STATUS_LABELS: Record<OrderStatus, string> = {
   nueva: "Nuevas",
   en_cocina: "En cocina",
@@ -443,74 +441,6 @@ export function DashboardClient() {
     [supabase, adminId, adminName],
   );
 
-  // Add additional items to a served order from the dashboard
-  const sendAdditional = useCallback(
-    async (
-      orderId: string,
-      items: { dish_id: string; dish_name: string; price: number; quantity: number }[],
-    ) => {
-      if (!supabase || items.length === 0) return;
-      const original = orders.find((o) => o.id === orderId);
-      if (!original) return;
-
-      // Next additional round number
-      const nextRound = original.items.reduce((max, i) => {
-        return i.additional_number && i.additional_number > max ? i.additional_number : max;
-      }, 0) + 1;
-
-      // Insert additional items
-      const { error: itemsErr } = await supabase.from("order_items").insert(
-        items.map((item) => ({
-          order_id: orderId,
-          dish_id: item.dish_id,
-          dish_name: item.dish_name,
-          price: item.price,
-          quantity: item.quantity,
-          is_additional: true,
-          additional_number: nextRound,
-        })),
-      );
-
-      if (itemsErr) return;
-
-      // Recalculate total — desechables follow the same rules as regular orders:
-      //   - delivery table: every dish gets desechables
-      //   - regular table: only dishes with "Para llevar" note get desechables
-      //   (dashboard modal doesn't collect notes, so regular tables get 0 desechables)
-      const isDelivery = isDeliveryTable(original.table_number);
-      const itemCount = items.reduce((s, i) => s + i.quantity, 0);
-      const additionalDesechables = isDelivery ? itemCount * DESECHABLES_PER_DISH : 0;
-      const additionalTotal = items.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
-      const newTotal = original.total + additionalTotal;
-
-      // Move order to "adicional" status
-      await supabase
-        .from("orders")
-        .update({ status: "adicional", total: newTotal })
-        .eq("id", orderId);
-
-      // Log audit event
-      await supabase.from("order_events").insert({
-        order_id: orderId,
-        event_type: "additional_added",
-        actor_type: "admin",
-        actor_name: adminName,
-        actor_id: adminId,
-        from_status: original.status,
-        to_status: "adicional",
-        metadata: {
-          additional_number: nextRound,
-          item_count: items.length,
-          additional_total: additionalTotal,
-          additional_desechables: additionalDesechables,
-          new_total: newTotal,
-          added_items: items.map((i) => ({ name: i.dish_name, qty: i.quantity })),
-        },
-      });
-    },
-    [supabase, orders, adminId, adminName],
-  );
-
   const selectedOrder = orders.find((o) => o.id === selectedId) ?? null;
   const displayError = configError ?? error;
 
@@ -877,7 +807,6 @@ export function DashboardClient() {
             onAdvanceStatus={advanceStatus}
             onPrint={printOrder}
             onSetDeliveryFee={setDeliveryFee}
-            onAddAdditional={() => {}}
             disabled={!isOnline}
           />
         </div>

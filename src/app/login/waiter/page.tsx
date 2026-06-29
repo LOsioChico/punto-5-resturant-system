@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Delete, Check, Loader2 } from "lucide-react";
@@ -48,12 +48,12 @@ export default function WaiterLoginPage() {
     }
   }, [cedula, loading, toast]);
 
-  const handlePinSubmit = useCallback(async () => {
-    if (pin.length !== 4 || loading) return;
+  const handlePinSubmit = useCallback(async (pinValue: string) => {
+    if (pinValue.length !== 4 || loading) return;
     setLoading(true);
 
     try {
-      const result = await signInWaiter(cedula, pin);
+      const result = await signInWaiter(cedula, pinValue);
       if (!result.waiter.pin_changed) {
         // First login — must change PIN
         router.replace("/login/change-pin");
@@ -64,19 +64,25 @@ export default function WaiterLoginPage() {
     } catch (err) {
       toast(err instanceof Error ? err.message : "Credenciales inválidas", "error");
       setPin("");
-      submittedRef.current = false;
     } finally {
       setLoading(false);
     }
-  }, [cedula, pin, loading, router, toast]);
+  }, [cedula, loading, router, toast]);
 
   const handleKeypadPress = useCallback((digit: string) => {
     if (step === "cedula") {
       setCedula((prev) => prev + digit);
     } else {
-      if (pin.length < 4) setPin((prev) => prev + digit);
+      if (pin.length < 4) {
+        const newPin = pin + digit;
+        setPin(newPin);
+        // Auto-submit when 4 digits reached
+        if (newPin.length === 4 && !loading) {
+          handlePinSubmit(newPin);
+        }
+      }
     }
-  }, [step, pin]);
+  }, [step, pin, loading, handlePinSubmit]);
 
   const handleBackspace = useCallback(() => {
     if (step === "cedula") {
@@ -91,21 +97,11 @@ export default function WaiterLoginPage() {
     else setPin("");
   }, [step]);
 
-  // Auto-submit PIN when 4 digits entered
-  const submittedRef = useRef(false);
-  useEffect(() => {
-    if (step === "pin" && pin.length === 4 && !loading && !submittedRef.current) {
-      submittedRef.current = true;
-      handlePinSubmit();
-    }
-  }, [pin, step, loading, handlePinSubmit]);
-
   const handleBack = useCallback(() => {
     if (step === "pin") {
       setStep("cedula");
       setPin("");
       setWaiterName("");
-      submittedRef.current = false;
     } else {
       router.push("/");
     }

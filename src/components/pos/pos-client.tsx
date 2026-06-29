@@ -10,7 +10,7 @@ import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
-import { countParaLlevar, isParaLlevar, syncNotesForTableChange, addParaLlevar } from "@/lib/pos/logic";
+import { countParaLlevar, isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -74,19 +74,6 @@ export function PosClient() {
       }));
     });
   }, [selectedTable]);
-
-  // Adicional orders: always add "Para llevar" to all notes that don't have it
-  useEffect(() => {
-    if (additionalOrderId === null) return;
-    setCart((prev) => {
-      const needsUpdate = prev.some((i) => i.notes.some((n) => !isParaLlevar(n)));
-      if (!needsUpdate) return prev;
-      return prev.map((i) => ({
-        ...i,
-        notes: i.notes.map((n) => (isParaLlevar(n) ? n : addParaLlevar(n))),
-      }));
-    });
-  }, [additionalOrderId]);
 
   // All orders (for table status + waiter history) — updated in realtime
   const [orders, setOrders] = useState<Order[]>([]);

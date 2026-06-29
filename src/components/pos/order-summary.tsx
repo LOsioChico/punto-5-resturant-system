@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn, formatCOP, tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, Pencil, Send, PencilLine, PlusCircle } from "lucide-react";
-import { toggleQuickNote, countParaLlevar, isParaLlevar, allNotesSame, type CartItem } from "@/lib/pos/logic";
+import { toggleQuickNote, countParaLlevar, allNotesSame, type CartItem } from "@/lib/pos/logic";
 import { getQuickNotes } from "@/lib/pos/quick-notes";
 
 /** Right panel — order summary. Always visible while ordering. */

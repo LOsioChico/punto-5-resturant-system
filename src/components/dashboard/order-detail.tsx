@@ -61,7 +61,6 @@ export function OrderDetail({
   onAdvanceStatus,
   onPrint,
   onSetDeliveryFee,
-  onAddAdditional,
   disabled = false,
 }: {
   order: Order | null;
@@ -69,7 +68,6 @@ export function OrderDetail({
   onAdvanceStatus: (id: string) => void;
   onPrint: (id: string, version?: { type: "full" | "additional"; round?: number }) => void;
   onSetDeliveryFee: (id: string, fee: number) => void;
-  onAddAdditional: (order: Order) => void;
   disabled?: boolean;
 }) {
   const [deliveryFeeInput, setDeliveryFeeInput] = useState("");

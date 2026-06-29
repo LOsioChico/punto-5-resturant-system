@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Delete, ArrowLeft } from "lucide-react";
@@ -28,30 +28,8 @@ export default function ChangePinPage() {
     })();
   }, [router]);
 
-  const handleKeypadPress = useCallback((digit: string) => {
-    if (step === "new") {
-      if (newPin.length < 4) setNewPin((prev) => prev + digit);
-    } else {
-      if (confirmPin.length < 4) setConfirmPin((prev) => prev + digit);
-    }
-  }, [step, newPin, confirmPin]);
-
-  const handleBackspace = useCallback(() => {
-    if (step === "new") setNewPin((prev) => prev.slice(0, -1));
-    else setConfirmPin((prev) => prev.slice(0, -1));
-  }, [step]);
-
-  // Auto-advance from new PIN to confirm when 4 digits entered
-  useEffect(() => {
-    if (step === "new" && newPin.length === 4) {
-      // Small delay so the user sees the 4th dot fill
-      const t = setTimeout(() => setStep("confirm"), 200);
-      return () => clearTimeout(t);
-    }
-  }, [newPin, step]);
-
-  const handleChangePin = useCallback(async () => {
-    if (newPin !== confirmPin) {
+  const handleChangePin = useCallback(async (newPinValue: string, confirmPinValue: string) => {
+    if (newPinValue !== confirmPinValue) {
       toast("Los PINs no coinciden", "error");
       setConfirmPin("");
       setStep("new");
@@ -59,7 +37,7 @@ export default function ChangePinPage() {
       return;
     }
 
-    if (newPin === "0000") {
+    if (newPinValue === "0000") {
       toast("El PIN no puede ser 0000", "error");
       setConfirmPin("");
       setStep("new");
@@ -69,7 +47,7 @@ export default function ChangePinPage() {
 
     setLoading(true);
     try {
-      await changeWaiterPin(newPin);
+      await changeWaiterPin(newPinValue);
       toast("PIN cambiado correctamente", "success");
       router.replace("/pos");
     } catch (err) {
@@ -77,20 +55,37 @@ export default function ChangePinPage() {
       setConfirmPin("");
       setStep("new");
       setNewPin("");
-      submittedRef.current = false;
     } finally {
       setLoading(false);
     }
-  }, [newPin, confirmPin, router, toast]);
+  }, [router, toast]);
 
-  // Auto-submit when confirm PIN is 4 digits
-  const submittedRef = useRef(false);
-  useEffect(() => {
-    if (step === "confirm" && confirmPin.length === 4 && !loading && !submittedRef.current) {
-      submittedRef.current = true;
-      handleChangePin();
+  const handleKeypadPress = useCallback((digit: string) => {
+    if (step === "new") {
+      if (newPin.length < 4) {
+        const newPinValue = newPin + digit;
+        setNewPin(newPinValue);
+        // Auto-advance to confirm when 4 digits reached
+        if (newPinValue.length === 4) {
+          setTimeout(() => setStep("confirm"), 200);
+        }
+      }
+    } else {
+      if (confirmPin.length < 4) {
+        const newConfirm = confirmPin + digit;
+        setConfirmPin(newConfirm);
+        // Auto-submit when 4 digits reached
+        if (newConfirm.length === 4 && !loading) {
+          handleChangePin(newPin, newConfirm);
+        }
+      }
     }
-  }, [confirmPin, step, loading, handleChangePin]);
+  }, [step, newPin, confirmPin, loading, handleChangePin]);
+
+  const handleBackspace = useCallback(() => {
+    if (step === "new") setNewPin((prev) => prev.slice(0, -1));
+    else setConfirmPin((prev) => prev.slice(0, -1));
+  }, [step]);
 
   const currentPin = step === "new" ? newPin : confirmPin;
 
