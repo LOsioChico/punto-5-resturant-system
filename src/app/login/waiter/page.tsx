@@ -5,24 +5,34 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { ArrowLeft, Delete, Check, Loader2 } from "lucide-react";
 import { signInWaiter, lookupWaiterByCedula } from "@/lib/auth";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
 
 export default function WaiterLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { role, loading: authLoading } = useAuth();
   const [cedula, setCedula] = useState("");
   const [pin, setPin] = useState("");
   const [step, setStep] = useState<"cedula" | "pin">("cedula");
   const [loading, setLoading] = useState(false);
   const [waiterName, setWaiterName] = useState("");
 
+  // Redirect to POS if already logged in as waiter
   useEffect(() => {
-    (async () => {
-      const { getCurrentRole } = await import("@/lib/auth");
-      const role = await getCurrentRole();
-      if (role === "waiter") router.replace("/pos");
-    })();
-  }, [router]);
+    if (authLoading) return;
+    if (role === "waiter") router.replace("/pos");
+  }, [role, authLoading, router]);
+
+  // Show spinner while checking auth state — prevents flashing the
+  // login form for already-authenticated waiters
+  if (authLoading || role === "waiter") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-stone-950">
+        <Loader2 className="size-8 animate-spin text-stone-600" />
+      </div>
+    );
+  }
 
   // Validate cédula before moving to PIN step
   const handleCedulaSubmit = useCallback(async () => {

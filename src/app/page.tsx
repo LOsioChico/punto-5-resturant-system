@@ -1,10 +1,35 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { UtensilsCrossed, LayoutDashboard } from "lucide-react";
+import { UtensilsCrossed, LayoutDashboard, Loader2 } from "lucide-react";
 import Image from "next/image";
+import { useAuth } from "@/lib/hooks/use-auth";
 
 export default function HomePage() {
+  const router = useRouter();
+  const { user, role, loading } = useAuth();
+
+  // Redirect authenticated users to their app — skip the role selector
+  useEffect(() => {
+    if (loading) return;
+    if (role === "waiter") router.replace("/pos");
+    else if (role === "admin") router.replace("/dashboard");
+  }, [role, loading, router]);
+
+  // Show spinner while checking auth state — prevents flashing the
+  // role selector for already-authenticated users
+  if (loading || user) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-stone-950">
+        <Loader2 className="size-8 animate-spin text-stone-600" />
+      </div>
+    );
+  }
+
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-10 p-8">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-10 bg-stone-950 p-8">
       <div className="flex flex-col items-center gap-2">
         <div className="h-1 w-16 rounded-full bg-red-500" />
         <div className="flex items-center gap-3">
@@ -33,7 +58,7 @@ export default function HomePage() {
           <div className="flex size-12 items-center justify-center rounded-xl bg-stone-900 transition-colors group-hover:bg-yellow-500/15">
             <UtensilsCrossed className="size-6 text-stone-500 transition-colors group-hover:text-yellow-500" />
           </div>
-          <span className="text-base font-semibold text-stone-100">Mesero (POS)</span>
+          <span className="text-base font-semibold text-stone-100">Mesero</span>
           <span className="text-sm text-stone-500">
             Toma pedidos desde la tablet
           </span>
@@ -46,9 +71,9 @@ export default function HomePage() {
           <div className="flex size-12 items-center justify-center rounded-xl bg-stone-900 transition-colors group-hover:bg-yellow-500/15">
             <LayoutDashboard className="size-6 text-stone-500 transition-colors group-hover:text-yellow-500" />
           </div>
-          <span className="text-base font-semibold text-stone-100">Panel principal</span>
+          <span className="text-base font-semibold text-stone-100">Administrador</span>
           <span className="text-sm text-stone-500">
-            Pedidos en tiempo real
+            Panel de pedidos en tiempo real
           </span>
         </Link>
       </div>

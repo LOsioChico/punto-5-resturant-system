@@ -3,13 +3,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { Eye, EyeOff, ArrowLeft } from "lucide-react";
+import { Eye, EyeOff, ArrowLeft, Loader2 } from "lucide-react";
 import { signInAdmin } from "@/lib/auth";
+import { useAuth } from "@/lib/hooks/use-auth";
 import { useToast } from "@/components/ui/toast";
 
 export default function AdminLoginPage() {
   const router = useRouter();
   const { toast } = useToast();
+  const { role, loading: authLoading } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -17,12 +19,19 @@ export default function AdminLoginPage() {
 
   // Redirect to dashboard if already logged in as admin
   useEffect(() => {
-    (async () => {
-      const { getCurrentRole } = await import("@/lib/auth");
-      const role = await getCurrentRole();
-      if (role === "admin") router.replace("/dashboard");
-    })();
-  }, [router]);
+    if (authLoading) return;
+    if (role === "admin") router.replace("/dashboard");
+  }, [role, authLoading, router]);
+
+  // Show spinner while checking auth state — prevents flashing the
+  // login form for already-authenticated admins
+  if (authLoading || role === "admin") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-stone-950">
+        <Loader2 className="size-8 animate-spin text-stone-600" />
+      </div>
+    );
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
