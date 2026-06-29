@@ -53,18 +53,23 @@ export function PosClient() {
   const [additionalOrderId, setAdditionalOrderId] = useState<string | null>(null);
 
   // Sync notes when table changes:
-  // - Switching TO delivery: fill empty notes with "Para llevar"
+  // - Switching TO delivery: add "Para llevar" to all notes that don't have it
   // - Switching FROM delivery to a regular table: remove "Para llevar" from all notes
   useEffect(() => {
     if (selectedTable === null) return;
     const isDelivery = isDeliveryTable(selectedTable);
     setCart((prev) => {
       if (isDelivery) {
-        const hasEmpty = prev.some((i) => i.notes.some((n) => !n.trim()));
-        if (!hasEmpty) return prev;
+        // Add "Para llevar" to every note that doesn't already have it
+        const needsUpdate = prev.some((i) => i.notes.some((n) => !isParaLlevar(n)));
+        if (!needsUpdate) return prev;
         return prev.map((i) => ({
           ...i,
-          notes: i.notes.map((n) => (n.trim() ? n : "Para llevar")),
+          notes: i.notes.map((n) => {
+            if (isParaLlevar(n)) return n;
+            const parts = n.split(",").map((p) => p.trim()).filter(Boolean);
+            return [...parts, "Para llevar"].join(", ");
+          }),
         }));
       }
       // Non-delivery: strip "Para llevar" from comma-separated notes
