@@ -10,7 +10,7 @@ import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
-import { countParaLlevar, isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
+import { countParaLlevar, isParaLlevar, syncNotesForTableChange, addParaLlevar } from "@/lib/pos/logic";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -74,6 +74,19 @@ export function PosClient() {
       }));
     });
   }, [selectedTable]);
+
+  // Adicional orders: always add "Para llevar" to all notes that don't have it
+  useEffect(() => {
+    if (additionalOrderId === null) return;
+    setCart((prev) => {
+      const needsUpdate = prev.some((i) => i.notes.some((n) => !isParaLlevar(n)));
+      if (!needsUpdate) return prev;
+      return prev.map((i) => ({
+        ...i,
+        notes: i.notes.map((n) => (isParaLlevar(n) ? n : addParaLlevar(n))),
+      }));
+    });
+  }, [additionalOrderId]);
 
   // All orders (for table status + waiter history) — updated in realtime
   const [orders, setOrders] = useState<Order[]>([]);
@@ -309,12 +322,15 @@ export function PosClient() {
     [orders, waiterName],
   );
 
+  // Both delivery and adicional force "Para llevar" on all items
+  const forceParaLlevar = (selectedTable !== null && isDeliveryTable(selectedTable)) || additionalOrderId !== null;
+
   const addToCart = useCallback((dish: Dish) => {
     // Look up category name for this dish
     const category = categories.find((c) => c.id === dish.category_id);
     const categoryName = category?.name ?? "";
-    // Delivery orders default to "Para llevar" on every unit
-    const defaultNote = selectedTable !== null && isDeliveryTable(selectedTable) ? "Para llevar" : "";
+    // Delivery and adicional default to "Para llevar" on every unit
+    const defaultNote = forceParaLlevar ? "Para llevar" : "";
 
     setCart((prev) => {
       const existing = prev.find((i) => i.dish_id === dish.id);
@@ -338,10 +354,10 @@ export function PosClient() {
         },
       ];
     });
-  }, [categories, selectedTable]);
+  }, [categories, forceParaLlevar]);
 
   const incItem = useCallback((dishId: string) => {
-    const defaultNote = selectedTable !== null && isDeliveryTable(selectedTable) ? "Para llevar" : "";
+    const defaultNote = forceParaLlevar ? "Para llevar" : "";
     setCart((prev) =>
       prev.map((i) =>
         i.dish_id === dishId
@@ -349,7 +365,7 @@ export function PosClient() {
           : i,
       ),
     );
-  }, [selectedTable]);
+  }, [forceParaLlevar]);
 
   const decItem = useCallback((dishId: string) => {
     setCart((prev) =>
@@ -429,13 +445,13 @@ export function PosClient() {
     setActiveTab("history");
   }, []);
 
-  // For delivery orders, ensure "Para llevar" is always present in notes
+  // For delivery and adicional orders, ensure "Para llevar" is always present in notes
   const ensureParaLlevar = useCallback((value: string): string => {
-    if (selectedTable === null || !isDeliveryTable(selectedTable)) return value;
+    if (!forceParaLlevar) return value;
     if (isParaLlevar(value)) return value;
     const parts = value.split(",").map((p) => p.trim()).filter(Boolean);
     return [...parts, "Para llevar"].join(", ");
-  }, [selectedTable]);
+  }, [forceParaLlevar]);
 
   const setNotes = useCallback((dishId: string, unitIndex: number, value: string) => {
     const finalValue = ensureParaLlevar(value);
@@ -564,10 +580,10 @@ export function PosClient() {
       return;
     }
 
-    // Recalculate total (original items + new additional items + desechables for "Para llevar")
-    const isDelivery = isDeliveryTable(original.table_number);
-    const paraLlevarCount = isDelivery ? 0 : cart.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
-    const additionalDesechables = (isDelivery ? cart.reduce((s, i) => s + i.quantity, 0) : paraLlevarCount) * DESECHABLES_PER_DISH;
+    // Recalculate total (original items + new additional items + desechables)
+    // Adicional always charges desechables per dish (like delivery)
+    const paraLlevarCount = cart.reduce((s, i) => s + i.quantity, 0);
+    const additionalDesechables = paraLlevarCount * DESECHABLES_PER_DISH;
     const additionalTotal = cart.reduce((sum, i) => sum + i.price * i.quantity, 0) + additionalDesechables;
     const newTotal = original.total + additionalTotal;
 

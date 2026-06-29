@@ -59,12 +59,13 @@ export function OrderSummary({
   const total = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
   const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
   const isDelivery = tableNumber !== null && isDeliveryTable(tableNumber);
-  // Desechables: delivery adds per dish, non-delivery adds per unit with "Para llevar"
-  const paraLlevarCount = isDelivery ? 0 : items.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
-  const desechables = (isDelivery ? itemCount : paraLlevarCount) * DESECHABLES_PER_DISH;
+  const isAdditional = additionalOrderId !== null;
+  // Both delivery and adicional always have "Para llevar" → desechables per dish
+  const forceParaLlevar = isDelivery || isAdditional;
+  const paraLlevarCount = forceParaLlevar ? itemCount : items.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
+  const desechables = paraLlevarCount * DESECHABLES_PER_DISH;
   const grandTotal = total + desechables;
   const isEditing = editingOrderId !== null;
-  const isAdditional = additionalOrderId !== null;
 
   // Close notes editor when clicking outside of it.
   // Uses 'click' (not 'mousedown') so button onClick handlers (like +/- counters)
@@ -193,19 +194,19 @@ export function OrderSummary({
                     <span className="text-sm text-stone-500">
                       {formatCOP(item.price)} c/u
                     </span>
-                    {isDelivery && (
+                    {forceParaLlevar && (
                       <span className="mt-0.5 block text-xs text-yellow-500/70">
                         + {formatCOP(DESECHABLES_PER_DISH)} desechable ({item.quantity} {item.quantity === 1 ? "unidad" : "unidades"})
                       </span>
                     )}
-                    {!isDelivery && countParaLlevar(item.notes) > 0 && (
+                    {!forceParaLlevar && countParaLlevar(item.notes) > 0 && (
                       <span className="mt-0.5 block text-xs text-yellow-500/70">
                         + {formatCOP(DESECHABLES_PER_DISH)} desechable ({countParaLlevar(item.notes)} {countParaLlevar(item.notes) === 1 ? "unidad" : "unidades"})
                       </span>
                     )}
                   </div>
                   <span className="text-base font-semibold text-stone-200">
-                    {formatCOP(item.price * item.quantity + (isDelivery ? DESECHABLES_PER_DISH * item.quantity : countParaLlevar(item.notes) * DESECHABLES_PER_DISH))}
+                    {formatCOP(item.price * item.quantity + (forceParaLlevar ? DESECHABLES_PER_DISH * item.quantity : countParaLlevar(item.notes) * DESECHABLES_PER_DISH))}
                   </span>
                 </div>
 
@@ -290,8 +291,8 @@ export function OrderSummary({
                       return (
                     <div className="flex flex-wrap gap-1.5" onMouseDown={(e) => e.preventDefault()}>
                       {quickNotes.map((note) => {
-                        // "Para llevar" is locked on for delivery orders
-                        const isLockedParaLlevar = isDelivery && note === "Para llevar";
+                        // "Para llevar" is locked on for delivery and adicional orders
+                        const isLockedParaLlevar = forceParaLlevar && note === "Para llevar";
                         // In "all" mode, highlight if any unit has the note
                         // In "perUnit" mode, highlight only the focused unit
                         const active = isLockedParaLlevar || (notesMode === "all" || item.quantity === 1
