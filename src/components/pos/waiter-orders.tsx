@@ -10,8 +10,8 @@ import { ClipboardList, Clock, ChefHat, CheckCircle2, Utensils, PencilLine, Bike
 const statusConfig: Record<OrderStatus, { icon: React.ReactNode; ring: string; label: string }> = {
   nueva: { icon: <Clock className="size-5" />, ring: "bg-red-500", label: "Nueva" },
   en_cocina: { icon: <ChefHat className="size-5" />, ring: "bg-amber-500", label: "En cocina" },
-  lista: { icon: <CheckCircle2 className="size-5" />, ring: "bg-green-500", label: "Lista" },
-  servida: { icon: <Utensils className="size-5" />, ring: "bg-stone-600", label: "Servida" },
+  servida: { icon: <CheckCircle2 className="size-5" />, ring: "bg-green-500", label: "Servida" },
+  finalizada: { icon: <Utensils className="size-5" />, ring: "bg-stone-600", label: "Finalizada" },
   adicional: { icon: <PlusCircle className="size-5" />, ring: "bg-blue-500", label: "Adicional" },
 };
 
@@ -21,17 +21,19 @@ export function WaiterOrders({
   waiterName,
   onEdit,
   onAddAdditional,
+  onAdvanceStatus,
 }: {
   orders: Order[];
   waiterName: string;
   onEdit: (order: Order) => void;
   onAddAdditional: (order: Order) => void;
+  onAdvanceStatus: (order: Order) => void;
 }) {
   const myOrders = orders
     .filter((o) => o.waiter_name === waiterName)
     .sort((a, b) => {
-      const aActive = a.status !== "servida" ? 0 : 1;
-      const bActive = b.status !== "servida" ? 0 : 1;
+      const aActive = a.status !== "finalizada" ? 0 : 1;
+      const bActive = b.status !== "finalizada" ? 0 : 1;
       if (aActive !== bActive) return aActive - bActive;
       return compareDesc(new Date(a.created_at), new Date(b.created_at));
     });
@@ -51,17 +53,18 @@ export function WaiterOrders({
       <div className="mx-auto max-w-3xl p-5">
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-base font-semibold text-stone-300">
-            {myOrders.filter((o) => o.status !== "servida").length} activos ·{" "}
-            {myOrders.filter((o) => o.status === "servida").length} completados
+            {myOrders.filter((o) => o.status !== "finalizada").length} activos ·{" "}
+            {myOrders.filter((o) => o.status === "finalizada").length} completados
           </h2>
         </div>
 
         <ul className="space-y-3">
           {myOrders.map((order) => {
             const config = statusConfig[order.status];
-            const isActive = order.status !== "servida";
+            const isActive = order.status !== "finalizada";
             const canEdit = order.status === "nueva" || order.status === "en_cocina";
-            const canAddAdditional = order.status === "lista" || order.status === "servida" || order.status === "adicional";
+            const canAdvance = order.status === "en_cocina" || order.status === "adicional";
+            const canAddAdditional = order.status === "servida" || order.status === "finalizada" || order.status === "adicional";
             const wasModified = order.updated_by_type === "waiter" && order.updated_at !== null && order.status !== "adicional";
             const isDelivery = isDeliveryTable(order.table_number);
             const hasAdditionals = order.items.some((i) => i.is_additional);
@@ -135,6 +138,15 @@ export function WaiterOrders({
                         title="Editar pedido"
                       >
                         <PencilLine className="size-4" />
+                      </button>
+                    )}
+                    {canAdvance && (
+                      <button
+                        onClick={() => onAdvanceStatus(order)}
+                        className="ml-1 flex items-center gap-1.5 rounded-lg bg-green-500/15 px-3 py-1.5 text-xs font-medium text-green-400 transition-colors hover:bg-green-500 hover:text-stone-950"
+                      >
+                        <CheckCircle2 className="size-4" />
+                        Marcar como servida
                       </button>
                     )}
                     {canAddAdditional && (

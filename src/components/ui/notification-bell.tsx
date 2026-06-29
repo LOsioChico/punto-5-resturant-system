@@ -11,8 +11,8 @@ const variantIcon: Record<string, React.ReactNode> = {
   info: <Info className="size-4 text-stone-600" />,
   "status-nueva": <Clock className="size-4 text-red-400" />,
   "status-en_cocina": <ChefHat className="size-4 text-amber-400" />,
-  "status-lista": <CheckCircle2 className="size-4 text-green-400" />,
-  "status-servida": <Utensils className="size-4 text-stone-600" />,
+  "status-servida": <CheckCircle2 className="size-4 text-green-400" />,
+  "status-finalizada": <Utensils className="size-4 text-stone-600" />,
 };
 
 function timeAgo(ts: number): string {

@@ -145,8 +145,8 @@ describe("OrderDetail — progress steps", () => {
     render(<OrderDetail order={makeOrder({ status: "nueva" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
     expect(screen.getAllByText("Nueva").length).toBeGreaterThan(0);
     expect(screen.getAllByText("En cocina").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Lista").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Servida").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Finalizada").length).toBeGreaterThan(0);
   });
 });
 
@@ -159,19 +159,19 @@ describe("OrderDetail — action button", () => {
     expect(screen.getByRole("button", { name: /Enviar a cocina/ })).toBeInTheDocument();
   });
 
-  it("shows 'Marcar como lista' for en_cocina status", () => {
+  it("shows 'Marcar como servida' for en_cocina status", () => {
     render(<OrderDetail order={makeOrder({ status: "en_cocina" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
-    expect(screen.getByRole("button", { name: /Marcar como lista/ })).toBeInTheDocument();
-  });
-
-  it("shows 'Marcar como servida' for lista status", () => {
-    render(<OrderDetail order={makeOrder({ status: "lista" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
     expect(screen.getByRole("button", { name: /Marcar como servida/ })).toBeInTheDocument();
   });
 
-  it("does not show action button for servida status", () => {
+  it("shows 'Finalizar pedido' for servida status", () => {
     render(<OrderDetail order={makeOrder({ status: "servida" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
-    expect(screen.queryByRole("button", { name: /Enviar|Marcar/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Finalizar pedido/ })).toBeInTheDocument();
+  });
+
+  it("does not show action button for finalizada status", () => {
+    render(<OrderDetail order={makeOrder({ status: "finalizada" })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} />);
+    expect(screen.queryByRole("button", { name: /Enviar|Marcar|Finalizar/ })).not.toBeInTheDocument();
   });
 
   it("calls onAdvanceStatus when action button clicked", async () => {

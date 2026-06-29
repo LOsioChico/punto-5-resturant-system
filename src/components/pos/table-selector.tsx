@@ -7,8 +7,8 @@ import type { OrderStatus } from "@/lib/types";
 const statusDot: Record<OrderStatus, string> = {
   nueva: "bg-red-500",
   en_cocina: "bg-amber-500",
-  lista: "bg-green-500",
-  servida: "bg-stone-600",
+  servida: "bg-green-500",
+  finalizada: "bg-stone-600",
   adicional: "bg-blue-500",
 };
 
@@ -36,7 +36,7 @@ export function TableSelector({
             <span className="size-2.5 rounded-full bg-amber-500" /> Cocina
           </span>
           <span className="flex items-center gap-1.5">
-            <span className="size-2.5 rounded-full bg-green-500" /> Lista
+            <span className="size-2.5 rounded-full bg-green-500" /> Servida
           </span>
         </div>
       </div>

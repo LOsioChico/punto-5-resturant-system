@@ -19,14 +19,14 @@ import {
   Bike,
 } from "lucide-react";
 
-const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
+const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "servida", "finalizada"];
 
 const NEXT_ACTION: Record<OrderStatus, { label: string; icon: React.ReactNode }> = {
   nueva: { label: "Enviar a cocina", icon: <ChefHat className="size-4" /> },
-  en_cocina: { label: "Marcar como lista", icon: <CheckCircle2 className="size-4" /> },
-  lista: { label: "Marcar como servida", icon: <Utensils className="size-4" /> },
-  servida: { label: "", icon: null },
-  adicional: { label: "Marcar como lista", icon: <CheckCircle2 className="size-4" /> },
+  en_cocina: { label: "Marcar como servida", icon: <CheckCircle2 className="size-4" /> },
+  servida: { label: "Finalizar pedido", icon: <Utensils className="size-4" /> },
+  finalizada: { label: "", icon: null },
+  adicional: { label: "Finalizar pedido", icon: <Utensils className="size-4" /> },
 };
 
 const EVENT_LABELS: Record<string, string> = {
@@ -42,16 +42,16 @@ const EVENT_LABELS: Record<string, string> = {
 const STATUS_LABELS: Record<string, string> = {
   nueva: "Nueva",
   en_cocina: "En cocina",
-  lista: "Lista",
   servida: "Servida",
+  finalizada: "Finalizada",
   adicional: "Adicional",
 };
 
 const STATUS_COLORS: Record<OrderStatus, { dot: string; text: string; bg: string }> = {
   nueva: { dot: "bg-red-500", text: "text-red-400", bg: "bg-red-500/10" },
   en_cocina: { dot: "bg-amber-500", text: "text-amber-400", bg: "bg-amber-500/10" },
-  lista: { dot: "bg-green-500", text: "text-green-400", bg: "bg-green-500/10" },
-  servida: { dot: "bg-stone-600", text: "text-stone-400", bg: "bg-stone-800" },
+  servida: { dot: "bg-green-500", text: "text-green-400", bg: "bg-green-500/10" },
+  finalizada: { dot: "bg-stone-600", text: "text-stone-400", bg: "bg-stone-800" },
   adicional: { dot: "bg-blue-500", text: "text-blue-400", bg: "bg-blue-500/10" },
 };
 
@@ -86,8 +86,8 @@ export function OrderDetail({
   }
 
   const currentIndex = STATUS_FLOW.indexOf(order.status);
-  // 'adicional' is not in STATUS_FLOW — it advances to 'lista'
-  const nextStatus = order.status === "adicional" ? "lista" as OrderStatus : STATUS_FLOW[currentIndex + 1];
+  // 'adicional' is not in STATUS_FLOW — it advances to 'finalizada'
+  const nextStatus = order.status === "adicional" ? "finalizada" as OrderStatus : STATUS_FLOW[currentIndex + 1];
   const action = NEXT_ACTION[order.status];
   const printCount = events.filter((e) => e.event_type === "printed").length;
   const colors = STATUS_COLORS[order.status];

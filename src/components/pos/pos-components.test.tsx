@@ -50,13 +50,13 @@ function makeOrder(overrides: Partial<Order> = {}): Order {
 // ============================================================
 describe("WaiterOrders", () => {
   it("shows empty state when no orders", () => {
-    render(<WaiterOrders orders={[]} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={[]} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByText("No tienes pedidos aún")).toBeInTheDocument();
   });
 
   it("shows empty state when orders exist but not for this waiter", () => {
     const orders = [makeOrder({ waiter_name: "Pedro" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByText("No tienes pedidos aún")).toBeInTheDocument();
   });
 
@@ -65,7 +65,7 @@ describe("WaiterOrders", () => {
       makeOrder({ id: "1", waiter_name: "Juan", table_number: 1 }),
       makeOrder({ id: "2", waiter_name: "Pedro", table_number: 2 }),
     ];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByText("Mesa 1")).toBeInTheDocument();
     expect(screen.queryByText("Mesa 2")).not.toBeInTheDocument();
   });
@@ -73,34 +73,34 @@ describe("WaiterOrders", () => {
   it("shows active and completed counts", () => {
     const orders = [
       makeOrder({ id: "1", waiter_name: "Juan", status: "nueva" }),
-      makeOrder({ id: "2", waiter_name: "Juan", status: "servida" }),
+      makeOrder({ id: "2", waiter_name: "Juan", status: "finalizada" }),
     ];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByText(/1 activos/)).toBeInTheDocument();
     expect(screen.getByText(/1 completados/)).toBeInTheDocument();
   });
 
   it("shows edit button for nueva orders", () => {
     const orders = [makeOrder({ waiter_name: "Juan", status: "nueva" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByTitle("Editar pedido")).toBeInTheDocument();
   });
 
   it("shows edit button for en_cocina orders", () => {
     const orders = [makeOrder({ waiter_name: "Juan", status: "en_cocina" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByTitle("Editar pedido")).toBeInTheDocument();
-  });
-
-  it("does not show edit button for lista orders", () => {
-    const orders = [makeOrder({ waiter_name: "Juan", status: "lista" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
-    expect(screen.queryByTitle("Editar pedido")).not.toBeInTheDocument();
   });
 
   it("does not show edit button for servida orders", () => {
     const orders = [makeOrder({ waiter_name: "Juan", status: "servida" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
+    expect(screen.queryByTitle("Editar pedido")).not.toBeInTheDocument();
+  });
+
+  it("does not show edit button for finalizada orders", () => {
+    const orders = [makeOrder({ waiter_name: "Juan", status: "finalizada" })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.queryByTitle("Editar pedido")).not.toBeInTheDocument();
   });
 
@@ -108,45 +108,58 @@ describe("WaiterOrders", () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
     const orders = [makeOrder({ id: "test-id", waiter_name: "Juan", status: "nueva" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={onEdit} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={onEdit} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     await user.click(screen.getByTitle("Editar pedido"));
     expect(onEdit).toHaveBeenCalledWith(orders[0]);
   });
 
-  it("shows additional button on served orders", () => {
-    const orders = [makeOrder({ id: "served-id", waiter_name: "Juan", status: "servida" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+  it("shows additional button on finalized orders", () => {
+    const orders = [makeOrder({ id: "served-id", waiter_name: "Juan", status: "finalizada" })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByTitle("Agregar adicional")).toBeInTheDocument();
   });
 
-  it("shows additional button on lista orders", () => {
-    const orders = [makeOrder({ id: "lista-id", waiter_name: "Juan", status: "lista" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+  it("shows additional button on servida orders", () => {
+    const orders = [makeOrder({ id: "servida-id", waiter_name: "Juan", status: "servida" })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByTitle("Agregar adicional")).toBeInTheDocument();
   });
 
   it("does not show additional button on nueva orders", () => {
     const orders = [makeOrder({ id: "active-id", waiter_name: "Juan", status: "nueva" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.queryByTitle("Agregar adicional")).not.toBeInTheDocument();
   });
 
   it("does not show additional button on en_cocina orders", () => {
     const orders = [makeOrder({ id: "kitchen-id", waiter_name: "Juan", status: "en_cocina" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.queryByTitle("Agregar adicional")).not.toBeInTheDocument();
   });
 
   it("calls onAddAdditional when additional button clicked", async () => {
     const user = userEvent.setup();
     const onAddAdditional = vi.fn();
-    const orders = [makeOrder({ id: "served-id", waiter_name: "Juan", status: "servida" })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={onAddAdditional} />);
+    const orders = [makeOrder({ id: "served-id", waiter_name: "Juan", status: "finalizada" })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={onAddAdditional} onAdvanceStatus={() => {}} />);
     await user.click(screen.getByTitle("Agregar adicional"));
     expect(onAddAdditional).toHaveBeenCalledWith(orders[0]);
   });
 
   it("shows additional badge on items with is_additional", () => {
+    const orders = [makeOrder({
+      waiter_name: "Juan",
+      status: "finalizada",
+      items: [
+        makeItem({ id: "orig" }),
+        makeItem({ id: "add-1", is_additional: true, additional_number: 1 }),
+      ],
+    })];
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
+    expect(screen.getByText("Adicional #1")).toBeInTheDocument();
+  });
+
+  it("shows Adicional badge on order card when order has additionals", () => {
     const orders = [makeOrder({
       waiter_name: "Juan",
       status: "servida",
@@ -155,20 +168,7 @@ describe("WaiterOrders", () => {
         makeItem({ id: "add-1", is_additional: true, additional_number: 1 }),
       ],
     })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
-    expect(screen.getByText("Adicional #1")).toBeInTheDocument();
-  });
-
-  it("shows Adicional badge on order card when order has additionals", () => {
-    const orders = [makeOrder({
-      waiter_name: "Juan",
-      status: "lista",
-      items: [
-        makeItem({ id: "orig" }),
-        makeItem({ id: "add-1", is_additional: true, additional_number: 1 }),
-      ],
-    })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     // The "Adicional" badge (without #) on the order header
     const badges = screen.getAllByText("Adicional");
     expect(badges.length).toBeGreaterThanOrEqual(1);
@@ -180,7 +180,7 @@ describe("WaiterOrders", () => {
       updated_by_type: "waiter",
       updated_at: new Date().toISOString(),
     })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByText("Modificado")).toBeInTheDocument();
   });
 
@@ -189,7 +189,7 @@ describe("WaiterOrders", () => {
       waiter_name: "Juan",
       items: [makeItem({ notes: ["Sin cebolla"] })],
     })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByText("→ Sin cebolla (1x)")).toBeInTheDocument();
   });
 
@@ -198,17 +198,17 @@ describe("WaiterOrders", () => {
       waiter_name: "Juan",
       items: [makeItem({ category_name: "Hamburguesas", dish_name: "Clásica" })],
     })];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     expect(screen.getByText("Hamburguesas ·")).toBeInTheDocument();
     expect(screen.getByText("Clásica")).toBeInTheDocument();
   });
 
-  it("sorts active orders before served", () => {
+  it("sorts active orders before finalized", () => {
     const orders = [
-      makeOrder({ id: "served", waiter_name: "Juan", status: "servida", created_at: "2024-01-01T10:00:00Z" }),
+      makeOrder({ id: "served", waiter_name: "Juan", status: "finalizada", created_at: "2024-01-01T10:00:00Z" }),
       makeOrder({ id: "active", waiter_name: "Juan", status: "nueva", created_at: "2024-01-01T12:00:00Z" }),
     ];
-    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} />);
+    render(<WaiterOrders orders={orders} waiterName="Juan" onEdit={() => {}} onAddAdditional={() => {}} onAdvanceStatus={() => {}} />);
     // Active should come first in the list
     const tables = screen.getAllByText(/Mesa 5/);
     expect(tables[0]).toBeInTheDocument();
@@ -245,7 +245,7 @@ describe("TableSelector", () => {
     render(<TableSelector selected={null} tableStatuses={new Map()} onSelect={() => {}} />);
     expect(screen.getByText("Nueva")).toBeInTheDocument();
     expect(screen.getByText("Cocina")).toBeInTheDocument();
-    expect(screen.getByText("Lista")).toBeInTheDocument();
+    expect(screen.getByText("Servida")).toBeInTheDocument();
   });
 });
 

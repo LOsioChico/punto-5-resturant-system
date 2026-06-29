@@ -17,7 +17,7 @@ import {
   type StoredNotification,
 } from "@/lib/notifications/db";
 
-type ToastVariant = "success" | "error" | "info" | "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida" | "status-adicional";
+type ToastVariant = "success" | "error" | "info" | "status-nueva" | "status-en_cocina" | "status-servida" | "status-finalizada" | "status-adicional";
 
 export interface NotificationItem {
   id: number;
@@ -68,11 +68,11 @@ const variantConfig: Record<
     icon: <ChefHat className="size-5 text-amber-400" />,
     className: "border-amber-500/30",
   },
-  "status-lista": {
+  "status-servida": {
     icon: <CheckCircle2 className="size-5 text-green-400" />,
     className: "border-green-500/30",
   },
-  "status-servida": {
+  "status-finalizada": {
     icon: <Utensils className="size-5 text-stone-600" />,
     className: "border-stone-700",
   },
@@ -84,13 +84,13 @@ const variantConfig: Record<
 
 /** Map a stored push notification (from IndexedDB) to a NotificationItem. */
 function storedToItem(n: StoredNotification): NotificationItem {
-  // Parse variant from the tag (e.g. "order-abc-lista") or body text
+  // Parse variant from the tag (e.g. "order-abc-servida") or body text
   const text = `${n.tag} ${n.body}`.toLowerCase();
   let variant: ToastVariant = "info";
   if (text.includes("recibido")) variant = "status-nueva";
   else if (text.includes("cocina")) variant = "status-en_cocina";
-  else if (text.includes("listo")) variant = "status-lista";
-  else if (text.includes("servida")) variant = "status-servida";
+  else if (text.includes("finalizado")) variant = "status-finalizada";
+  else if (text.includes("servida") || text.includes("servido")) variant = "status-servida";
   else if (text.includes("adicional")) variant = "status-adicional";
 
   // Extract table number from title (e.g. "Mesa 5" → 5)

@@ -13,14 +13,14 @@ const statusConfig: Record<OrderStatus, { label: string; className: string }> = 
     label: "En cocina",
     className: "bg-amber-500/15 text-amber-400 ring-1 ring-inset ring-amber-500/30",
   },
-  // Green = ready — waiting to be served
-  lista: {
-    label: "Lista",
-    className: "bg-green-500/15 text-green-400 ring-1 ring-inset ring-green-500/30",
-  },
-  // Neutral = done
+  // Green = served — food is on the table
   servida: {
     label: "Servida",
+    className: "bg-green-500/15 text-green-400 ring-1 ring-inset ring-green-500/30",
+  },
+  // Neutral = done — payment confirmed
+  finalizada: {
+    label: "Finalizada",
     className: "bg-stone-800/50 text-stone-600 ring-1 ring-inset ring-stone-600/50",
   },
   // Blue = additional items added

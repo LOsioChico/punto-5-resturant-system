@@ -257,14 +257,14 @@ describe("OrdersFeed", () => {
     const orders = [
       makeOrder({ id: "1", status: "nueva" }),
       makeOrder({ id: "2", status: "en_cocina" }),
-      makeOrder({ id: "3", status: "lista" }),
-      makeOrder({ id: "4", status: "servida" }),
+      makeOrder({ id: "3", status: "servida" }),
+      makeOrder({ id: "4", status: "finalizada" }),
     ];
     render(<OrdersFeed orders={orders} selectedId={null} onSelect={() => {}} />);
     expect(screen.getByText("Nueva")).toBeInTheDocument();
     expect(screen.getByText("En cocina")).toBeInTheDocument();
-    expect(screen.getByText("Lista")).toBeInTheDocument();
     expect(screen.getByText("Servida")).toBeInTheDocument();
+    expect(screen.getByText("Finalizada")).toBeInTheDocument();
   });
 
   it("calls onSelect when order is clicked", async () => {

@@ -11,7 +11,7 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable } from "@/lib/utils";
 import { isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
-import { createOrder, addAdditional, editOrder as saveOrderToDb, fetchOrderItems } from "@/lib/mutations";
+import { createOrder, addAdditional, editOrder as saveOrderToDb, fetchOrderItems, advanceOrderStatus } from "@/lib/mutations";
 import { needsItemReload } from "@/lib/realtime";
 import { nowISO } from "@/lib/timezone";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
@@ -200,11 +200,11 @@ export function PosClient() {
 
           // Toast the waiter when their order's status changes
           if (updated.waiter_name === waiterName) {
-            const statusMessages: Record<OrderStatus, { msg: string; variant: "status-nueva" | "status-en_cocina" | "status-lista" | "status-servida" | "status-adicional" }> = {
+            const statusMessages: Record<OrderStatus, { msg: string; variant: "status-nueva" | "status-en_cocina" | "status-servida" | "status-finalizada" | "status-adicional" }> = {
               nueva: { msg: `${tableLabel(updated.table_number)}: pedido recibido`, variant: "status-nueva" },
               en_cocina: { msg: `${tableLabel(updated.table_number)}: pedido en cocina`, variant: "status-en_cocina" },
-              lista: { msg: `${tableLabel(updated.table_number)}: pedido listo para servir`, variant: "status-lista" },
               servida: { msg: `${tableLabel(updated.table_number)}: pedido servido`, variant: "status-servida" },
+              finalizada: { msg: `${tableLabel(updated.table_number)}: pedido finalizado`, variant: "status-finalizada" },
               adicional: { msg: `${tableLabel(updated.table_number)}: adicional agregado`, variant: "status-adicional" },
             };
             const { msg, variant } = statusMessages[updated.status];
@@ -296,7 +296,7 @@ export function PosClient() {
   const tableStatuses = useMemo(() => {
     const map = new Map<number, OrderStatus>();
     for (const order of orders) {
-      if (order.status === "servida") continue; // don't show served tables as busy
+      if (order.status === "finalizada") continue; // don't show finalized tables as busy
       // Keep the latest status per table (orders are sorted desc by created_at)
       if (!map.has(order.table_number)) {
         map.set(order.table_number, order.status);
@@ -309,7 +309,7 @@ export function PosClient() {
   const myActiveOrders = useMemo(
     () =>
       orders.filter(
-        (o) => o.waiter_name === waiterName && o.status !== "servida",
+        (o) => o.waiter_name === waiterName && o.status !== "finalizada",
       ),
     [orders, waiterName],
   );
@@ -428,6 +428,20 @@ export function PosClient() {
     setCart([]);
     setActiveTab("new");
   }, []);
+
+  // Waiter advances order status (en_cocina → servida, or adicional → finalizada)
+  const advanceStatus = useCallback(
+    async (order: Order) => {
+      if (!supabase || !waiterName) return;
+      if (order.status !== "en_cocina" && order.status !== "adicional") return;
+      await advanceOrderStatus(supabase, {
+        orderId: order.id,
+        currentStatus: order.status,
+        actor: { type: "waiter", name: waiterName, id: waiterId },
+      });
+    },
+    [supabase, waiterName, waiterId],
+  );
 
   // Cancel additional — go back to history
   const cancelAdditional = useCallback(() => {
@@ -822,6 +836,7 @@ export function PosClient() {
           waiterName={waiterName}
           onEdit={editOrder}
           onAddAdditional={startAdditional}
+          onAdvanceStatus={advanceStatus}
         />
       )}
     </div>

@@ -85,7 +85,7 @@ function makeEvent(overrides: Partial<OrderEvent> = {}): OrderEvent {
 // ============================================================
 describe("STATUS_FLOW", () => {
   it("has 4 statuses in correct order", () => {
-    expect(STATUS_FLOW).toEqual(["nueva", "en_cocina", "lista", "servida"]);
+    expect(STATUS_FLOW).toEqual(["nueva", "en_cocina", "servida", "finalizada"]);
   });
 });
 
@@ -97,16 +97,16 @@ describe("nextStatus", () => {
     expect(nextStatus("nueva")).toBe("en_cocina");
   });
 
-  it("returns lista for en_cocina", () => {
-    expect(nextStatus("en_cocina")).toBe("lista");
+  it("returns servida for en_cocina", () => {
+    expect(nextStatus("en_cocina")).toBe("servida");
   });
 
-  it("returns servida for lista", () => {
-    expect(nextStatus("lista")).toBe("servida");
+  it("returns finalizada for servida", () => {
+    expect(nextStatus("servida")).toBe("finalizada");
   });
 
-  it("returns null for servida (terminal status)", () => {
-    expect(nextStatus("servida")).toBeNull();
+  it("returns null for finalizada (terminal status)", () => {
+    expect(nextStatus("finalizada")).toBeNull();
   });
 });
 
@@ -118,16 +118,16 @@ describe("advanceActionLabel", () => {
     expect(advanceActionLabel("nueva")).toBe("Enviar a cocina");
   });
 
-  it("returns 'Marcar como lista' for en_cocina", () => {
-    expect(advanceActionLabel("en_cocina")).toBe("Marcar como lista");
+  it("returns 'Marcar como servida' for en_cocina", () => {
+    expect(advanceActionLabel("en_cocina")).toBe("Marcar como servida");
   });
 
-  it("returns 'Marcar como servida' for lista", () => {
-    expect(advanceActionLabel("lista")).toBe("Marcar como servida");
+  it("returns 'Finalizar pedido' for servida", () => {
+    expect(advanceActionLabel("servida")).toBe("Finalizar pedido");
   });
 
-  it("returns empty string for servida", () => {
-    expect(advanceActionLabel("servida")).toBe("");
+  it("returns empty string for finalizada", () => {
+    expect(advanceActionLabel("finalizada")).toBe("");
   });
 });
 
@@ -173,12 +173,12 @@ describe("canEditOrder", () => {
     expect(canEditOrder("en_cocina")).toBe(true);
   });
 
-  it("does not allow editing lista orders", () => {
-    expect(canEditOrder("lista")).toBe(false);
-  });
-
   it("does not allow editing servida orders", () => {
     expect(canEditOrder("servida")).toBe(false);
+  });
+
+  it("does not allow editing finalizada orders", () => {
+    expect(canEditOrder("finalizada")).toBe(false);
   });
 });
 
@@ -194,12 +194,12 @@ describe("isOrderActive", () => {
     expect(isOrderActive("en_cocina")).toBe(true);
   });
 
-  it("returns true for lista", () => {
-    expect(isOrderActive("lista")).toBe(true);
+  it("returns true for servida", () => {
+    expect(isOrderActive("servida")).toBe(true);
   });
 
-  it("returns false for servida", () => {
-    expect(isOrderActive("servida")).toBe(false);
+  it("returns false for finalizada", () => {
+    expect(isOrderActive("finalizada")).toBe(false);
   });
 });
 
@@ -292,8 +292,8 @@ describe("filterByStatus", () => {
   const orders = [
     makeOrder({ id: "1", status: "nueva" }),
     makeOrder({ id: "2", status: "en_cocina" }),
-    makeOrder({ id: "3", status: "lista" }),
-    makeOrder({ id: "4", status: "servida" }),
+    makeOrder({ id: "3", status: "servida" }),
+    makeOrder({ id: "4", status: "finalizada" }),
     makeOrder({ id: "5", status: "nueva" }),
   ];
 
@@ -307,8 +307,8 @@ describe("filterByStatus", () => {
     expect(result.every((o) => o.status === "nueva")).toBe(true);
   });
 
-  it("filters by servida", () => {
-    const result = filterByStatus(orders, "servida");
+  it("filters by finalizada", () => {
+    const result = filterByStatus(orders, "finalizada");
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("4");
   });
@@ -526,24 +526,24 @@ describe("countByStatus", () => {
       makeOrder({ status: "nueva" }),
       makeOrder({ status: "nueva" }),
       makeOrder({ status: "en_cocina" }),
-      makeOrder({ status: "lista" }),
       makeOrder({ status: "servida" }),
-      makeOrder({ status: "servida" }),
-      makeOrder({ status: "servida" }),
+      makeOrder({ status: "finalizada" }),
+      makeOrder({ status: "finalizada" }),
+      makeOrder({ status: "finalizada" }),
     ];
     const counts = countByStatus(orders);
     expect(counts.nueva).toBe(2);
     expect(counts.en_cocina).toBe(1);
-    expect(counts.lista).toBe(1);
-    expect(counts.servida).toBe(3);
+    expect(counts.servida).toBe(1);
+    expect(counts.finalizada).toBe(3);
   });
 
   it("returns all zeros for empty array", () => {
     const counts = countByStatus([]);
     expect(counts.nueva).toBe(0);
     expect(counts.en_cocina).toBe(0);
-    expect(counts.lista).toBe(0);
     expect(counts.servida).toBe(0);
+    expect(counts.finalizada).toBe(0);
   });
 });
 
@@ -551,20 +551,20 @@ describe("countByStatus", () => {
 // calculateRevenue
 // ============================================================
 describe("calculateRevenue", () => {
-  it("sums totals of served orders only", () => {
+  it("sums totals of finalized orders only", () => {
     const orders = [
       makeOrder({ status: "nueva", total: 10000 }),
-      makeOrder({ status: "servida", total: 25000 }),
-      makeOrder({ status: "servida", total: 15000 }),
-      makeOrder({ status: "lista", total: 5000 }),
+      makeOrder({ status: "finalizada", total: 25000 }),
+      makeOrder({ status: "finalizada", total: 15000 }),
+      makeOrder({ status: "servida", total: 5000 }),
     ];
     expect(calculateRevenue(orders)).toBe(40000);
   });
 
-  it("returns 0 when no served orders", () => {
+  it("returns 0 when no finalized orders", () => {
     const orders = [
       makeOrder({ status: "nueva", total: 10000 }),
-      makeOrder({ status: "lista", total: 5000 }),
+      makeOrder({ status: "servida", total: 5000 }),
     ];
     expect(calculateRevenue(orders)).toBe(0);
   });
@@ -582,17 +582,17 @@ describe("getTableStatuses", () => {
     const orders = [
       makeOrder({ table_number: 1, status: "nueva" }),
       makeOrder({ table_number: 2, status: "en_cocina" }),
-      makeOrder({ table_number: 3, status: "lista" }),
+      makeOrder({ table_number: 3, status: "servida" }),
     ];
     const statuses = getTableStatuses(orders);
     expect(statuses.get(1)).toBe("nueva");
     expect(statuses.get(2)).toBe("en_cocina");
-    expect(statuses.get(3)).toBe("lista");
+    expect(statuses.get(3)).toBe("servida");
   });
 
-  it("excludes served orders", () => {
+  it("excludes finalized orders", () => {
     const orders = [
-      makeOrder({ table_number: 1, status: "servida" }),
+      makeOrder({ table_number: 1, status: "finalizada" }),
       makeOrder({ table_number: 2, status: "nueva" }),
     ];
     const statuses = getTableStatuses(orders);
@@ -611,7 +611,7 @@ describe("getTableStatuses", () => {
 describe("sortOrders", () => {
   it("puts active orders before served", () => {
     const orders = [
-      makeOrder({ id: "1", status: "servida", created_at: "2024-01-01T10:00:00Z" }),
+      makeOrder({ id: "1", status: "finalizada", created_at: "2024-01-01T10:00:00Z" }),
       makeOrder({ id: "2", status: "nueva", created_at: "2024-01-01T12:00:00Z" }),
     ];
     const sorted = sortOrders(orders);
@@ -631,8 +631,8 @@ describe("sortOrders", () => {
 
   it("sorts served orders by created_at descending", () => {
     const orders = [
-      makeOrder({ id: "old-served", status: "servida", created_at: "2024-01-01T10:00:00Z" }),
-      makeOrder({ id: "new-served", status: "servida", created_at: "2024-01-01T14:00:00Z" }),
+      makeOrder({ id: "old-served", status: "finalizada", created_at: "2024-01-01T10:00:00Z" }),
+      makeOrder({ id: "new-served", status: "finalizada", created_at: "2024-01-01T14:00:00Z" }),
     ];
     const sorted = sortOrders(orders);
     expect(sorted[0].id).toBe("new-served");
@@ -641,7 +641,7 @@ describe("sortOrders", () => {
 
   it("does not mutate original array", () => {
     const orders = [
-      makeOrder({ id: "1", status: "servida", created_at: "2024-01-01T10:00:00Z" }),
+      makeOrder({ id: "1", status: "finalizada", created_at: "2024-01-01T10:00:00Z" }),
       makeOrder({ id: "2", status: "nueva", created_at: "2024-01-01T12:00:00Z" }),
     ];
     const sorted = sortOrders(orders);
@@ -901,10 +901,10 @@ describe("additionalSubtotal", () => {
 
 describe("sortOrders with adicionals", () => {
   it("prioritizes active orders with adicionals over active orders without", () => {
-    const normal = makeOrder({ id: "normal", status: "lista", created_at: "2026-01-01T10:00:00Z" });
+    const normal = makeOrder({ id: "normal", status: "servida", created_at: "2026-01-01T10:00:00Z" });
     const withAdd = makeOrder({
       id: "with-add",
-      status: "lista",
+      status: "servida",
       created_at: "2026-01-01T09:00:00Z", // earlier than normal
       items: [makeItem({ is_additional: true, additional_number: 1 })],
     });
@@ -912,14 +912,14 @@ describe("sortOrders with adicionals", () => {
     expect(sorted[0].id).toBe("with-add");
   });
 
-  it("does not prioritize served orders with adicionals", () => {
+  it("does not prioritize finalized orders with adicionals", () => {
     const served = makeOrder({
       id: "served",
-      status: "servida",
+      status: "finalizada",
       created_at: "2026-01-01T10:00:00Z",
       items: [makeItem({ is_additional: true, additional_number: 1 })],
     });
-    const active = makeOrder({ id: "active", status: "lista", created_at: "2026-01-01T09:00:00Z" });
+    const active = makeOrder({ id: "active", status: "servida", created_at: "2026-01-01T09:00:00Z" });
     const sorted = sortOrders([served, active]);
     expect(sorted[0].id).toBe("active");
   });

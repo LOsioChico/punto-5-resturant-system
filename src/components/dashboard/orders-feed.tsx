@@ -8,16 +8,16 @@ import { Clock, PencilLine, User, Bike, PlusCircle } from "lucide-react";
 const statusDot: Record<OrderStatus, string> = {
   nueva: "bg-red-500",
   en_cocina: "bg-amber-500",
-  lista: "bg-green-500",
-  servida: "bg-stone-600",
+  servida: "bg-green-500",
+  finalizada: "bg-stone-600",
   adicional: "bg-blue-500",
 };
 
 const statusLabel: Record<OrderStatus, string> = {
   nueva: "Nueva",
   en_cocina: "En cocina",
-  lista: "Lista",
   servida: "Servida",
+  finalizada: "Finalizada",
   adicional: "Adicional",
 };
 
@@ -60,7 +60,7 @@ export function OrdersFeed({
                   ? "bg-stone-800 ring-1 ring-inset ring-yellow-500/40"
                   : order.status === "adicional"
                     ? "bg-blue-500/5 ring-1 ring-inset ring-blue-500/20 hover:bg-blue-500/10"
-                    : hasAdditionals && order.status !== "servida"
+                    : hasAdditionals && order.status !== "finalizada"
                       ? "bg-blue-500/5 ring-1 ring-inset ring-blue-500/20 hover:bg-blue-500/10"
                       : isNew
                         ? "bg-red-500/5 ring-1 ring-inset ring-red-500/20 hover:bg-red-500/10"
@@ -81,7 +81,7 @@ export function OrdersFeed({
                       Nuevo
                     </span>
                   )}
-                  {hasAdditionals && order.status !== "servida" && (
+                  {hasAdditionals && order.status !== "finalizada" && (
                     <span className="flex items-center gap-0.5 rounded bg-blue-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-blue-400">
                       <PlusCircle className="size-2.5" />
                       Adicional

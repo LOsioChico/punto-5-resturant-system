@@ -10,8 +10,8 @@ import { preparePage, dismissErrorOverlay } from "./helpers";
  * 3. Click "Enviar a cocina" → status becomes "en_cocina"
  * 4. Verify undo banner appears
  * 5. Click "Deshacer" → status reverts to "nueva"
- * 6. Advance again: nueva → en_cocina → lista → servida
- * 7. Verify action button disappears at "servida"
+ * 6. Advance again: nueva → en_cocina → servida → finalizada
+ * 7. Verify action button disappears at "finalizada"
  * 8. Verify history shows all status changes
  */
 
@@ -64,7 +64,7 @@ test("admin advances status through all 4 stages with undo", async ({ page, brow
   await expect(page.getByText("Deshacer")).toBeVisible({ timeout: 3000 });
 
   // Verify status changed to "En cocina"
-  await expect(page.getByRole("button", { name: /Marcar como lista/ })).toBeVisible({ timeout: 3000 });
+  await expect(page.getByRole("button", { name: /Marcar como servida/ })).toBeVisible({ timeout: 3000 });
 
   // Wait for the Supabase event insert to complete
   await page.waitForTimeout(1000);
@@ -81,25 +81,25 @@ test("admin advances status through all 4 stages with undo", async ({ page, brow
   // Wait for the undo event insert to complete
   await page.waitForTimeout(1000);
 
-  // Now advance through all statuses: nueva → en_cocina → lista → servida
+  // Now advance through all statuses: nueva → en_cocina → servida → finalizada
   // Step 1: nueva → en_cocina
   await page.getByRole("button", { name: /Enviar a cocina/ }).click();
-  await expect(page.getByRole("button", { name: /Marcar como lista/ })).toBeVisible({ timeout: 3000 });
+  await expect(page.getByRole("button", { name: /Marcar como servida/ })).toBeVisible({ timeout: 3000 });
   // Wait for undo banner to disappear (5s) + event insert
   await expect(page.getByText("Deshacer")).not.toBeVisible({ timeout: 6000 });
   await page.waitForTimeout(1000);
 
-  // Step 2: en_cocina → lista
-  await page.getByRole("button", { name: /Marcar como lista/ }).click();
-  await expect(page.getByRole("button", { name: /Marcar como servida/ })).toBeVisible({ timeout: 3000 });
+  // Step 2: en_cocina → servida
+  await page.getByRole("button", { name: /Marcar como servida/ }).click();
+  await expect(page.getByRole("button", { name: /Finalizar pedido/ })).toBeVisible({ timeout: 3000 });
   await expect(page.getByText("Deshacer")).not.toBeVisible({ timeout: 6000 });
   await page.waitForTimeout(1000);
 
-  // Step 3: lista → servida
-  await page.getByRole("button", { name: /Marcar como servida/ }).click();
+  // Step 3: servida → finalizada
+  await page.getByRole("button", { name: /Finalizar pedido/ }).click();
 
-  // Verify no action button at "servida" status
-  await expect(page.getByRole("button", { name: /Enviar|Marcar/ })).not.toBeVisible({ timeout: 3000 });
+  // Verify no action button at "finalizada" status
+  await expect(page.getByRole("button", { name: /Enviar|Marcar|Finalizar/ })).not.toBeVisible({ timeout: 3000 });
 
   // Wait for the last event insert to complete before reloading
   await page.waitForTimeout(2000);

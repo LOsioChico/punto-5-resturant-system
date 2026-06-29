@@ -121,6 +121,6 @@ test("admin verifies order detail: items, notes, preview, print, history", async
   // All 4 status labels should be visible in the progress bar
   await expect(page.getByText("Nueva").first()).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("En cocina").first()).toBeVisible({ timeout: 5000 });
-  await expect(page.getByText("Lista").first()).toBeVisible({ timeout: 5000 });
   await expect(page.getByText("Servida").first()).toBeVisible({ timeout: 5000 });
+  await expect(page.getByText("Finalizada").first()).toBeVisible({ timeout: 5000 });
 });

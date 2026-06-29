@@ -7,31 +7,31 @@ import { compareDesc } from "date-fns";
 import { fromZonedTime } from "date-fns-tz";
 import { startOfTodayColombia, startOfYesterdayColombia, isOnColombiaDate, COLOMBIA_TZ } from "@/lib/timezone";
 
-export const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
+export const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "servida", "finalizada"];
 
 // Statuses shown in KPI cards and filters (excludes 'adicional')
-export const FILTERABLE_STATUSES: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
+export const FILTERABLE_STATUSES: OrderStatus[] = ["nueva", "en_cocina", "servida", "finalizada"];
 
 export const STATUS_LABELS: Record<OrderStatus, string> = {
   nueva: "Nueva",
   en_cocina: "En cocina",
-  lista: "Lista",
   servida: "Servida",
+  finalizada: "Finalizada",
   adicional: "Adicional",
 };
 
 export const STATUS_LABELS_PLURAL: Record<OrderStatus, string> = {
   nueva: "Nuevas",
   en_cocina: "En cocina",
-  lista: "Listas",
   servida: "Servidas",
+  finalizada: "Finalizadas",
   adicional: "Adicionales",
 };
 
 /** Get the next status in the flow, or null if at the end. */
 export function nextStatus(status: OrderStatus): OrderStatus | null {
-  // 'adicional' is not in STATUS_FLOW — it advances directly to 'lista'
-  if (status === "adicional") return "lista";
+  // 'adicional' is not in STATUS_FLOW — it advances directly to 'finalizada'
+  if (status === "adicional") return "finalizada";
   const idx = STATUS_FLOW.indexOf(status);
   if (idx < 0 || idx >= STATUS_FLOW.length - 1) return null;
   return STATUS_FLOW[idx + 1];
@@ -41,10 +41,10 @@ export function nextStatus(status: OrderStatus): OrderStatus | null {
 export function advanceActionLabel(status: OrderStatus): string {
   const labels: Record<OrderStatus, string> = {
     nueva: "Enviar a cocina",
-    en_cocina: "Marcar como lista",
-    lista: "Marcar como servida",
-    servida: "",
-    adicional: "Marcar como lista",
+    en_cocina: "Marcar como servida",
+    servida: "Finalizar pedido",
+    finalizada: "",
+    adicional: "Finalizar pedido",
   };
   return labels[status];
 }
@@ -59,9 +59,9 @@ export function canEditOrder(status: OrderStatus): boolean {
   return status === "nueva" || status === "en_cocina";
 }
 
-/** Check if an order is active (not served). */
+/** Check if an order is active (not finalized). */
 export function isOrderActive(status: OrderStatus): boolean {
-  return status !== "servida";
+  return status !== "finalizada";
 }
 
 /** Check if an order is in the 'adicional' status. */
@@ -130,29 +130,29 @@ export function getVisibleTables(orders: Order[]): number[] {
   return Array.from(tables).sort((a, b) => a - b);
 }
 
-/** Count orders by status (only filterable statuses — excludes 'adicional'). */
+/** Count orders by status. */
 export function countByStatus(orders: Order[]): Record<OrderStatus, number> {
   return {
     nueva: orders.filter((o) => o.status === "nueva").length,
     en_cocina: orders.filter((o) => o.status === "en_cocina").length,
-    lista: orders.filter((o) => o.status === "lista").length,
     servida: orders.filter((o) => o.status === "servida").length,
+    finalizada: orders.filter((o) => o.status === "finalizada").length,
     adicional: orders.filter((o) => o.status === "adicional").length,
   };
 }
 
-/** Calculate total revenue from served orders. */
+/** Calculate total revenue from finalized orders. */
 export function calculateRevenue(orders: Order[]): number {
   return orders
-    .filter((o) => o.status === "servida")
+    .filter((o) => o.status === "finalizada")
     .reduce((sum, o) => sum + o.total, 0);
 }
 
-/** Build a map of table_number → latest order status (excluding served). */
+/** Build a map of table_number → latest order status (excluding finalized). */
 export function getTableStatuses(orders: Order[]): Map<number, OrderStatus> {
   const map = new Map<number, OrderStatus>();
   for (const order of orders) {
-    if (order.status === "servida") continue;
+    if (order.status === "finalizada") continue;
     // Only set if this order is newer than what's already there
     const existing = map.get(order.table_number);
     if (!existing) {
@@ -196,7 +196,7 @@ export function additionalSubtotal(order: Order, round?: number): number {
   return getAdditionalItems(order, round).reduce((sum, i) => sum + i.price * i.quantity, 0);
 }
 
-/** Sort orders: 'adicional' status first, then active with adicionals, then active, then served. */
+/** Sort orders: 'adicional' status first, then active with adicionals, then active, then finalized. */
 export function sortOrders(orders: Order[]): Order[] {
   return [...orders].sort((a, b) => {
     // 'adicional' status always on top
@@ -204,8 +204,8 @@ export function sortOrders(orders: Order[]): Order[] {
     const bAdicional = b.status === "adicional" ? 0 : 1;
     if (aAdicional !== bAdicional) return aAdicional - bAdicional;
 
-    const aActive = a.status !== "servida" ? 0 : 1;
-    const bActive = b.status !== "servida" ? 0 : 1;
+    const aActive = a.status !== "finalizada" ? 0 : 1;
+    const bActive = b.status !== "finalizada" ? 0 : 1;
     if (aActive !== bActive) return aActive - bActive;
     // Among active orders, prioritize those with adicionals
     if (aActive === 0) {

@@ -26,8 +26,8 @@ import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 const STATUS_LABELS: Record<OrderStatus, string> = {
   nueva: "Nuevas",
   en_cocina: "En cocina",
-  lista: "Listas",
   servida: "Servidas",
+  finalizada: "Finalizadas",
   adicional: "Adicionales",
 };
 
@@ -469,8 +469,8 @@ export function DashboardClient() {
   const counts = {
     nueva: filteredByDate.filter((o) => o.status === "nueva").length,
     en_cocina: filteredByDate.filter((o) => o.status === "en_cocina").length,
-    lista: filteredByDate.filter((o) => o.status === "lista").length,
     servida: filteredByDate.filter((o) => o.status === "servida").length,
+    finalizada: filteredByDate.filter((o) => o.status === "finalizada").length,
   };
 
   const kpiCards: {
@@ -501,22 +501,22 @@ export function DashboardClient() {
       hint: "Preparándose",
     },
     {
-      status: "lista",
-      label: "Listas",
-      value: counts.lista,
-      icon: <CheckCircle2 className="size-5" />,
-      color: "text-green-400",
-      bg: "bg-green-500/10",
-      hint: "Para servir",
-    },
-    {
       status: "servida",
       label: "Servidas",
       value: counts.servida,
+      icon: <CheckCircle2 className="size-5" />,
+      color: "text-green-400",
+      bg: "bg-green-500/10",
+      hint: "En la mesa",
+    },
+    {
+      status: "finalizada",
+      label: "Finalizadas",
+      value: counts.finalizada,
       icon: <Utensils className="size-5" />,
       color: "text-stone-400",
       bg: "bg-stone-900",
-      hint: "Completadas",
+      hint: "Pago confirmado",
     },
   ];
 
