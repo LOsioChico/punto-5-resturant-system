@@ -12,6 +12,8 @@ export function OrderSummary({
   tableNumber,
   deliveryName,
   onDeliveryNameChange,
+  deliveryFee,
+  onDeliveryFeeChange,
   items,
   onInc,
   onDec,
@@ -32,6 +34,8 @@ export function OrderSummary({
   tableNumber: number | null;
   deliveryName: string;
   onDeliveryNameChange: (name: string) => void;
+  deliveryFee: string;
+  onDeliveryFeeChange: (fee: string) => void;
   items: CartItem[];
   onInc: (dishId: string) => void;
   onDec: (dishId: string) => void;
@@ -65,7 +69,8 @@ export function OrderSummary({
   const forceParaLlevar = isDelivery;
   const paraLlevarCount = forceParaLlevar ? itemCount : items.reduce((sum, i) => sum + countParaLlevar(i.notes), 0);
   const desechables = paraLlevarCount * DESECHABLES_PER_DISH;
-  const grandTotal = total + desechables;
+  const fee = isDelivery ? (parseInt(deliveryFee, 10) || 0) : 0;
+  const grandTotal = total + desechables + fee;
   const isEditing = editingOrderId !== null;
 
   // Close notes editor when clicking outside of it.
@@ -96,7 +101,9 @@ export function OrderSummary({
         ? "Selecciona una mesa"
         : isDeliveryTable(tableNumber) && !deliveryName.trim()
           ? "Identifica al cliente"
-          : null;
+          : isDeliveryTable(tableNumber) && !deliveryFee.trim()
+            ? "Ingresa el domicilio"
+            : null;
 
   const showTooltip = () => {
     if (sendDisabledReason) {
@@ -154,15 +161,31 @@ export function OrderSummary({
           </button>
         )}
         </div>
-        {/* Delivery name input — shown when Domicilio (table 18) is selected */}
+        {/* Delivery name + fee inputs — shown when Domicilio (table 18) is selected */}
         {tableNumber !== null && isDeliveryTable(tableNumber) && (
-          <input
-            type="text"
-            value={deliveryName}
-            onChange={(e) => onDeliveryNameChange(e.target.value)}
-            placeholder="Cómo identificar al cliente..."
-            className="mt-3 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
-          />
+          <>
+            <input
+              type="text"
+              value={deliveryName}
+              onChange={(e) => onDeliveryNameChange(e.target.value)}
+              placeholder="Cómo identificar al cliente..."
+              className="mt-3 w-full rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-sm text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
+            />
+            <div className="mt-2 flex items-center gap-2">
+              <span className="text-sm text-stone-500">Domicilio</span>
+              <div className="flex flex-1 items-center rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 focus-within:border-yellow-500/50">
+                <span className="text-sm text-stone-600">$</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={deliveryFee}
+                  onChange={(e) => onDeliveryFeeChange(e.target.value)}
+                  placeholder="0"
+                  className="w-full bg-transparent text-right text-sm font-semibold text-yellow-500 placeholder:text-stone-600 focus:outline-none"
+                />
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -433,6 +456,15 @@ export function OrderSummary({
             </span>
             <span className="text-sm font-semibold text-yellow-500/70">
               {formatCOP(desechables)}
+            </span>
+          </div>
+        )}
+        {/* Delivery fee breakdown */}
+        {isDelivery && fee > 0 && (
+          <div className="mb-3 flex items-center justify-between border-b border-white/5 pb-3">
+            <span className="text-xs text-yellow-500/70">Domicilio</span>
+            <span className="text-sm font-semibold text-yellow-500/70">
+              {formatCOP(fee)}
             </span>
           </div>
         )}

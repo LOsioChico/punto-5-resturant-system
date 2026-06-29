@@ -21,6 +21,8 @@ const defaultProps = {
   tableNumber: 5 as number | null,
   deliveryName: "",
   onDeliveryNameChange: vi.fn(),
+  deliveryFee: "",
+  onDeliveryFeeChange: vi.fn(),
   items: [] as CartItem[],
   onInc: vi.fn(),
   onDec: vi.fn(),
@@ -45,6 +47,7 @@ function renderSummary(overrides: Partial<typeof defaultProps> = {}) {
   props.onInc.mockClear();
   props.onDec.mockClear();
   props.onDeliveryNameChange.mockClear();
+  props.onDeliveryFeeChange.mockClear();
   props.onRemove.mockClear();
   props.onClear.mockClear();
   props.onSend.mockClear();
@@ -413,6 +416,36 @@ describe("OrderSummary — send button", () => {
     const user = userEvent.setup();
     const onSend = vi.fn();
     renderSummary({ items: [makeItem()], tableNumber: 5, onSend });
+    await user.click(screen.getByRole("button", { name: /Enviar a cocina/ }));
+    expect(onSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("disables send for delivery without delivery fee", async () => {
+    const user = userEvent.setup();
+    const onSend = vi.fn();
+    renderSummary({
+      items: [makeItem()],
+      tableNumber: 18,
+      deliveryName: "Carlos",
+      deliveryFee: "",
+      onSend,
+    });
+    const btn = screen.getByRole("button", { name: /Enviar a cocina/ });
+    await user.click(btn);
+    expect(onSend).not.toHaveBeenCalled();
+    expect(screen.getByText("Ingresa el domicilio")).toBeInTheDocument();
+  });
+
+  it("enables send for delivery with name and fee", async () => {
+    const user = userEvent.setup();
+    const onSend = vi.fn();
+    renderSummary({
+      items: [makeItem()],
+      tableNumber: 18,
+      deliveryName: "Carlos",
+      deliveryFee: "5000",
+      onSend,
+    });
     await user.click(screen.getByRole("button", { name: /Enviar a cocina/ }));
     expect(onSend).toHaveBeenCalledTimes(1);
   });

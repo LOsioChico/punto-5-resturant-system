@@ -48,6 +48,7 @@ export function PosClient() {
   const [activeTab, setActiveTab] = useState<PosTab>("new");
   const [selectedTable, setSelectedTable] = useState<number | null>(null);
   const [deliveryName, setDeliveryName] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [sending, setSending] = useState(false);
@@ -413,6 +414,7 @@ export function PosClient() {
       setEditingOrderId(order.id);
       setSelectedTable(order.table_number);
       setDeliveryName(order.delivery_name ?? "");
+      setDeliveryFee(order.delivery_fee ? String(order.delivery_fee) : "");
       setEditInitialCart(initialCart);
       setCart(initialCart);
       setActiveTab("new");
@@ -427,6 +429,7 @@ export function PosClient() {
     setCart([]);
     setSelectedTable(null);
     setDeliveryName("");
+    setDeliveryFee("");
     setActiveTab("history");
   }, []);
 
@@ -435,6 +438,7 @@ export function PosClient() {
     setAdditionalOrderId(order.id);
     setSelectedTable(order.table_number);
     setDeliveryName(order.delivery_name ?? "");
+    setDeliveryFee("");
     setCart([]);
     setActiveTab("new");
   }, []);
@@ -500,6 +504,11 @@ export function PosClient() {
       toast("Identifica al cliente para el domicilio", "error");
       return;
     }
+    // Delivery orders require a delivery fee
+    if (isDeliveryTable(selectedTable) && !deliveryFee.trim()) {
+      toast("Ingresa el valor del domicilio", "error");
+      return;
+    }
     setSending(true);
 
     const result = await createOrder(supabase, {
@@ -507,6 +516,7 @@ export function PosClient() {
       waiterName,
       waiterId,
       deliveryName,
+      deliveryFee: parseInt(deliveryFee, 10) || 0,
       cart,
       actor: { type: "waiter", name: waiterName, id: authId },
     });
@@ -520,8 +530,9 @@ export function PosClient() {
     toast(`Pedido enviado a cocina — ${tableLabel(selectedTable)}`, "success");
     setCart([]);
     setDeliveryName("");
+    setDeliveryFee("");
     setSending(false);
-  }, [supabase, waiterName, waiterId, authId, selectedTable, cart, deliveryName, toast]);
+  }, [supabase, waiterName, waiterId, authId, selectedTable, cart, deliveryName, deliveryFee, toast]);
 
   // Send additional items to a served order
   const sendAdditional = useCallback(async () => {
@@ -595,6 +606,7 @@ export function PosClient() {
       originalOrder: original,
       tableNumber: selectedTable!,
       deliveryName,
+      deliveryFee: parseInt(deliveryFee, 10) || 0,
       actor: { type: "waiter", name: waiterName, id: authId },
     });
 
@@ -610,9 +622,10 @@ export function PosClient() {
     setEditInitialCart(null);
     setSelectedTable(null);
     setDeliveryName("");
+    setDeliveryFee("");
     setSending(false);
     setActiveTab("history");
-  }, [supabase, waiterName, authId, editingOrderId, cart, orders, selectedTable, deliveryName, toast]);
+  }, [supabase, waiterName, authId, editingOrderId, cart, orders, selectedTable, deliveryName, deliveryFee, toast]);
 
   // --- Render ---
 
@@ -830,6 +843,8 @@ export function PosClient() {
               tableNumber={selectedTable}
               deliveryName={deliveryName}
               onDeliveryNameChange={setDeliveryName}
+              deliveryFee={deliveryFee}
+              onDeliveryFeeChange={setDeliveryFee}
               items={cart}
               onInc={incItem}
               onDec={decItem}

@@ -87,15 +87,17 @@ export async function createOrder(
     waiterName: string;
     waiterId: string;
     deliveryName: string;
+    deliveryFee: number;
     cart: CartItem[];
     actor: Actor;
   },
 ): Promise<Result<{ orderId: string; total: number }>> {
-  const { tableNumber, waiterName, waiterId, deliveryName, cart, actor } = params;
+  const { tableNumber, waiterName, waiterId, deliveryName, deliveryFee, cart, actor } = params;
 
   const desechables = calcDesechables(tableNumber, cart);
-  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0) + desechables;
   const isDelivery = isDeliveryTable(tableNumber);
+  const fee = isDelivery ? deliveryFee : 0;
+  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0) + desechables + fee;
 
   // 1. Insert order
   const { data: order, error: orderErr } = await supabase
@@ -107,6 +109,7 @@ export async function createOrder(
       status: "nueva",
       total,
       delivery_name: isDelivery ? deliveryName.trim() : null,
+      delivery_fee: fee,
     })
     .select("id")
     .single();
@@ -232,13 +235,16 @@ export async function editOrder(
     originalOrder: Order;
     tableNumber: number;
     deliveryName: string;
+    deliveryFee: number;
     actor: Actor;
   },
 ): Promise<Result<{ total: number }>> {
-  const { orderId, cart, originalOrder, tableNumber, deliveryName, actor } = params;
+  const { orderId, cart, originalOrder, tableNumber, deliveryName, deliveryFee, actor } = params;
 
   const desechables = calcDesechables(tableNumber, cart);
-  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0) + desechables;
+  const isDelivery = isDeliveryTable(tableNumber);
+  const fee = isDelivery ? deliveryFee : 0;
+  const total = cart.reduce((s, i) => s + i.price * i.quantity, 0) + desechables + fee;
   const oldItems = originalOrder.items ?? [];
 
   // Build maps by dish_id for diffing
@@ -343,6 +349,7 @@ export async function editOrder(
     .update({
       total,
       delivery_name: isDeliveryTable(tableNumber) ? deliveryName.trim() : null,
+      delivery_fee: isDeliveryTable(tableNumber) ? fee : 0,
       updated_by: actor.name,
       updated_at: now,
       updated_by_type: actor.type,
