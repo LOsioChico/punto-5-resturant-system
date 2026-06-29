@@ -256,9 +256,9 @@ export function PosClient() {
     // we rely on Supabase's native presence leave detection.
     const heartbeat = setInterval(track, 15_000);
 
-    // Re-track when tab becomes visible again (in case the WebSocket
-    // was dropped while backgrounded)
-    const handleVisibilityChange = () => {
+    // Re-track when tab becomes visible or window regains focus
+    // (in case the WebSocket was dropped while backgrounded)
+    const handleRejoin = () => {
       if (document.visibilityState === "visible") {
         track();
       }
@@ -269,13 +269,15 @@ export function PosClient() {
       channel.untrack();
     };
 
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    document.addEventListener("visibilitychange", handleRejoin);
+    window.addEventListener("focus", handleRejoin);
     window.addEventListener("pagehide", handleUnload);
     window.addEventListener("beforeunload", handleUnload);
 
     return () => {
       clearInterval(heartbeat);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      document.removeEventListener("visibilitychange", handleRejoin);
+      window.removeEventListener("focus", handleRejoin);
       window.removeEventListener("pagehide", handleUnload);
       window.removeEventListener("beforeunload", handleUnload);
       channel.untrack();

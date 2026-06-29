@@ -299,20 +299,8 @@ export function DashboardClient() {
     // no "leave" event fires (network drop, app killed by OS, etc.)
     const poll = setInterval(syncWaiters, 10_000);
 
-    // Re-sync immediately when the tab regains focus — the admin was
-    // away and may have missed presence changes.
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        syncWaiters();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-    window.addEventListener("focus", handleVisibilityChange);
-
     return () => {
       clearInterval(poll);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
-      window.removeEventListener("focus", handleVisibilityChange);
       supabase.removeChannel(channel);
     };
   }, [supabase, adminId, adminName]);
