@@ -54,68 +54,79 @@ export function DashboardClient() {
     toStatus: OrderStatus;
   } | null>(null);
 
-  useEffect(() => {
+  // Fetch all orders with items from the DB. Used for both the initial
+  // load and as a polling fallback (every 15s) in case realtime events
+  // are dropped — which happens in practice on Supabase.
+  const refreshOrders = useCallback(async () => {
     if (!supabase) return;
-    (async () => {
-      // If offline, load from cache
-      if (!navigator.onLine) {
-        const cached = await loadCachedOrders<Order>();
-        if (cached && cached.length > 0) {
-          setOrders(cached);
-        }
-        setLoading(false);
-        return;
+
+    // If offline, load from cache
+    if (!navigator.onLine) {
+      const cached = await loadCachedOrders<Order>();
+      if (cached && cached.length > 0) {
+        setOrders(cached);
       }
-
-      const { data: orderRows, error: orderErr } = await supabase
-        .from("orders")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (orderErr) {
-        // Network error — try cache
-        if (orderErr.message.includes("Failed to fetch") || orderErr.message.includes("network")) {
-          const cached = await loadCachedOrders<Order>();
-          if (cached) setOrders(cached);
-        } else {
-          setError(orderErr.message);
-        }
-        setLoading(false);
-        return;
-      }
-
-      if (!orderRows || orderRows.length === 0) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: itemRows, error: itemErr } = await supabase
-        .from("order_items")
-        .select("*, dishes(categories(name))")
-        .in("order_id", orderRows.map((o) => o.id));
-
-      if (itemErr) {
-        setError(itemErr.message);
-        setLoading(false);
-        return;
-      }
-
-      const ordersWithItems: Order[] = orderRows.map((o) => ({
-        ...o,
-        items: (itemRows ?? [])
-          .filter((i) => i.order_id === o.id)
-          .map((i) => ({
-            ...i,
-            category_name: i.dishes?.categories?.name ?? null,
-          })),
-      }));
-
-      setOrders(ordersWithItems);
-      cacheOrders(ordersWithItems); // persist for offline use
       setLoading(false);
-    })();
-  }, [supabase, adminId, adminName]);
+      return;
+    }
+
+    const { data: orderRows, error: orderErr } = await supabase
+      .from("orders")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (orderErr) {
+      // Network error — try cache
+      if (orderErr.message.includes("Failed to fetch") || orderErr.message.includes("network")) {
+        const cached = await loadCachedOrders<Order>();
+        if (cached) setOrders(cached);
+      } else {
+        setError(orderErr.message);
+      }
+      setLoading(false);
+      return;
+    }
+
+    if (!orderRows || orderRows.length === 0) {
+      setLoading(false);
+      return;
+    }
+
+    const { data: itemRows, error: itemErr } = await supabase
+      .from("order_items")
+      .select("*, dishes(categories(name))")
+      .in("order_id", orderRows.map((o) => o.id));
+
+    if (itemErr) {
+      setError(itemErr.message);
+      setLoading(false);
+      return;
+    }
+
+    const ordersWithItems: Order[] = orderRows.map((o) => ({
+      ...o,
+      items: (itemRows ?? [])
+        .filter((i) => i.order_id === o.id)
+        .map((i) => ({
+          ...i,
+          category_name: i.dishes?.categories?.name ?? null,
+        })),
+    }));
+
+    setOrders(ordersWithItems);
+    cacheOrders(ordersWithItems); // persist for offline use
+    setLoading(false);
+  }, [supabase]);
+
+  // Initial load + polling fallback (every 15s).
+  // Realtime is still active for instant updates, but polling ensures
+  // the dashboard never gets stale if realtime events are dropped.
+  useEffect(() => {
+    refreshOrders();
+    const interval = setInterval(refreshOrders, 15_000);
+    return () => clearInterval(interval);
+  }, [refreshOrders]);
 
   // Keep IndexedDB cache in sync with orders state
   useEffect(() => {
@@ -264,14 +275,17 @@ export function DashboardClient() {
       setEvents([]);
       return;
     }
-    (async () => {
+
+    const loadEvents = async () => {
       const { data } = await supabase
         .from("order_events")
         .select("*")
         .eq("order_id", selectedId)
         .order("created_at", { ascending: true });
       setEvents((data as OrderEvent[]) ?? []);
-    })();
+    };
+
+    loadEvents();
 
     const channel = supabase
       .channel(`events-${selectedId}`)
@@ -289,7 +303,11 @@ export function DashboardClient() {
       )
       .subscribe();
 
+    // Polling fallback for events (every 15s) — same reason as orders polling.
+    const interval = setInterval(loadEvents, 15_000);
+
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(channel);
     };
   }, [supabase, selectedId]);
