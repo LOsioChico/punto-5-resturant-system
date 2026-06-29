@@ -158,7 +158,12 @@ export function DashboardClient() {
           const updated = payload.new as Order;
 
           // Reload items if a waiter modified the order (items may have changed)
-          if (updated.updated_by_type === "waiter" && updated.updated_at) {
+          // or if the status changed to "adicional" (additional items were added)
+          const needsItemReload =
+            (updated.updated_by_type === "waiter" && updated.updated_at) ||
+            updated.status === "adicional";
+
+          if (needsItemReload) {
             // Small delay to ensure replication has caught up (items were
             // inserted before the order UPDATE, but Supabase realtime
             // may still be propagating)

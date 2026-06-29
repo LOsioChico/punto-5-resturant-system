@@ -165,7 +165,12 @@ export function PosClient() {
           const updated = payload.new as Order;
 
           // Reload items if the order was modified by a waiter (items may have changed)
-          if (updated.updated_by_type === "waiter" && updated.updated_at) {
+          // or if the status changed to "adicional" (additional items were added)
+          const needsItemReload =
+            (updated.updated_by_type === "waiter" && updated.updated_at) ||
+            updated.status === "adicional";
+
+          if (needsItemReload) {
             // Small delay to ensure replication has caught up
             await new Promise((r) => setTimeout(r, 300));
             const { data: items } = await supabase
@@ -622,6 +627,32 @@ export function PosClient() {
     if (eventErr) {
       console.error("Failed to log additional_added event:", eventErr);
     }
+
+    // Optimistically update local state — fetch the full item list
+    // (original + additional) so the waiter sees the change immediately
+    // without waiting for the realtime subscription.
+    const { data: updatedItems } = await supabase
+      .from("order_items")
+      .select("*, dishes(categories(name))")
+      .eq("order_id", additionalOrderId);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === additionalOrderId
+          ? {
+              ...o,
+              status: "adicional" as OrderStatus,
+              total: newTotal,
+              updated_by: waiterName,
+              updated_at: now,
+              updated_by_type: "waiter",
+              items: (updatedItems ?? []).map((i) => ({
+                ...i,
+                category_name: i.dishes?.categories?.name ?? null,
+              })),
+            }
+          : o,
+      ),
+    );
 
     toast(`Adicional #${nextRound} enviado a cocina — ${tableLabel(original.table_number)}`, "success");
     setCart([]);
