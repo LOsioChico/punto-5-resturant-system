@@ -24,16 +24,6 @@ export default function WaiterLoginPage() {
     if (role === "waiter") router.replace("/pos");
   }, [role, authLoading, router]);
 
-  // Show spinner while checking auth state — prevents flashing the
-  // login form for already-authenticated waiters
-  if (authLoading || role === "waiter") {
-    return (
-      <div className="flex min-h-dvh items-center justify-center bg-stone-950">
-        <Loader2 className="size-8 animate-spin text-stone-600" />
-      </div>
-    );
-  }
-
   // Validate cédula before moving to PIN step
   const handleCedulaSubmit = useCallback(async () => {
     if (!cedula || loading) return;
@@ -116,6 +106,16 @@ export default function WaiterLoginPage() {
       router.push("/");
     }
   }, [step, router]);
+
+  // Show spinner while checking auth state — prevents flashing the
+  // login form for already-authenticated waiters
+  if (authLoading || role === "waiter") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-stone-950">
+        <Loader2 className="size-8 animate-spin text-stone-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-dvh flex-col bg-stone-950">
