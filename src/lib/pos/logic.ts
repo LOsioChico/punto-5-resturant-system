@@ -99,6 +99,44 @@ export function countParaLlevar(notes: string[]): number {
   return notes.filter(isParaLlevar).length;
 }
 
+/** Remove "Para llevar" from a comma-separated note string. */
+export function removeParaLlevar(note: string): string {
+  if (!note.trim()) return note;
+  const parts = note.split(",").map((p) => p.trim()).filter((p) => p.toLowerCase() !== "para llevar");
+  return parts.join(", ");
+}
+
+/** Add "Para llevar" to a note if it doesn't already have it. */
+export function addParaLlevar(note: string): string {
+  if (isParaLlevar(note)) return note;
+  const parts = note.split(",").map((p) => p.trim()).filter(Boolean);
+  return [...parts, "Para llevar"].join(", ");
+}
+
+/**
+ * Sync cart item notes when the table changes.
+ * - Switching TO delivery: add "Para llevar" to all notes that don't have it
+ * - Switching FROM delivery to a regular table: remove "Para llevar" from all notes
+ * - Switching between regular tables: no change
+ * Returns the new notes array, or the original if no change is needed.
+ */
+export function syncNotesForTableChange(
+  notes: string[],
+  isDelivery: boolean,
+  wasDelivery: boolean,
+): string[] {
+  if (isDelivery) {
+    const needsUpdate = notes.some((n) => !isParaLlevar(n));
+    if (!needsUpdate) return notes;
+    return notes.map(addParaLlevar);
+  }
+  // Only strip when switching FROM delivery to a regular table
+  if (!wasDelivery) return notes;
+  const hasParaLlevar = notes.some((n) => isParaLlevar(n));
+  if (!hasParaLlevar) return notes;
+  return notes.map(removeParaLlevar);
+}
+
 /**
  * Normalize notes for comparison: trim each entry, drop trailing empty entries.
  */

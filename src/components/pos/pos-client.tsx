@@ -10,7 +10,7 @@ import { usePushSubscription } from "@/lib/hooks/use-push-subscription";
 import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import { tableLabel, isDeliveryTable, DESECHABLES_PER_DISH } from "@/lib/utils";
-import { countParaLlevar, isParaLlevar } from "@/lib/pos/logic";
+import { countParaLlevar, isParaLlevar, syncNotesForTableChange } from "@/lib/pos/logic";
 import type { Category, Dish, Order, OrderStatus } from "@/lib/types";
 import { TableSelector } from "./table-selector";
 import { CategoryList } from "./category-list";
@@ -64,30 +64,13 @@ export function PosClient() {
     const isDelivery = isDeliveryTable(selectedTable);
     const wasDelivery = prevTable !== null && isDeliveryTable(prevTable);
     setCart((prev) => {
-      if (isDelivery) {
-        // Add "Para llevar" to every note that doesn't already have it
-        const needsUpdate = prev.some((i) => i.notes.some((n) => !isParaLlevar(n)));
-        if (!needsUpdate) return prev;
-        return prev.map((i) => ({
-          ...i,
-          notes: i.notes.map((n) => {
-            if (isParaLlevar(n)) return n;
-            const parts = n.split(",").map((p) => p.trim()).filter(Boolean);
-            return [...parts, "Para llevar"].join(", ");
-          }),
-        }));
-      }
-      // Only strip "Para llevar" when switching FROM delivery to a regular table
-      if (!wasDelivery) return prev;
-      const hasParaLlevar = prev.some((i) => i.notes.some((n) => isParaLlevar(n)));
-      if (!hasParaLlevar) return prev;
+      const needsChange = prev.some((i) =>
+        JSON.stringify(i.notes) !== JSON.stringify(syncNotesForTableChange(i.notes, isDelivery, wasDelivery)),
+      );
+      if (!needsChange) return prev;
       return prev.map((i) => ({
         ...i,
-        notes: i.notes.map((n) => {
-          if (!n.trim()) return n;
-          const parts = n.split(",").map((p) => p.trim()).filter((p) => p.toLowerCase() !== "para llevar");
-          return parts.join(", ");
-        }),
+        notes: syncNotesForTableChange(i.notes, isDelivery, wasDelivery),
       }));
     });
   }, [selectedTable]);

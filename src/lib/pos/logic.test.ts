@@ -7,6 +7,9 @@ import {
   countParaLlevar,
   normalizeNote,
   allNotesSame,
+  removeParaLlevar,
+  addParaLlevar,
+  syncNotesForTableChange,
   type CartItem,
 } from "./logic";
 
@@ -323,5 +326,114 @@ describe("allNotesSame", () => {
 
   it("returns true for single unit", () => {
     expect(allNotesSame(["Para llevar"])).toBe(true);
+  });
+});
+
+describe("removeParaLlevar", () => {
+  it("removes 'Para llevar' from a comma-separated note", () => {
+    expect(removeParaLlevar("Sin cebolla, Para llevar")).toBe("Sin cebolla");
+  });
+
+  it("removes 'Para llevar' when it's the only note", () => {
+    expect(removeParaLlevar("Para llevar")).toBe("");
+  });
+
+  it("is case-insensitive", () => {
+    expect(removeParaLlevar("Sin cebolla, para llevar")).toBe("Sin cebolla");
+    expect(removeParaLlevar("Sin cebolla, PARA LLEVAR")).toBe("Sin cebolla");
+  });
+
+  it("leaves other notes unchanged", () => {
+    expect(removeParaLlevar("Sin cebolla")).toBe("Sin cebolla");
+  });
+
+  it("leaves empty string unchanged", () => {
+    expect(removeParaLlevar("")).toBe("");
+  });
+
+  it("removes only 'Para llevar', keeps multiple other notes", () => {
+    expect(removeParaLlevar("Sin cebolla, Sin salsas, Para llevar")).toBe("Sin cebolla, Sin salsas");
+  });
+});
+
+describe("addParaLlevar", () => {
+  it("adds 'Para llevar' to an empty note", () => {
+    expect(addParaLlevar("")).toBe("Para llevar");
+  });
+
+  it("adds 'Para llevar' to an existing note", () => {
+    expect(addParaLlevar("Sin cebolla")).toBe("Sin cebolla, Para llevar");
+  });
+
+  it("does not duplicate 'Para llevar' if already present", () => {
+    expect(addParaLlevar("Para llevar")).toBe("Para llevar");
+    expect(addParaLlevar("Sin cebolla, Para llevar")).toBe("Sin cebolla, Para llevar");
+  });
+});
+
+describe("syncNotesForTableChange", () => {
+  // === Switching TO delivery ===
+  it("adds 'Para llevar' to empty notes when switching to delivery", () => {
+    const result = syncNotesForTableChange(["", ""], true, false);
+    expect(result).toEqual(["Para llevar", "Para llevar"]);
+  });
+
+  it("adds 'Para llevar' to non-empty notes when switching to delivery", () => {
+    const result = syncNotesForTableChange(["Sin cebolla", ""], true, false);
+    expect(result).toEqual(["Sin cebolla, Para llevar", "Para llevar"]);
+  });
+
+  it("does not change notes that already have 'Para llevar' when switching to delivery", () => {
+    const notes = ["Para llevar", "Sin cebolla, Para llevar"];
+    const result = syncNotesForTableChange(notes, true, false);
+    expect(result).toBe(notes); // same reference, no change
+  });
+
+  it("adds to all units when switching to delivery with mixed notes", () => {
+    const result = syncNotesForTableChange(["Sin cebolla", "", "Para llevar"], true, false);
+    expect(result).toEqual(["Sin cebolla, Para llevar", "Para llevar", "Para llevar"]);
+  });
+
+  // === Switching FROM delivery to a regular table ===
+  it("removes 'Para llevar' when switching from delivery to a regular table", () => {
+    const result = syncNotesForTableChange(["Para llevar", "Sin cebolla, Para llevar"], false, true);
+    expect(result).toEqual(["", "Sin cebolla"]);
+  });
+
+  it("removes 'Para llevar' leaving empty when it was the only note", () => {
+    const result = syncNotesForTableChange(["Para llevar", "Para llevar"], false, true);
+    expect(result).toEqual(["", ""]);
+  });
+
+  it("does not change notes without 'Para llevar' when switching from delivery", () => {
+    const notes = ["Sin cebolla", ""];
+    const result = syncNotesForTableChange(notes, false, true);
+    expect(result).toBe(notes); // same reference, no change
+  });
+
+  // === Switching between regular tables ===
+  it("does not change notes when switching between regular tables", () => {
+    const notes = ["Sin cebolla", "Para llevar"];
+    const result = syncNotesForTableChange(notes, false, false);
+    expect(result).toBe(notes); // same reference, no change
+  });
+
+  it("does not strip 'Para llevar' when switching table 5 to table 3", () => {
+    const notes = ["Para llevar", "Sin cebolla, Para llevar"];
+    const result = syncNotesForTableChange(notes, false, false);
+    expect(result).toBe(notes); // same reference — "Para llevar" stays
+  });
+
+  // === Edge cases ===
+  it("handles empty notes array", () => {
+    expect(syncNotesForTableChange([], true, false)).toEqual([]);
+    expect(syncNotesForTableChange([], false, true)).toEqual([]);
+    expect(syncNotesForTableChange([], false, false)).toEqual([]);
+  });
+
+  it("handles delivery to delivery (no change needed)", () => {
+    const notes = ["Para llevar", "Para llevar"];
+    const result = syncNotesForTableChange(notes, true, true);
+    expect(result).toBe(notes); // same reference
   });
 });
