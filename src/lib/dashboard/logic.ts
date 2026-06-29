@@ -4,7 +4,8 @@
 
 import type { Order, OrderItem, OrderStatus } from "@/lib/types";
 import { compareDesc } from "date-fns";
-import { startOfTodayColombia, startOfYesterdayColombia, isOnColombiaDate } from "@/lib/timezone";
+import { fromZonedTime } from "date-fns-tz";
+import { startOfTodayColombia, startOfYesterdayColombia, isOnColombiaDate, COLOMBIA_TZ } from "@/lib/timezone";
 
 export const STATUS_FLOW: OrderStatus[] = ["nueva", "en_cocina", "lista", "servida"];
 
@@ -68,13 +69,19 @@ export function isAdicional(status: OrderStatus): boolean {
   return status === "adicional";
 }
 
-/** Filter orders by date (today, yesterday, or all) in Colombia timezone. */
+/** Filter orders by date (today, yesterday, specific date, or all) in Colombia timezone. */
 export function filterByDate(
   orders: Order[],
-  filter: "today" | "yesterday" | "all",
+  filter: "today" | "yesterday" | "all" | { specific: string },
   now: Date = new Date(),
 ): Order[] {
   if (filter === "all") return orders;
+  if (typeof filter === "object") {
+    // Specific date — parse as Colombia midnight
+    const [y, m, d] = filter.specific.split("-").map(Number);
+    const target = fromZonedTime(new Date(y, m - 1, d), COLOMBIA_TZ);
+    return orders.filter((o) => isOnColombiaDate(o.created_at, target));
+  }
   const target = filter === "today"
     ? startOfTodayColombia(now)
     : startOfYesterdayColombia(now);
@@ -93,10 +100,34 @@ export function filterByWaiter(orders: Order[], waiterName: string | null): Orde
   return orders.filter((o) => o.waiter_name === waiterName);
 }
 
+/** Filter orders by table number. */
+export function filterByTable(orders: Order[], table: number | null): Order[] {
+  if (table === null) return orders;
+  return orders.filter((o) => o.table_number === table);
+}
+
+/** Search orders by dish name, table number, or waiter name. */
+export function searchOrders(orders: Order[], query: string): Order[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return orders;
+  return orders.filter((o) => {
+    if (o.waiter_name.toLowerCase().includes(q)) return true;
+    if (String(o.table_number).includes(q)) return true;
+    if (o.delivery_name?.toLowerCase().includes(q)) return true;
+    return o.items.some((i) => i.dish_name.toLowerCase().includes(q));
+  });
+}
+
 /** Get unique waiter names from orders, sorted alphabetically. */
 export function getVisibleWaiters(orders: Order[]): string[] {
   const names = new Set(orders.map((o) => o.waiter_name));
   return Array.from(names).sort();
+}
+
+/** Get unique table numbers from orders, sorted ascending. */
+export function getVisibleTables(orders: Order[]): number[] {
+  const tables = new Set(orders.map((o) => o.table_number));
+  return Array.from(tables).sort((a, b) => a - b);
 }
 
 /** Count orders by status (only filterable statuses — excludes 'adicional'). */

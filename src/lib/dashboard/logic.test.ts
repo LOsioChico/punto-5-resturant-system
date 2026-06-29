@@ -9,7 +9,10 @@ import {
   filterByDate,
   filterByStatus,
   filterByWaiter,
+  filterByTable,
+  searchOrders,
   getVisibleWaiters,
+  getVisibleTables,
   countByStatus,
   calculateRevenue,
   getTableStatuses,
@@ -365,6 +368,152 @@ describe("getVisibleWaiters", () => {
   it("handles single waiter", () => {
     const orders = [makeOrder({ waiter_name: "Juan" }), makeOrder({ waiter_name: "Juan" })];
     expect(getVisibleWaiters(orders)).toEqual(["Juan"]);
+  });
+});
+
+// ============================================================
+// filterByTable
+// ============================================================
+describe("filterByTable", () => {
+  const orders = [
+    makeOrder({ id: "1", table_number: 5 }),
+    makeOrder({ id: "2", table_number: 18 }),
+    makeOrder({ id: "3", table_number: 5 }),
+  ];
+
+  it("returns all when table is null", () => {
+    expect(filterByTable(orders, null)).toHaveLength(3);
+  });
+
+  it("filters by table number", () => {
+    const result = filterByTable(orders, 5);
+    expect(result).toHaveLength(2);
+    expect(result.every((o) => o.table_number === 5)).toBe(true);
+  });
+
+  it("filters delivery table (18)", () => {
+    const result = filterByTable(orders, 18);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("2");
+  });
+
+  it("returns empty when table has no orders", () => {
+    expect(filterByTable(orders, 99)).toHaveLength(0);
+  });
+});
+
+// ============================================================
+// searchOrders
+// ============================================================
+describe("searchOrders", () => {
+  const orders = [
+    makeOrder({
+      id: "1",
+      table_number: 5,
+      waiter_name: "Juan",
+      items: [makeItem({ dish_name: "Hamburguesa" })],
+    }),
+    makeOrder({
+      id: "2",
+      table_number: 18,
+      waiter_name: "Pedro",
+      delivery_name: "Carlos",
+      items: [makeItem({ dish_name: "Pizza" })],
+    }),
+  ];
+
+  it("returns all when query is empty", () => {
+    expect(searchOrders(orders, "")).toHaveLength(2);
+  });
+
+  it("returns all when query is whitespace", () => {
+    expect(searchOrders(orders, "   ")).toHaveLength(2);
+  });
+
+  it("searches by dish name", () => {
+    const result = searchOrders(orders, "hamburguesa");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("1");
+  });
+
+  it("searches by table number", () => {
+    const result = searchOrders(orders, "18");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("2");
+  });
+
+  it("searches by waiter name", () => {
+    const result = searchOrders(orders, "juan");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("1");
+  });
+
+  it("searches by delivery name", () => {
+    const result = searchOrders(orders, "carlos");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("2");
+  });
+
+  it("search is case-insensitive", () => {
+    expect(searchOrders(orders, "HAMBURGUESA")).toHaveLength(1);
+    expect(searchOrders(orders, "PIZZA")).toHaveLength(1);
+  });
+
+  it("returns empty for no matches", () => {
+    expect(searchOrders(orders, "sushi")).toHaveLength(0);
+  });
+});
+
+// ============================================================
+// getVisibleTables
+// ============================================================
+describe("getVisibleTables", () => {
+  it("returns unique sorted table numbers", () => {
+    const orders = [
+      makeOrder({ table_number: 5 }),
+      makeOrder({ table_number: 18 }),
+      makeOrder({ table_number: 5 }),
+      makeOrder({ table_number: 3 }),
+    ];
+    expect(getVisibleTables(orders)).toEqual([3, 5, 18]);
+  });
+
+  it("returns empty for empty orders", () => {
+    expect(getVisibleTables([])).toEqual([]);
+  });
+
+  it("handles single table", () => {
+    const orders = [makeOrder({ table_number: 5 }), makeOrder({ table_number: 5 })];
+    expect(getVisibleTables(orders)).toEqual([5]);
+  });
+});
+
+// ============================================================
+// filterByDate — specific date
+// ============================================================
+describe("filterByDate — specific date", () => {
+  const now = new Date("2024-06-15T19:30:00Z");
+
+  it("filters to a specific date", () => {
+    // 10:00 Colombia June 15 = 15:00 UTC June 15
+    const june15 = makeOrder({ id: "j15", created_at: "2024-06-15T15:00:00Z" });
+    // 10:00 Colombia June 14 = 15:00 UTC June 14
+    const june14 = makeOrder({ id: "j14", created_at: "2024-06-14T15:00:00Z" });
+    const result = filterByDate([june15, june14], { specific: "2024-06-15" }, now);
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("j15");
+  });
+
+  it("handles order at midnight Colombia on specific date", () => {
+    const midnight = makeOrder({ id: "mid", created_at: "2024-06-15T05:00:00Z" });
+    const result = filterByDate([midnight], { specific: "2024-06-15" }, now);
+    expect(result).toHaveLength(1);
+  });
+
+  it("excludes order from different date", () => {
+    const other = makeOrder({ id: "other", created_at: "2024-06-16T05:00:00Z" });
+    const result = filterByDate([other], { specific: "2024-06-15" }, now);
+    expect(result).toHaveLength(0);
   });
 });
 

@@ -9,7 +9,8 @@ import { useAuth } from "@/lib/hooks/use-auth";
 import { signOut } from "@/lib/auth";
 import type { ActiveWaiter, Order, OrderEvent, OrderStatus } from "@/lib/types";
 import { needsItemReload } from "@/lib/realtime";
-import { filterByDate, sortOrders } from "@/lib/dashboard/logic";
+import { filterByDate, sortOrders, filterByTable, searchOrders, getVisibleTables } from "@/lib/dashboard/logic";
+import { tableLabel, isDeliveryTable } from "@/lib/utils";
 import {
   advanceOrderStatus,
   undoOrderStatus,
@@ -19,7 +20,7 @@ import {
 import { OrdersFeed } from "./orders-feed";
 import { ActiveWaiters } from "./active-waiters";
 import { OrderDetail } from "./order-detail";
-import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle } from "lucide-react";
+import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle, Search, Table2 } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
 const STATUS_LABELS: Record<OrderStatus, string> = {
@@ -50,10 +51,13 @@ export function DashboardClient() {
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<OrderStatus | null>(null);
   const [waiterFilter, setWaiterFilter] = useState<string | null>(null);
-  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all">("today");
+  const [tableFilter, setTableFilter] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [dateFilter, setDateFilter] = useState<"today" | "yesterday" | "all" | { specific: string }>("today");
   const [isOnline, setIsOnline] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [waiterFilterOpen, setWaiterFilterOpen] = useState(false);
+  const [tableFilterOpen, setTableFilterOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [undoData, setUndoData] = useState<{
     orderId: string;
@@ -412,18 +416,25 @@ export function DashboardClient() {
     return filterByDate(orders, dateFilter);
   }, [orders, dateFilter]);
 
-  // Status + waiter filtering (applied on top of date filter)
+  // Status + waiter + table + search filtering (applied on top of date filter)
   const filteredOrders = useMemo(() => {
     let result = filteredByDate;
     if (statusFilter) result = result.filter((o) => o.status === statusFilter);
     if (waiterFilter) result = result.filter((o) => o.waiter_name === waiterFilter);
+    result = filterByTable(result, tableFilter);
+    result = searchOrders(result, searchQuery);
     return sortOrders(result);
-  }, [filteredByDate, statusFilter, waiterFilter]);
+  }, [filteredByDate, statusFilter, waiterFilter, tableFilter, searchQuery]);
 
   // Unique waiter names from visible (date-filtered) orders
   const visibleWaiters = useMemo(() => {
     const names = new Set(filteredByDate.map((o) => o.waiter_name));
     return Array.from(names).sort();
+  }, [filteredByDate]);
+
+  // Unique table numbers from visible (date-filtered) orders
+  const visibleTables = useMemo(() => {
+    return getVisibleTables(filteredByDate);
   }, [filteredByDate]);
 
   if (displayError) {
@@ -679,7 +690,26 @@ export function DashboardClient() {
               </h2>
               <span className="text-xs text-stone-400">{filteredOrders.length}</span>
             </div>
-            {/* Date filter pills */}
+            {/* Search box */}
+            <div className="mt-2 flex items-center gap-1.5">
+              <Search className="size-3.5 shrink-0 text-stone-600" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Buscar por plato, mesa o mesero..."
+                className="w-full rounded-md bg-stone-900 px-2 py-1 text-xs text-stone-200 placeholder:text-stone-600 focus:outline-none focus:ring-1 focus:ring-stone-700"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="shrink-0 text-stone-600 transition-colors hover:text-stone-400"
+                >
+                  <X className="size-3" />
+                </button>
+              )}
+            </div>
+            {/* Date filter — quick presets + date picker */}
             <div className="mt-2 flex items-center gap-1.5">
               <Calendar className="size-3.5 shrink-0 text-stone-600" />
               {(["today", "yesterday", "all"] as const).map((d) => (
@@ -695,11 +725,20 @@ export function DashboardClient() {
                   {d === "today" ? "Hoy" : d === "yesterday" ? "Ayer" : "Todos"}
                 </button>
               ))}
+              <input
+                type="date"
+                value={typeof dateFilter === "object" ? dateFilter.specific : ""}
+                onChange={(e) => {
+                  if (e.target.value) {
+                    setDateFilter({ specific: e.target.value });
+                  }
+                }}
+                className="ml-auto rounded-md bg-stone-900 px-1.5 py-1 text-xs text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-700 [color-scheme:dark]"
+              />
             </div>
-            {/* Waiter filter dropdown */}
-            {visibleWaiters.length > 1 && (
-              <div className="mt-2 flex items-center gap-1.5">
-                <Users className="size-3.5 shrink-0 text-stone-600" />
+            {/* Waiter + Table filter dropdowns */}
+            <div className="mt-2 flex items-center gap-1.5">
+              {visibleWaiters.length > 1 && (
                 <div className="relative flex-1">
                   <button
                     onClick={() => setWaiterFilterOpen(!waiterFilterOpen)}
@@ -709,8 +748,9 @@ export function DashboardClient() {
                         : "text-stone-500 hover:bg-stone-800/50 hover:text-stone-300"
                     }`}
                   >
-                    <span className="truncate">
-                      {waiterFilter ?? "Todos los meseros"}
+                    <span className="flex items-center gap-1 truncate">
+                      <Users className="size-3 shrink-0" />
+                      <span className="truncate">{waiterFilter ?? "Mesero"}</span>
                     </span>
                     <ChevronDown className={`size-3 shrink-0 transition-transform ${waiterFilterOpen ? "rotate-180" : ""}`} />
                   </button>
@@ -741,11 +781,57 @@ export function DashboardClient() {
                     </>
                   )}
                 </div>
-              </div>
-            )}
-            {(statusFilter || waiterFilter) && (
+              )}
+              {visibleTables.length > 1 && (
+                <div className="relative flex-1">
+                  <button
+                    onClick={() => setTableFilterOpen(!tableFilterOpen)}
+                    className={`flex w-full items-center justify-between rounded-md px-2 py-1 text-xs transition-colors ${
+                      tableFilter !== null
+                        ? "bg-stone-800 font-medium text-stone-200"
+                        : "text-stone-500 hover:bg-stone-800/50 hover:text-stone-300"
+                    }`}
+                  >
+                    <span className="flex items-center gap-1 truncate">
+                      <Table2 className="size-3 shrink-0" />
+                      <span className="truncate">
+                        {tableFilter !== null ? tableLabel(tableFilter) : "Mesa"}
+                      </span>
+                    </span>
+                    <ChevronDown className={`size-3 shrink-0 transition-transform ${tableFilterOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {tableFilterOpen && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={() => setTableFilterOpen(false)} />
+                      <div className="absolute left-0 top-7 z-50 max-h-60 w-full overflow-y-auto rounded-lg border border-white/10 bg-stone-950 py-1 shadow-xl">
+                        <button
+                          onClick={() => { setTableFilter(null); setTableFilterOpen(false); }}
+                          className={`flex w-full items-center px-3 py-2 text-left text-xs transition-colors hover:bg-stone-900 ${
+                            tableFilter === null ? "font-medium text-stone-200" : "text-stone-500"
+                          }`}
+                        >
+                          Todas las mesas
+                        </button>
+                        {visibleTables.map((table) => (
+                          <button
+                            key={table}
+                            onClick={() => { setTableFilter(tableFilter === table ? null : table); setTableFilterOpen(false); }}
+                            className={`flex w-full items-center px-3 py-2 text-left text-xs transition-colors hover:bg-stone-900 ${
+                              tableFilter === table ? "font-medium text-stone-200" : "text-stone-500"
+                            }`}
+                          >
+                            {tableLabel(table)}
+                          </button>
+                        ))}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+            {(statusFilter || waiterFilter || tableFilter !== null || searchQuery) && (
               <button
-                onClick={() => { setStatusFilter(null); setWaiterFilter(null); }}
+                onClick={() => { setStatusFilter(null); setWaiterFilter(null); setTableFilter(null); setSearchQuery(""); }}
                 className="mt-2 flex items-center gap-1 rounded-md px-2 py-1 text-xs text-stone-500 transition-colors hover:text-stone-300"
               >
                 <X className="size-3" />
