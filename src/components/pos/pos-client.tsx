@@ -527,7 +527,7 @@ export function PosClient() {
       return;
     }
 
-    toast(`Pedido enviado a cocina — ${tableLabel(selectedTable)}`, "success");
+    toast(`Pedido #${String(result.data.orderNumber).padStart(3, "0")} enviado a cocina — ${tableLabel(selectedTable)}`, "success");
     setCart([]);
     setDeliveryName("");
     setDeliveryFee("");
