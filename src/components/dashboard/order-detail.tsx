@@ -466,24 +466,30 @@ export function OrderDetail({
             </div>
             {editingFee ? (
               <div className="flex items-center gap-2">
-                <span className="text-sm text-stone-500">$</span>
-                <input
-                  type="number"
-                  autoFocus
-                  value={deliveryFeeInput}
-                  onChange={(e) => setDeliveryFeeInput(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      const fee = parseInt(deliveryFeeInput, 10) || 0;
-                      onSetDeliveryFee(order.id, fee);
-                      setEditingFee(false);
-                    } else if (e.key === "Escape") {
-                      setEditingFee(false);
-                    }
-                  }}
-                  placeholder="0"
-                  className="w-32 rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 text-lg font-semibold text-stone-100 placeholder:text-stone-600 focus:border-yellow-500/50 focus:outline-none"
-                />
+                <div className="flex flex-1 items-center rounded-lg border border-stone-700 bg-stone-800 px-3 py-2 focus-within:border-yellow-500/50">
+                  <span className="text-sm text-stone-600">$</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    autoFocus
+                    value={deliveryFeeInput ? new Intl.NumberFormat("es-CO").format(parseInt(deliveryFeeInput, 10)) : ""}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setDeliveryFeeInput(digits);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        const fee = parseInt(deliveryFeeInput, 10) || 0;
+                        onSetDeliveryFee(order.id, fee);
+                        setEditingFee(false);
+                      } else if (e.key === "Escape") {
+                        setEditingFee(false);
+                      }
+                    }}
+                    placeholder="0"
+                    className="w-full bg-transparent text-right text-lg font-semibold text-stone-100 placeholder:text-stone-600 focus:outline-none"
+                  />
+                </div>
                 <button
                   onClick={() => {
                     const fee = parseInt(deliveryFeeInput, 10) || 0;
