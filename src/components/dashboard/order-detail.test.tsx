@@ -408,4 +408,31 @@ describe("OrderDetail — history", () => {
     render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onDelete={noop} />);
     expect(screen.getByText(/Refresco \(1x\)/)).toBeInTheDocument();
   });
+
+  it("shows 'Domicilio actualizado' for delivery_fee_set event", () => {
+    const events = [makeEvent({ event_type: "delivery_fee_set", actor_name: "admin" })];
+    render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onDelete={noop} />);
+    expect(screen.getByText("Domicilio actualizado")).toBeInTheDocument();
+  });
+
+  it("shows fee change details for delivery_fee_set event", () => {
+    const events = [makeEvent({
+      event_type: "delivery_fee_set",
+      metadata: {
+        previous_fee: 2000,
+        new_fee: 5000,
+        previous_total: 17000,
+        new_total: 20000,
+      },
+    })];
+    const { container } = render(<OrderDetail order={makeOrder()} events={events} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onDelete={noop} />);
+    // The fee change details are in a single <p> with yellow color
+    const detailText = container.querySelector(".text-yellow-400\\/80")?.textContent ?? "";
+    expect(detailText).toContain("→");
+    expect(detailText).toMatch(/2[.,]000/);
+    expect(detailText).toMatch(/5[.,]000/);
+    expect(detailText).toMatch(/17[.,]000/);
+    expect(detailText).toMatch(/20[.,]000/);
+    expect(detailText).toContain("Total");
+  });
 });

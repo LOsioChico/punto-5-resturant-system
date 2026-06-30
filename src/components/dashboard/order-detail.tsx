@@ -566,6 +566,9 @@ export function OrderDetail({
                   additional_number?: number;
                   additional_total?: number;
                   new_total?: number;
+                  previous_fee?: number;
+                  new_fee?: number;
+                  previous_total?: number;
                 };
                 const changes: string[] = [];
                 if (meta.added) changes.push(`+${meta.added} agregado${meta.added > 1 ? "s" : ""}`);
@@ -608,7 +611,9 @@ export function OrderDetail({
                                 ? "size-2.5 shrink-0 rounded-full bg-amber-500 ring-4 ring-amber-500/10"
                                 : event.event_type === "additional_added"
                                   ? "size-2.5 shrink-0 rounded-full bg-blue-500 ring-4 ring-blue-500/10"
-                                  : "size-2.5 shrink-0 rounded-full bg-stone-500 ring-4 ring-stone-500/10"
+                                  : event.event_type === "delivery_fee_set"
+                                    ? "size-2.5 shrink-0 rounded-full bg-yellow-400 ring-4 ring-yellow-400/10"
+                                    : "size-2.5 shrink-0 rounded-full bg-stone-500 ring-4 ring-stone-500/10"
                         }
                       />
                       {idx < events.length - 1 && (
@@ -649,6 +654,19 @@ export function OrderDetail({
                         <p className="mt-1 text-xs text-blue-400/80">
                           Adicional #{meta.additional_number} · {meta.item_count} {meta.item_count === 1 ? "plato" : "platos"}
                           {meta.additional_total ? ` · ${formatCOP(meta.additional_total)}` : ""}
+                        </p>
+                      )}
+                      {/* Delivery fee change details */}
+                      {event.event_type === "delivery_fee_set" && (
+                        <p className="mt-1 text-xs text-yellow-400/80">
+                          {meta.previous_fee !== undefined && meta.new_fee !== undefined
+                            ? `${formatCOP(meta.previous_fee)} → ${formatCOP(meta.new_fee)}`
+                            : meta.new_fee !== undefined
+                              ? `Domicilio: ${formatCOP(meta.new_fee)}`
+                              : null}
+                          {meta.new_total !== undefined && meta.previous_total !== undefined
+                            ? ` · Total: ${formatCOP(meta.previous_total)} → ${formatCOP(meta.new_total)}`
+                            : ""}
                         </p>
                       )}
                       {changes.length > 0 && (
