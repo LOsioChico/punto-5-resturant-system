@@ -91,7 +91,7 @@ export async function createOrder(
     cart: CartItem[];
     actor: Actor;
   },
-): Promise<Result<{ orderId: string; total: number }>> {
+): Promise<Result<{ orderId: string; orderNumber: number; total: number }>> {
   const { tableNumber, waiterName, waiterId, deliveryName, deliveryFee, cart, actor } = params;
 
   const desechables = calcDesechables(tableNumber, cart);
@@ -111,7 +111,7 @@ export async function createOrder(
       delivery_name: isDelivery ? deliveryName.trim() : null,
       delivery_fee: fee,
     })
-    .select("id")
+    .select("id, order_number")
     .single();
 
   if (orderErr || !order) {
@@ -144,7 +144,7 @@ export async function createOrder(
     },
   });
 
-  return { data: { orderId: order.id, total } };
+  return { data: { orderId: order.id, orderNumber: order.order_number, total } };
 }
 
 // ─── 2. Add Additional Items ─────────────────────────────────

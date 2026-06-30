@@ -45,6 +45,7 @@ export type EventType =
 
 export interface Order {
   id: string;
+  order_number: number;
   table_number: number;
   waiter_name: string;
   waiter_id: string;

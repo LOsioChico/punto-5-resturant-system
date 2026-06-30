@@ -48,8 +48,15 @@ export function CommandPreview({ order, additionalOnly, wasModified }: { order: 
         <div className="text-center">
           <p className="text-lg font-bold tracking-wider text-black">PUNTO 5</p>
           <p className="text-xs text-stone-600">
-            {additionalOnly !== undefined ? "ADICIONAL #" + additionalOnly : "Comanda de cocina"}
+            {additionalOnly !== undefined
+              ? "ADICIONAL #" + additionalOnly
+              : "Comanda de cocina"}
           </p>
+          {order.order_number && (
+            <p className="text-xs font-bold text-black">
+              Pedido #{String(order.order_number).padStart(3, "0")}
+            </p>
+          )}
         </div>
 
         <div className="my-2 border-t border-dashed border-stone-300" />

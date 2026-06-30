@@ -69,6 +69,11 @@ export function OrdersFeed({
                   <span className="text-sm font-bold text-stone-100">
                     {tableLabel(order.table_number)}
                   </span>
+                  {order.order_number && (
+                    <span className="text-[10px] font-medium text-stone-600">
+                      #{String(order.order_number).padStart(3, "0")}
+                    </span>
+                  )}
                   {isNew && (
                     <span className="rounded bg-red-500/15 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-red-400">
                       Nuevo

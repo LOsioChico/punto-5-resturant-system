@@ -26,6 +26,7 @@ function makeItem(overrides: Partial<OrderItem> = {}): OrderItem {
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: "order-1",
+    order_number: 1,
     table_number: 5,
     waiter_name: "Juan",
     waiter_id: "waiter-1",

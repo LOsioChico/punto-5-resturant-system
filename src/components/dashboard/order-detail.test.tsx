@@ -23,6 +23,7 @@ function makeItem(overrides: Partial<OrderItem> = {}): OrderItem {
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: "order-1",
+    order_number: 1,
     table_number: 5,
     waiter_name: "Juan",
     waiter_id: "waiter-1",
@@ -76,8 +77,14 @@ describe("OrderDetail — header", () => {
   it("shows table number", () => {
     render(<OrderDetail order={makeOrder({ table_number: 7 })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onDelete={noop} />);
     // "Mesa 7" appears in both the header <h2> and the CommandPreview;
-    // target the header heading specifically.
-    expect(screen.getByRole("heading", { name: "Mesa 7" })).toBeInTheDocument();
+    // target the header heading specifically. The heading now also includes
+    // the order number badge (e.g. "Mesa 7#001").
+    expect(screen.getByRole("heading", { name: /Mesa 7/ })).toBeInTheDocument();
+  });
+
+  it("shows order number badge", () => {
+    render(<OrderDetail order={makeOrder({ order_number: 42 })} events={[]} onAdvanceStatus={noop} onPrint={noop} onSetDeliveryFee={noop} onDelete={noop} />);
+    expect(screen.getByText("#042")).toBeInTheDocument();
   });
 
   it("shows waiter name", () => {

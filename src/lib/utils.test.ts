@@ -158,6 +158,7 @@ describe("timeAgo", () => {
 describe("isOrderOwner", () => {
   const baseOrder: Order = {
     id: "1",
+    order_number: 1,
     table_number: 5,
     waiter_name: "Juan",
     waiter_id: "waiter-1",

@@ -111,8 +111,13 @@ export function OrderDetail({
               {isDeliveryTable(order.table_number) ? <Bike className="size-6" /> : tableShortName(order.table_number)}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-stone-100">
+              <h2 className="flex items-center gap-2 text-xl font-bold text-stone-100">
                 {tableLabel(order.table_number)}
+                {order.order_number && (
+                  <span className="rounded-md bg-stone-800 px-2 py-0.5 text-sm font-medium text-stone-400">
+                    #{String(order.order_number).padStart(3, "0")}
+                  </span>
+                )}
               </h2>
               {order.delivery_name && (
                 <p className="mt-0.5 text-sm font-medium text-yellow-400">

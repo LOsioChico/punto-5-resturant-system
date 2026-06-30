@@ -33,6 +33,7 @@ import type { Order, OrderEvent, OrderItem } from "@/lib/types";
 function makeOrder(overrides: Partial<Order> = {}): Order {
   return {
     id: "order-1",
+    order_number: 1,
     table_number: 1,
     waiter_name: "Juan",
     waiter_id: "waiter-1",
@@ -454,12 +455,14 @@ describe("searchOrders", () => {
   const orders = [
     makeOrder({
       id: "1",
+      order_number: 42,
       table_number: 5,
       waiter_name: "Juan",
       items: [makeItem({ dish_name: "Hamburguesa" })],
     }),
     makeOrder({
       id: "2",
+      order_number: 100,
       table_number: 18,
       waiter_name: "Pedro",
       delivery_name: "Carlos",
@@ -495,6 +498,18 @@ describe("searchOrders", () => {
 
   it("searches by delivery name", () => {
     const result = searchOrders(orders, "carlos");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("2");
+  });
+
+  it("searches by order number", () => {
+    const result = searchOrders(orders, "42");
+    expect(result).toHaveLength(1);
+    expect(result[0].id).toBe("1");
+  });
+
+  it("searches by order number with # prefix", () => {
+    const result = searchOrders(orders, "#100");
     expect(result).toHaveLength(1);
     expect(result[0].id).toBe("2");
   });

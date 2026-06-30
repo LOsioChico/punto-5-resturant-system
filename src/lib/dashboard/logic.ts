@@ -129,11 +129,14 @@ export function filterByTable(orders: Order[], table: number | null): Order[] {
   return orders.filter((o) => o.table_number === table);
 }
 
-/** Search orders by dish name, table number, or waiter name. */
+/** Search orders by order number, dish name, table number, waiter name, or delivery name. */
 export function searchOrders(orders: Order[], query: string): Order[] {
   const q = query.trim().toLowerCase();
   if (!q) return orders;
+  // Strip leading "#" or "pedido" if the user types it
+  const normalized = q.replace(/^#?\s*(pedido\s*)?/, "");
   return orders.filter((o) => {
+    if (o.order_number && String(o.order_number).includes(normalized)) return true;
     if (o.waiter_name.toLowerCase().includes(q)) return true;
     if (String(o.table_number).includes(q)) return true;
     if (o.delivery_name?.toLowerCase().includes(q)) return true;
