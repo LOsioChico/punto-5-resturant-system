@@ -18,10 +18,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v5
 
-      - name: Fetch previous backup from backups branch
+      - name: Fetch previous backup from latest tag
         run: |
-          git fetch origin backups --depth=1 || true
-          git show origin/backups:data.sql.gz > prev_data.sql.gz 2>/dev/null && echo "Found previous backup" || echo "No previous backup"
+          # Fetch all backup tags (shallow)
+          git fetch --tags --depth=1 origin "refs/tags/backup-*:refs/tags/backup-*" || true
+          # Find the latest backup tag
+          LATEST_TAG=$(git tag -l "backup-*" --sort=-version:refname | head -1)
+          if [ -n "$LATEST_TAG" ]; then
+            git show "$LATEST_TAG:data.sql.gz" > prev_data.sql.gz 2>/dev/null && echo "Found previous backup ($LATEST_TAG)" || echo "No previous backup"
+          else
+            echo "No previous backup tag found"
+          fi
 
       - name: Dump data (pg_dump 17 via Docker, no install needed)
         env:
@@ -68,15 +75,20 @@ jobs:
           path: data.sql.gz
           retention-days: 90
 
-      - name: Commit to backups branch
+      - name: Push backup as tag (not a branch — avoids triggering Vercel)
         if: steps.changed.outputs.changed == 'true'
         run: |
-          mv data.sql.gz /tmp/data.sql.gz
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout --orphan backups
+          BACKUP_TAG="backup-$(date -u +%Y-%m-%dT%H-%M-%SZ)"
+          # Create an orphan commit containing only data.sql.gz.
+          # This keeps the tag self-contained (just the backup file)
+          # and doesn't pollute any branch or trigger Vercel deployments.
+          mv data.sql.gz /tmp/data.sql.gz
+          git checkout --orphan backup-tmp
           git rm -rf . 2>/dev/null || true
           mv /tmp/data.sql.gz .
           git add data.sql.gz
           git commit -m "Backup $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          git push origin backups --force
+          git tag "$BACKUP_TAG"
+          git push origin "$BACKUP_TAG"
