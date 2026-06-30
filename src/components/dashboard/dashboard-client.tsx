@@ -24,6 +24,58 @@ import { OrderDetail } from "./order-detail";
 import { Clock, ChefHat, CheckCircle2, Utensils, Calendar, X, Users, WifiOff, LogOut, UserCog, ChevronDown, UserCircle, Search, Table2, Trash2, ArrowLeft } from "lucide-react";
 import { cacheOrders, loadCachedOrders } from "@/lib/offline/db";
 
+const MONTH_NAMES = [
+  "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
+  "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
+];
+
+/** Format a YYYY-MM-DD date string as "12 Jun 2026" for the button label. */
+function formatDateLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const shortMonth = MONTH_NAMES[m - 1].slice(0, 3);
+  return `${d} ${shortMonth} ${y}`;
+}
+
+interface CalendarDay {
+  year: number;
+  month: number;
+  date: number;
+  isToday: boolean;
+  isSelected: boolean;
+}
+
+/** Build a 6-row calendar grid (42 cells) for the given month, starting on Monday. */
+function renderCalendarDays(
+  { year, month }: { year: number; month: number },
+  selectedDate: string | null,
+): (CalendarDay | null)[] {
+  const today = new Date();
+  const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+
+  const firstDay = new Date(year, month, 1);
+  // Convert Sunday=0 to Monday=0 offset
+  const startOffset = (firstDay.getDay() + 6) % 7;
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells: (CalendarDay | null)[] = [];
+  // Leading blanks
+  for (let i = 0; i < startOffset; i++) cells.push(null);
+  // Days
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+    cells.push({
+      year,
+      month,
+      date: d,
+      isToday: dateStr === todayStr,
+      isSelected: dateStr === selectedDate,
+    });
+  }
+  // Trailing blanks to fill 42 cells (6 rows)
+  while (cells.length < 42) cells.push(null);
+  return cells;
+}
+
 const STATUS_LABELS: Record<OrderStatus, string> = {
   nueva: "Nuevas",
   en_cocina: "En cocina",
@@ -61,6 +113,11 @@ export function DashboardClient() {
   const [tableFilterOpen, setTableFilterOpen] = useState(false);
   const [confirmSignOut, setConfirmSignOut] = useState(false);
   const [showDeleted, setShowDeleted] = useState(false);
+  const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [calendarMonth, setCalendarMonth] = useState(() => {
+    const now = new Date();
+    return { year: now.getFullYear(), month: now.getMonth() };
+  });
   const [undoData, setUndoData] = useState<{
     orderId: string;
     fromStatus: OrderStatus;
@@ -807,7 +864,7 @@ export function DashboardClient() {
                 </button>
               )}
             </div>
-            {/* Date filter — quick presets + date picker */}
+            {/* Date filter — quick presets + custom date picker */}
             <div className="mt-2 flex items-center gap-1.5">
               <Calendar className="size-3.5 shrink-0 text-stone-600" />
               {(["today", "yesterday", "all"] as const).map((d) => (
@@ -823,16 +880,107 @@ export function DashboardClient() {
                   {d === "today" ? "Hoy" : d === "yesterday" ? "Ayer" : "Todos"}
                 </button>
               ))}
-              <input
-                type="date"
-                value={typeof dateFilter === "object" ? dateFilter.specific : ""}
-                onChange={(e) => {
-                  if (e.target.value) {
-                    setDateFilter({ specific: e.target.value });
-                  }
-                }}
-                className="ml-auto rounded-md bg-stone-900 px-1.5 py-1 text-xs text-stone-400 focus:outline-none focus:ring-1 focus:ring-stone-700 [color-scheme:dark]"
-              />
+              {/* Custom date picker dropdown */}
+              <div className="relative ml-auto">
+                <button
+                  onClick={() => {
+                    setDatePickerOpen(!datePickerOpen);
+                    if (!datePickerOpen && typeof dateFilter === "object") {
+                      const [y, m] = dateFilter.specific.split("-").map(Number);
+                      setCalendarMonth({ year: y, month: m - 1 });
+                    }
+                  }}
+                  className={`flex items-center gap-1 rounded-md px-2 py-1 text-xs transition-colors ${
+                    typeof dateFilter === "object"
+                      ? "bg-stone-800 font-medium text-stone-200"
+                      : "text-stone-500 hover:bg-stone-800/50 hover:text-stone-300"
+                  }`}
+                >
+                  <Calendar className="size-3 shrink-0" />
+                  <span>
+                    {typeof dateFilter === "object"
+                      ? formatDateLabel(dateFilter.specific)
+                      : "Fecha..."}
+                  </span>
+                  {typeof dateFilter === "object" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setDateFilter("today");
+                        setDatePickerOpen(false);
+                      }}
+                      className="ml-0.5 text-stone-600 hover:text-stone-400"
+                    >
+                      <X className="size-3" />
+                    </button>
+                  )}
+                  <ChevronDown className={`size-3 shrink-0 transition-transform ${datePickerOpen ? "rotate-180" : ""}`} />
+                </button>
+                {datePickerOpen && (
+                  <>
+                    <div className="fixed inset-0 z-40" onClick={() => setDatePickerOpen(false)} />
+                    <div className="absolute right-0 top-7 z-50 w-64 rounded-lg border border-white/10 bg-stone-950 p-3 shadow-xl">
+                      {/* Month navigation */}
+                      <div className="mb-2 flex items-center justify-between">
+                        <button
+                          onClick={() => setCalendarMonth((prev) => {
+                            const m = prev.month - 1;
+                            return m < 0 ? { year: prev.year - 1, month: 11 } : { year: prev.year, month: m };
+                          })}
+                          className="rounded p-1 text-stone-500 hover:bg-stone-900 hover:text-stone-300"
+                        >
+                          <ChevronDown className="size-3.5 rotate-90" />
+                        </button>
+                        <span className="text-xs font-medium text-stone-300">
+                          {MONTH_NAMES[calendarMonth.month]} {calendarMonth.year}
+                        </span>
+                        <button
+                          onClick={() => setCalendarMonth((prev) => {
+                            const m = prev.month + 1;
+                            return m > 11 ? { year: prev.year + 1, month: 0 } : { year: prev.year, month: m };
+                          })}
+                          className="rounded p-1 text-stone-500 hover:bg-stone-900 hover:text-stone-300"
+                        >
+                          <ChevronDown className="size-3.5 -rotate-90" />
+                        </button>
+                      </div>
+                      {/* Day headers */}
+                      <div className="mb-1 grid grid-cols-7 gap-0.5">
+                        {["L", "M", "M", "J", "V", "S", "D"].map((d, i) => (
+                          <div key={i} className="text-center text-[10px] font-medium text-stone-600">{d}</div>
+                        ))}
+                      </div>
+                      {/* Calendar grid */}
+                      <div className="grid grid-cols-7 gap-0.5">
+                        {renderCalendarDays(calendarMonth, typeof dateFilter === "object" ? dateFilter.specific : null).map((day, i) => (
+                          <button
+                            key={i}
+                            disabled={!day}
+                            onClick={() => {
+                              if (day) {
+                                const dateStr = `${day.year}-${String(day.month + 1).padStart(2, "0")}-${String(day.date).padStart(2, "0")}`;
+                                setDateFilter({ specific: dateStr });
+                                setDatePickerOpen(false);
+                              }
+                            }}
+                            className={`aspect-square rounded text-xs transition-colors ${
+                              !day
+                                ? "cursor-default"
+                                : day.isSelected
+                                  ? "bg-stone-200 font-bold text-stone-950"
+                                  : day.isToday
+                                    ? "bg-stone-800 font-medium text-stone-200"
+                                    : "text-stone-400 hover:bg-stone-900 hover:text-stone-200"
+                            }`}
+                          >
+                            {day?.date}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
             </div>
             {/* Waiter + Table filter dropdowns */}
             <div className="mt-2 flex items-center gap-1.5">
