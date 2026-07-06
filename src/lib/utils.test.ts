@@ -145,6 +145,26 @@ describe("timeAgo", () => {
     expect(timeAgo(date)).toBe("hace 1h 0min");
   });
 
+  it("returns 'ayer' for 1 day ago", () => {
+    const date = new Date(Date.now() - 26 * 60 * 60 * 1000); // ~1 day
+    expect(timeAgo(date)).toBe("ayer");
+  });
+
+  it("returns 'hace X días' for days", () => {
+    const date = new Date(Date.now() - 3 * 24 * 60 * 60 * 1000);
+    expect(timeAgo(date)).toBe("hace 3 días");
+  });
+
+  it("returns 'hace X sem' for weeks", () => {
+    const date = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000);
+    expect(timeAgo(date)).toBe("hace 1 sem");
+  });
+
+  it("returns 'hace X meses' for months", () => {
+    const date = new Date(Date.now() - 60 * 24 * 60 * 60 * 1000);
+    expect(timeAgo(date)).toBe("hace 1 mes");
+  });
+
   it("handles future dates (negative seconds)", () => {
     const date = new Date(Date.now() + 30 * 1000);
     // Negative seconds → < 60 → "hace un momento"

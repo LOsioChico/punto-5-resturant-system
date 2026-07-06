@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import { differenceInSeconds, differenceInMinutes, differenceInHours } from "date-fns";
+import { differenceInSeconds, differenceInMinutes, differenceInHours, differenceInDays, differenceInMonths, differenceInYears } from "date-fns";
 import type { Order, OrderItem } from "./types";
 import { formatInColombia } from "./timezone";
 
@@ -40,7 +40,15 @@ export function timeAgo(date: Date | string): string {
   const minutes = differenceInMinutes(new Date(), d);
   if (minutes < 60) return `hace ${minutes} min`;
   const hours = differenceInHours(new Date(), d);
-  return `hace ${hours}h ${minutes % 60}min`;
+  if (hours < 24) return `hace ${hours}h ${minutes % 60}min`;
+  const days = differenceInDays(new Date(), d);
+  if (days === 1) return "ayer";
+  if (days < 7) return `hace ${days} días`;
+  if (days < 30) return `hace ${Math.floor(days / 7)} sem`;
+  const months = differenceInMonths(new Date(), d);
+  if (months < 12) return `hace ${months} ${months === 1 ? "mes" : "meses"}`;
+  const years = differenceInYears(new Date(), d);
+  return `hace ${years} ${years === 1 ? "año" : "años"}`;
 }
 
 /**
