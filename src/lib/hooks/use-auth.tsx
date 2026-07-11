@@ -8,7 +8,6 @@ import {
   setWaiterLoginTime,
   clearWaiterLoginTime,
   isWaiterSessionExpired,
-  getWaiterLoginTime,
 } from "@/lib/auth/session-expiry";
 import type { AuthRole, Waiter } from "@/lib/types";
 

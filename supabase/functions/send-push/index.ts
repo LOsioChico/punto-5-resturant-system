@@ -17,8 +17,9 @@ import webpush from "npm:web-push@3.6.7";
 const STATUS_MESSAGES: Record<string, string> = {
   nueva: "pedido recibido",
   en_cocina: "pedido en cocina",
-  lista: "pedido listo para servir",
   servida: "pedido servido",
+  finalizada: "pedido finalizado",
+  adicional: "adicional agregado",
 };
 
 // Configure web-push once on module load

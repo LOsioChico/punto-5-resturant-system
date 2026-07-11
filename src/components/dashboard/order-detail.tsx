@@ -452,6 +452,14 @@ export function OrderDetail({
               </span>
             </div>
           )}
+          {order.delivery_name && order.delivery_fee > 0 && (
+            <div className="flex items-center justify-between border-t border-white/5 px-1 pt-2">
+              <span className="text-xs text-yellow-500/70">Domicilio</span>
+              <span className="text-sm font-semibold text-yellow-500/70">
+                {formatCOP(order.delivery_fee)}
+              </span>
+            </div>
+          )}
           <div className="mt-3 flex items-center justify-between px-1">
             <span className="text-sm text-stone-500">Total</span>
             <span className="text-xl font-bold text-yellow-500">
